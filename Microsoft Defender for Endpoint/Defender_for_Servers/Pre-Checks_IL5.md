@@ -249,22 +249,8 @@ If Defender updates are not managed internally (WSUS/ConfigMgr/FileShare), allow
 ### 3.3 Exclusions Configuration
 
 - ☐ Trellix exclusions configured for MDAV/MDE binaries
-  ```powershell
-  # Verify Trellix console has exclusions for:
-  # - C:\Program Files\Windows Defender\
-  # - C:\ProgramData\Microsoft\Windows Defender\
-  # - C:\Windows\System32\SecurityHealthService.exe
-  # - C:\Windows\System32\SgrmBroker.exe
-  # Coordinate with Trellix admin for verification
-  ```
 
 - ☐ MDAV exclusions ready to apply for Trellix binaries
-  ```powershell
-  # Prepare exclusion commands (to be run in Phase A Step 1)
-  # Add-MpPreference -ExclusionProcess "C:\Program Files\Trellix\*"
-  # Add-MpPreference -ExclusionPath "C:\Program Files\Trellix\"
-  # Add-MpPreference -ExclusionPath "C:\ProgramData\Trellix\"
-  ```
 
 ### 3.4 Pre-Flight Summary
 
@@ -279,7 +265,7 @@ If Defender updates are not managed internally (WSUS/ConfigMgr/FileShare), allow
 
 ---
 
-## 11. HANDOFF NOTES (FIELD GOTCHAS)
+## 11. Field Gocthas from Previous Deployments
 
 Use this section as a final go/no-go check before broad deployment.
 

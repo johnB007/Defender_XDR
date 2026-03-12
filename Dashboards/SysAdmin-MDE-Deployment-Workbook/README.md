@@ -28,35 +28,41 @@ This workbook gives SOC teams fast operational triage while also giving CISO lea
 | DLP Events | Review USB/removable media events and potential exfiltration signals. | Monitor data protection control effectiveness and policy pressure. |
 | Intune Compliance | Correlate FW policy assignment with sync/compliance evidence. | Validate policy rollout quality and follow-up performance. |
 
-## Screenshot Placeholders
-Use these placeholders now, then replace each file with live screenshots after final validation.
 
 ### Workbook Overview
-![Workbook Overview Placeholder](./images/placeholder-overview.svg)
 
 ### Compliance Tab
-![Compliance Placeholder](./images/placeholder-compliance.svg)
+<img width="1876" height="718" alt="image" src="https://github.com/user-attachments/assets/9308526f-f707-4844-a718-9a242acaa448" />
+<img width="1857" height="663" alt="image" src="https://github.com/user-attachments/assets/f0086a66-2c6e-480d-9085-c526278dd465" />
 
 ### EDR Sensor Tab
-![EDR Sensor Placeholder](./images/placeholder-edr-sensor.svg)
+<img width="1672" height="682" alt="image" src="https://github.com/user-attachments/assets/58175256-31df-4e9b-9596-af262a05318f" />
+<img width="1862" height="646" alt="image" src="https://github.com/user-attachments/assets/4ee6acad-930a-48e2-9e60-152c6f80f903" />
 
 ### AV Sensor Tab
-![AV Sensor Placeholder](./images/placeholder-av-sensor.svg)
+<img width="1803" height="721" alt="image" src="https://github.com/user-attachments/assets/04a281af-df17-4eb9-8836-fda4f86d6caf" />
+<img width="1874" height="681" alt="image" src="https://github.com/user-attachments/assets/33a06b2f-2ee6-4b42-b5b2-04105365c788" />
 
 ### EDR/AV Install Status Tab
-![EDR AV Install Placeholder](./images/placeholder-edr-av-install.svg)
+<img width="1886" height="848" alt="image" src="https://github.com/user-attachments/assets/a3fc564d-534b-46f3-9e79-f7e36103e0bd" />
+<img width="1877" height="818" alt="image" src="https://github.com/user-attachments/assets/d744359a-25a3-4c3c-bce1-878926d6ba86" />
 
 ### Firewall Events Tab
-![Firewall Placeholder](./images/placeholder-firewall-events.svg)
+<img width="1875" height="854" alt="image" src="https://github.com/user-attachments/assets/bcdd23eb-c718-412e-9478-c963663b59f5" />
+<img width="1875" height="646" alt="image" src="https://github.com/user-attachments/assets/aa5f4db5-2967-42b7-acbe-764c92133ecd" />
 
 ### Threat Events Tab
-![Threat Placeholder](./images/placeholder-threat.svg)
+<img width="1711" height="805" alt="image" src="https://github.com/user-attachments/assets/b85eb262-bbc7-411c-85a8-67d156008d4d" />
+<img width="1848" height="823" alt="image" src="https://github.com/user-attachments/assets/96d65aae-5350-49ee-835e-5798a546ab94" />
 
 ### DLP Events Tab
-![DLP Placeholder](./images/placeholder-dlp-events.svg)
+<img width="1868" height="837" alt="image" src="https://github.com/user-attachments/assets/f657772e-e715-4c85-ae27-07b2ccc442d4" />
 
 ### Intune Compliance Tab
-![Intune Placeholder](./images/placeholder-intune-compliance.svg)
+<img width="1825" height="748" alt="image" src="https://github.com/user-attachments/assets/c11c3696-3246-4b4a-8daf-83ae1347bdce" />
+<img width="1875" height="415" alt="image" src="https://github.com/user-attachments/assets/23a0c756-3b0c-4b40-9981-dac7c9d19a67" />
+
+
 
 ## Prerequisites
 - A Microsoft Sentinel-enabled Log Analytics workspace

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#0b1020"/>
+  <text x="48" y="72" fill="#f8fafc" font-size="34" font-family="Segoe UI, Arial">EDR/AV Install Status Tab Placeholder</text>
+  <rect x="48" y="120" width="1184" height="240" rx="12" fill="#1e293b"/>
+  <rect x="48" y="390" width="1184" height="280" rx="12" fill="#1e293b"/>
+  <text x="78" y="190" fill="#fbbf24" font-size="26" font-family="Segoe UI, Arial">Bar chart: EDR+AV, AV only, EDR only, No coverage</text>
+  <text x="78" y="460" fill="#93c5fd" font-size="24" font-family="Segoe UI, Arial">Trend and installation details table area</text>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#0f172a"/>
+  <text x="48" y="72" fill="#f8fafc" font-size="34" font-family="Segoe UI, Arial">Firewall Events Tab Placeholder</text>
+  <rect x="48" y="120" width="1184" height="250" rx="12" fill="#1e293b"/>
+  <rect x="48" y="400" width="1184" height="270" rx="12" fill="#1e293b"/>
+  <text x="78" y="190" fill="#93c5fd" font-size="26" font-family="Segoe UI, Arial">Line chart: blocked, allowed, connection activity, failed connection</text>
+  <text x="78" y="470" fill="#94a3b8" font-size="24" font-family="Segoe UI, Arial">Device triage summary grid area</text>
+</svg>

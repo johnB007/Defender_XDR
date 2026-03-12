@@ -37,8 +37,26 @@ Use these placeholders now, then replace each file with live screenshots after f
 ### Compliance Tab
 ![Compliance Placeholder](./images/placeholder-compliance.svg)
 
+### EDR Sensor Tab
+![EDR Sensor Placeholder](./images/placeholder-edr-sensor.svg)
+
+### AV Sensor Tab
+![AV Sensor Placeholder](./images/placeholder-av-sensor.svg)
+
+### EDR/AV Install Status Tab
+![EDR AV Install Placeholder](./images/placeholder-edr-av-install.svg)
+
+### Firewall Events Tab
+![Firewall Placeholder](./images/placeholder-firewall-events.svg)
+
 ### Threat Events Tab
 ![Threat Placeholder](./images/placeholder-threat.svg)
+
+### DLP Events Tab
+![DLP Placeholder](./images/placeholder-dlp-events.svg)
+
+### Intune Compliance Tab
+![Intune Placeholder](./images/placeholder-intune-compliance.svg)
 
 ## Prerequisites
 - A Microsoft Sentinel-enabled Log Analytics workspace

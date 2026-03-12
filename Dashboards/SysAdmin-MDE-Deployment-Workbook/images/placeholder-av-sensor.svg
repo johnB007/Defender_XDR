@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720">
+  <rect width="1280" height="720" fill="#111827"/>
+  <text x="48" y="72" fill="#f8fafc" font-size="34" font-family="Segoe UI, Arial">AV Sensor Status Tab Placeholder</text>
+  <rect x="48" y="120" width="560" height="260" rx="12" fill="#1f2937"/>
+  <rect x="672" y="120" width="560" height="260" rx="12" fill="#1f2937"/>
+  <rect x="48" y="420" width="1184" height="250" rx="12" fill="#1f2937"/>
+  <text x="78" y="180" fill="#86efac" font-size="26" font-family="Segoe UI, Arial">Donut: AV communication status</text>
+  <text x="702" y="180" fill="#86efac" font-size="26" font-family="Segoe UI, Arial">Tile: AV compliance percentage</text>
+  <text x="78" y="480" fill="#9ca3af" font-size="24" font-family="Segoe UI, Arial">Trend + Linux fallback-aware details table</text>
+</svg>

@@ -15,11 +15,11 @@
         "description": "Workbook display name"
       }
     },
-    "workbookName": {
+    "workbookId": {
       "type": "string",
-      "defaultValue": "SysAdmin-MDE-Deployment-Workbook",
+      "defaultValue": "[newGuid()]",
       "metadata": {
-        "description": "Workbook resource name"
+        "description": "Workbook resource ID. Must be a GUID. Leave the default to create a new workbook instance."
       }
     }
   },
@@ -30,7 +30,7 @@
     {
       "type": "Microsoft.Insights/workbooks",
       "apiVersion": "2023-06-01",
-      "name": "[parameters('workbookName')]",
+      "name": "[parameters('workbookId')]",
       "location": "[resourceGroup().location]",
       "kind": "shared",
       "properties": {
@@ -44,7 +44,7 @@
   "outputs": {
     "workbookResourceId": {
       "type": "string",
-      "value": "[resourceId('Microsoft.Insights/workbooks', parameters('workbookName'))]"
+      "value": "[resourceId('Microsoft.Insights/workbooks', parameters('workbookId'))]"
     }
   }
 }

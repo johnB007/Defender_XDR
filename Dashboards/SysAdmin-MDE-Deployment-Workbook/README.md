@@ -85,7 +85,10 @@ Use one of the deployment buttons below.
 When the deployment blade opens, provide:
 - workspaceName: SOC-Central (or your target workspace name)
 - workbookDisplayName: SysAdmin MDE Deployment Workbook (or your preferred title)
-- workbookName: SysAdmin-MDE-Deployment-Workbook (or your preferred resource name)
+- workbookId: leave the default generated value, or provide your own GUID if you are updating an existing workbook instance
+
+### Deployment Note
+Azure workbook resources require the underlying resource name to be a GUID. The friendly workbook title still comes from `workbookDisplayName`.
 
 ## Manual Import (Portal)
 1. Go to Microsoft Sentinel in your target workspace.

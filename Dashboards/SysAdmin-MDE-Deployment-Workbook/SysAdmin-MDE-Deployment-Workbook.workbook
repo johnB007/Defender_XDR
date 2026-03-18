@@ -1,1461 +1,1438 @@
 {
-    "version": "Notebook/1.0",
-    "items": [
-        {
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "---\n\n**Classification:** UNCLASSIFIED // FOR OFFICIAL USE ONLY &nbsp;&nbsp;|&nbsp;&nbsp; **Policy Reference:** ESS FRAGO-6 &nbsp;&nbsp;|&nbsp;&nbsp; **Data Source:** Microsoft Defender for Endpoint via Microsoft Sentinel\n\nUse the **Time Range** selector and tabs below to explore each security domain. Status panels (pie charts + % tiles) use **fixed compliance windows** independent of the Time Range picker — changing the time range only affects trend charts and detail grids.",
+        "style": "0"
+      },
+      "name": "banner-header"
+    },
+    {
+      "type": 11,
+      "content": {
+        "version": "LinkItem/1.0",
+        "style": "tabs",
+        "links": [
+          {
+            "id": "tab-compliance",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "Compliance Status",
+            "subTarget": "Compliance",
+            "style": "button"
+          },
+          {
+            "id": "tab-edrsensor",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "EDR Sensor Status",
+            "subTarget": "EDRSensor",
+            "style": "button"
+          },
+          {
+            "id": "tab-avsensor",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "AV Sensor Status",
+            "subTarget": "AVSensor",
+            "style": "button"
+          },
+          {
+            "id": "tab-edrav",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "EDR/AV Install Status",
+            "subTarget": "EDRAV",
+            "style": "button"
+          },
+          {
+            "id": "tab-fw",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "Firewall Events",
+            "subTarget": "FWEvents",
+            "style": "button"
+          },
+          {
+            "id": "tab-threat",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "Threat Events",
+            "subTarget": "ThreatEvents",
+            "style": "button"
+          },
+          {
+            "id": "tab-dlpevents",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "DLP Events",
+            "subTarget": "DLPEvents",
+            "style": "button"
+          },
+          {
+            "id": "tab-intunefw",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "Intune Compliance",
+            "subTarget": "IntuneFireWall",
+            "style": "button"
+          }
+        ]
+      },
+      "name": "tabs"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "param-timerange",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "label": "Time Range",
+            "type": 4,
+            "isRequired": true,
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 1209600000
+                },
+                {
+                  "durationMs": 2592000000
+                },
+                {
+                  "durationMs": 7776000000
+                }
+              ],
+              "allowCustom": true
+            },
+            "value": {
+              "durationMs": 7776000000
+            }
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "global-parameters"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
             "type": 1,
             "content": {
-                "json": "---\n\n**Classification:** UNCLASSIFIED // FOR OFFICIAL USE ONLY &nbsp;&nbsp;|&nbsp;&nbsp; **Policy Reference:** ESS FRAGO-6 &nbsp;&nbsp;|&nbsp;&nbsp; **Data Source:** Microsoft Defender for Endpoint via Microsoft Sentinel\n\nUse the **Time Range** selector and tabs below to explore each security domain. Status panels (pie charts + % tiles) use **fixed compliance windows** independent of the Time Range picker — changing the time range only affects trend charts and detail grids.",
-                "style": "0"
+              "json": "**ESS FRAGO-6 Compliance** — Compliant = last MDE check-in ≤ 30 days &nbsp;·&nbsp; Source: `DeviceInfo` (OnboardingStatus == 'Onboarded') &nbsp;·&nbsp; Follows Time Range selector",
+              "style": "info"
             },
-            "name": "banner-header",
-            "id": "ff3dd2a3-21c6-4355-b211-21f80f449087"
-        },
-        {
-            "type": 11,
+            "name": "text-compliance-header"
+          },
+          {
+            "type": 3,
             "content": {
-                "version": "LinkItem/1.0",
-                "style": "tabs",
-                "links": [
-                    {
-                        "id": "tab-compliance",
-                        "cellValue": "Tab",
-                        "linkTarget": "parameter",
-                        "linkLabel": "Compliance Status",
-                        "subTarget": "Compliance",
-                        "style": "button"
-                    },
-                    {
-                        "id": "tab-edrsensor",
-                        "cellValue": "Tab",
-                        "linkTarget": "parameter",
-                        "linkLabel": "EDR Sensor Status",
-                        "subTarget": "EDRSensor",
-                        "style": "button"
-                    },
-                    {
-                        "id": "tab-avsensor",
-                        "cellValue": "Tab",
-                        "linkTarget": "parameter",
-                        "linkLabel": "AV Sensor Status",
-                        "subTarget": "AVSensor",
-                        "style": "button"
-                    },
-                    {
-                        "id": "tab-edrav",
-                        "cellValue": "Tab",
-                        "linkTarget": "parameter",
-                        "linkLabel": "EDR/AV Install Status",
-                        "subTarget": "EDRAV",
-                        "style": "button"
-                    },
-                    {
-                        "id": "tab-fw",
-                        "cellValue": "Tab",
-                        "linkTarget": "parameter",
-                        "linkLabel": "Firewall Events",
-                        "subTarget": "FWEvents",
-                        "style": "button"
-                    },
-                    {
-                        "id": "tab-threat",
-                        "cellValue": "Tab",
-                        "linkTarget": "parameter",
-                        "linkLabel": "Threat Events",
-                        "subTarget": "ThreatEvents",
-                        "style": "button"
-                    },
-                    {
-                        "id": "tab-dlpevents",
-                        "cellValue": "Tab",
-                        "linkTarget": "parameter",
-                        "linkLabel": "DLP Events",
-                        "subTarget": "DLPEvents",
-                        "style": "button"
-                    },
-                    {
-                        "id": "tab-intunefw",
-                        "cellValue": "Tab",
-                        "linkTarget": "parameter",
-                        "linkLabel": "Intune Compliance",
-                        "subTarget": "IntuneFireWall",
-                        "style": "button"
-                    }
+              "version": "KqlItem/1.0",
+              "query": "let ComplianceData = DeviceInfo\n| where Timestamp {TimeRange}\n| where OnboardingStatus == 'Onboarded'\n| summarize LastSeen = max(Timestamp) by DeviceId, DeviceName\n| extend ComplianceStatus = iff(LastSeen >= ago(30d), 'Compliant', 'Noncompliant');\nComplianceData\n| summarize Count = count() by ComplianceStatus\n| extend SortOrder = case(ComplianceStatus == 'Compliant', 1, ComplianceStatus == 'Noncompliant', 2, 3)\n| order by SortOrder asc\n| project ComplianceStatus, Count",
+              "size": 6,
+              "title": "ESS FRAGO-6 Compliance Status - Last Communication within 1 Month",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "name": "compliance-chart"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let CurrentTime = now();\nlet ComplianceData = DeviceInfo\n| where Timestamp {TimeRange}\n| where OnboardingStatus == 'Onboarded'\n| summarize LastSeen = max(Timestamp) by DeviceId, DeviceName\n| extend ComplianceStatus = iff(datetime_diff('day', CurrentTime, LastSeen) <= 30, 'Compliant', 'Noncompliant');\nlet TotalDevices = ComplianceData | summarize count();\nlet CompliantCount = ComplianceData | where ComplianceStatus == 'Compliant' | summarize count();\nComplianceData\n| summarize Total=count(), Compliant=countif(ComplianceStatus=='Compliant')\n| extend CompliancePercentage = round((Compliant * 100.0) / Total, 2)\n| project CompliancePercentage",
+              "size": 9,
+              "title": "Compliance Rate %",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "showBorder": true,
+                "leftContent": {
+                  "columnMatch": "CompliancePercentage",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "greenRed",
+                    "showIcon": true
+                  }
+                }
+              }
+            },
+            "customWidth": "50",
+            "name": "compliance-metrics"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let CurrentTime = now();\nDeviceInfo\n| where Timestamp {TimeRange}\n| where OnboardingStatus == 'Onboarded'\n| summarize LastSeen = max(Timestamp) by DeviceId, DeviceName, Timestamp\n| extend DaysSinceLastSeen = datetime_diff('day', CurrentTime, LastSeen)\n| extend ComplianceStatus = iff(DaysSinceLastSeen <= 30, 'Compliant', 'Noncompliant')\n| summarize Compliant=countif(ComplianceStatus=='Compliant'), Noncompliant=countif(ComplianceStatus=='Noncompliant') by bin(Timestamp, 1d)\n| order by Timestamp asc",
+              "size": 4,
+              "title": "Compliance Trend - Green=Compliant | Red=Noncompliant",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "linechart",
+              "chartSettings": {
+                "showLegend": true,
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "Compliant",
+                    "color": "green"
+                  },
+                  {
+                    "seriesName": "Noncompliant",
+                    "color": "red"
+                  }
                 ]
+              }
             },
-            "name": "tabs",
-            "id": "5d60431e-01e7-4d16-860d-89ccd6982181"
-        },
-        {
-            "type": 9,
+            "customWidth": "100",
+            "name": "compliance-trend"
+          },
+          {
+            "type": 3,
             "content": {
-                "version": "KqlParameterItem/1.0",
-                "parameters": [
-                    {
-                        "id": "param-timerange",
-                        "version": "KqlParameterItem/1.0",
-                        "name": "TimeRange",
-                        "label": "Time Range",
-                        "type": 4,
-                        "isRequired": true,
-                        "typeSettings": {
-                            "selectableValues": [
-                                {
-                                    "durationMs": 86400000
-                                },
-                                {
-                                    "durationMs": 604800000
-                                },
-                                {
-                                    "durationMs": 1209600000
-                                },
-                                {
-                                    "durationMs": 2592000000
-                                },
-                                {
-                                    "durationMs": 7776000000
-                                }
-                            ],
-                            "allowCustom": true
+              "version": "KqlItem/1.0",
+              "query": "let CurrentTime = now();\nDeviceInfo\n| where Timestamp {TimeRange}\n| where OnboardingStatus == 'Onboarded'\n| summarize LastSeen = max(Timestamp) by DeviceId, DeviceName\n| extend DaysSinceLastSeen = datetime_diff('day', CurrentTime, LastSeen)\n| extend ComplianceStatus = iff(DaysSinceLastSeen <= 30, 'Compliant', 'Noncompliant')\n| project DeviceName, DeviceId, LastSeen, DaysSinceLastSeen, ComplianceStatus\n| order by DaysSinceLastSeen asc",
+              "size": 1,
+              "title": "Compliance Details",
+              "timeContextFromParameter": "TimeRange",
+              "showExportToExcel": true,
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "ComplianceStatus",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Compliant",
+                          "representation": "success",
+                          "text": "{0}{1}"
                         },
-                        "value": {
-                            "durationMs": 7776000000
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "2",
+                          "text": "{0}{1}"
                         }
+                      ]
                     }
+                  },
+                  {
+                    "columnMatch": "DaysSinceLastSeen",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "<=",
+                          "thresholdValue": "30",
+                          "representation": "green",
+                          "text": "{0}d{1}"
+                        },
+                        {
+                          "operator": "<=",
+                          "thresholdValue": "60",
+                          "representation": "yellow",
+                          "text": "{0}d{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "red",
+                          "text": "{0}d{1}"
+                        }
+                      ]
+                    }
+                  }
                 ],
-                "style": "pills"
+                "rowLimit": 10000,
+                "filter": true
+              }
             },
-            "name": "global-parameters",
-            "id": "d33cbf97-23a2-43bd-a34b-6e34430d2764"
-        },
-        {
-            "type": 12,
-            "name": "group-compliance",
-            "conditionalVisibility": {
-                "parameterName": "Tab",
-                "comparison": "isEqualTo",
-                "value": "Compliance"
-            },
+            "customWidth": "100",
+            "name": "compliance-grid"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "Compliance"
+      },
+      "name": "group-compliance"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
             "content": {
-                "version": "NotebookGroup/1.0",
-                "groupType": "editable",
-                "items": [
-                    {
-                        "type": 1,
-                        "content": {
-                            "json": "**ESS FRAGO-6 Compliance** — Compliant = last MDE check-in ≤ 30 days &nbsp;·&nbsp; Source: `DeviceInfo` (OnboardingStatus == 'Onboarded') &nbsp;·&nbsp; Follows Time Range selector",
-                            "style": "info"
-                        },
-                        "name": "text-compliance-header",
-                        "id": "632cde7b-3e42-4828-a4f3-3c49cffe8ca0"
-                    },
-                    {
-                        "type": 3,
-                        "name": "compliance-chart",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let ComplianceData = DeviceInfo\n| where Timestamp {TimeRange}\n| where OnboardingStatus == 'Onboarded'\n| summarize LastSeen = max(Timestamp) by DeviceId, DeviceName\n| extend ComplianceStatus = iff(LastSeen >= ago(30d), 'Compliant', 'Noncompliant');\nComplianceData\n| summarize Count = count() by ComplianceStatus\n| extend SortOrder = case(ComplianceStatus == 'Compliant', 1, ComplianceStatus == 'Noncompliant', 2, 3)\n| order by SortOrder asc\n| project ComplianceStatus, Count",
-                            "size": 6,
-                            "title": "ESS FRAGO-6 Compliance Status - Last Communication within 1 Month",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "visualization": "piechart"
-                        },
-                        "customWidth": "50",
-                        "id": "1359eebf-df1f-4785-82f9-e01caed43a21"
-                    },
-                    {
-                        "type": 3,
-                        "name": "compliance-metrics",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let CurrentTime = now();\nlet ComplianceData = DeviceInfo\n| where Timestamp {TimeRange}\n| where OnboardingStatus == 'Onboarded'\n| summarize LastSeen = max(Timestamp) by DeviceId, DeviceName\n| extend ComplianceStatus = iff(datetime_diff('day', CurrentTime, LastSeen) <= 30, 'Compliant', 'Noncompliant');\nlet TotalDevices = ComplianceData | summarize count();\nlet CompliantCount = ComplianceData | where ComplianceStatus == 'Compliant' | summarize count();\nComplianceData\n| summarize Total=count(), Compliant=countif(ComplianceStatus=='Compliant')\n| extend CompliancePercentage = round((Compliant * 100.0) / Total, 2)\n| project CompliancePercentage",
-                            "size": 9,
-                            "title": "Compliance Rate %",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "visualization": "tiles",
-                            "tileSettings": {
-                                "showBorder": true,
-                                "leftContent": {
-                                    "columnMatch": "CompliancePercentage",
-                                    "formatter": 12,
-                                    "formatOptions": {
-                                        "palette": "greenRed",
-                                        "showIcon": true
-                                    }
-                                }
-                            }
-                        },
-                        "customWidth": "50",
-                        "id": "9bc458b1-706d-4586-8411-f37d100f62c0"
-                    },
-                    {
-                        "type": 3,
-                        "name": "compliance-trend",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let CurrentTime = now();\nDeviceInfo\n| where Timestamp {TimeRange}\n| where OnboardingStatus == 'Onboarded'\n| summarize LastSeen = max(Timestamp) by DeviceId, DeviceName, Timestamp\n| extend DaysSinceLastSeen = datetime_diff('day', CurrentTime, LastSeen)\n| extend ComplianceStatus = iff(DaysSinceLastSeen <= 30, 'Compliant', 'Noncompliant')\n| summarize Compliant=countif(ComplianceStatus=='Compliant'), Noncompliant=countif(ComplianceStatus=='Noncompliant') by bin(Timestamp, 1d)\n| order by Timestamp asc",
-                            "size": 4,
-                            "title": "Compliance Trend - Green=Compliant | Red=Noncompliant",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "visualization": "linechart",
-                            "chartSettings": {
-                                "showLegend": true,
-                                "seriesLabelSettings": [
-                                    {
-                                        "seriesName": "Compliant",
-                                        "color": "green"
-                                    },
-                                    {
-                                        "seriesName": "Noncompliant",
-                                        "color": "red"
-                                    }
-                                ]
-                            }
-                        },
-                        "customWidth": "100",
-                        "id": "04e4778f-0eb7-481c-840f-2135d08d57ae"
-                    },
-                    {
-                        "type": 3,
-                        "name": "compliance-grid",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let CurrentTime = now();\nDeviceInfo\n| where Timestamp {TimeRange}\n| where OnboardingStatus == 'Onboarded'\n| summarize LastSeen = max(Timestamp) by DeviceId, DeviceName\n| extend DaysSinceLastSeen = datetime_diff('day', CurrentTime, LastSeen)\n| extend ComplianceStatus = iff(DaysSinceLastSeen <= 30, 'Compliant', 'Noncompliant')\n| project DeviceName, DeviceId, LastSeen, DaysSinceLastSeen, ComplianceStatus\n| order by DaysSinceLastSeen asc",
-                            "size": 1,
-                            "title": "Compliance Details",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "showExportToExcel": true,
-                            "exportToExcelOptions": "visible",
-                            "gridSettings": {
-                                "filter": true,
-                                "rowLimit": 10000,
-                                "formatters": [
-                                    {
-                                        "columnMatch": "ComplianceStatus",
-                                        "formatter": 18,
-                                        "formatOptions": {
-                                            "thresholdsOptions": "icons",
-                                            "thresholdsGrid": [
-                                                {
-                                                    "operator": "==",
-                                                    "thresholdValue": "Compliant",
-                                                    "representation": "success",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": "Default",
-                                                    "thresholdValue": null,
-                                                    "representation": "2",
-                                                    "text": "{0}{1}"
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    {
-                                        "columnMatch": "DaysSinceLastSeen",
-                                        "formatter": 18,
-                                        "formatOptions": {
-                                            "thresholdsOptions": "colors",
-                                            "thresholdsGrid": [
-                                                {
-                                                    "operator": "<=",
-                                                    "thresholdValue": "30",
-                                                    "representation": "green",
-                                                    "text": "{0}d{1}"
-                                                },
-                                                {
-                                                    "operator": "<=",
-                                                    "thresholdValue": "60",
-                                                    "representation": "yellow",
-                                                    "text": "{0}d{1}"
-                                                },
-                                                {
-                                                    "operator": "Default",
-                                                    "thresholdValue": null,
-                                                    "representation": "red",
-                                                    "text": "{0}d{1}"
-                                                }
-                                            ]
-                                        }
-                                    }
-                                ]
-                            }
-                        },
-                        "customWidth": "100",
-                        "id": "1a4a58fd-972c-4e0e-8ad0-912793a011e7"
-                    }
-                ]
+              "json": "**EDR Sensor Health** — Compliant = device last seen ≤ 7 days &nbsp;·&nbsp; Status panels use fixed 90-day window &nbsp;·&nbsp; Follows Time Range selector",
+              "style": "info"
             },
-            "id": "a3cef4c7-b61c-4880-a2f9-d2f882c6d39b"
-        },
-        {
-            "type": 12,
-            "name": "group-edrsensor",
-            "conditionalVisibility": {
-                "parameterName": "Tab",
-                "comparison": "isEqualTo",
-                "value": "EDRSensor"
-            },
+            "name": "text-edrsensor-header",
+            "id": "c03135b6-9548-4c52-8ca1-3e0b1b4de164"
+          },
+          {
+            "type": 3,
+            "name": "edrsensor-chart",
             "content": {
-                "version": "NotebookGroup/1.0",
-                "groupType": "editable",
-                "items": [
-                    {
-                        "type": 1,
-                        "content": {
-                            "json": "**EDR Sensor Health** — Compliant = device last seen ≤ 7 days &nbsp;·&nbsp; Status panels use fixed 90-day window &nbsp;·&nbsp; Follows Time Range selector",
-                            "style": "info"
-                        },
-                        "name": "text-edrsensor-header",
-                        "id": "c03135b6-9548-4c52-8ca1-3e0b1b4de164"
-                    },
-                    {
-                        "type": 3,
-                        "name": "edrsensor-chart",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let InventoryWindow = 90d;\nlet SensorData = DeviceInfo\n| where Timestamp >= ago(InventoryWindow)\n| summarize arg_max(Timestamp, OnboardingStatus, SensorHealthState) by DeviceId\n| where OnboardingStatus == 'Onboarded'\n| extend SensorCommunicationStatus = iff(Timestamp >= ago(7d), 'Compliant', 'Noncompliant');\nSensorData\n| summarize Count = count() by SensorCommunicationStatus\n| extend SortOrder = case(SensorCommunicationStatus == 'Compliant', 1, SensorCommunicationStatus == 'Noncompliant', 2, 3)\n| order by SortOrder asc\n| project SensorCommunicationStatus, Count",
-                            "size": 6,
-                            "title": "EDR Sensor Status - Last Seen within 7 Days",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "visualization": "piechart"
-                        },
-                        "customWidth": "50",
-                        "id": "50f952fc-535c-447e-86a6-cdecdf308a97"
-                    },
-                    {
-                        "type": 3,
-                        "name": "edrsensor-metrics",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let CurrentTime = now();\nlet InventoryWindow = 90d;\nlet SensorData = DeviceInfo\n| where Timestamp >= ago(InventoryWindow)\n| summarize arg_max(Timestamp, OnboardingStatus, SensorHealthState) by DeviceId\n| where OnboardingStatus == 'Onboarded'\n| extend LastSeen = Timestamp\n| extend DaysSinceLastSeen = datetime_diff('day', CurrentTime, LastSeen)\n| extend SensorCommunicationStatus = iff(DaysSinceLastSeen <= 7, 'Compliant', 'Noncompliant');\nSensorData\n| summarize Total=count(), Compliant=countif(SensorCommunicationStatus=='Compliant')\n| extend CompliancePercentage = round((Compliant * 100.0) / Total, 2)\n| project CompliancePercentage",
-                            "size": 9,
-                            "title": "EDR Sensor Compliance %",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "visualization": "tiles",
-                            "tileSettings": {
-                                "showBorder": true,
-                                "leftContent": {
-                                    "columnMatch": "CompliancePercentage",
-                                    "formatter": 12,
-                                    "formatOptions": {
-                                        "palette": "greenRed",
-                                        "showIcon": true
-                                    }
-                                }
-                            }
-                        },
-                        "customWidth": "50",
-                        "id": "49c8d1c2-d388-4270-9a5e-a9eb20c97412"
-                    },
-                    {
-                        "type": 3,
-                        "name": "edrsensor-trend",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let CurrentTime = now();\nDeviceInfo\n| where Timestamp {TimeRange}\n| where OnboardingStatus == 'Onboarded'\n| summarize LastSeen = max(Timestamp) by DeviceId, DeviceName, Timestamp\n| extend DaysSinceLastSeen = datetime_diff('day', CurrentTime, LastSeen)\n| extend SensorCommunicationStatus = iff(DaysSinceLastSeen <= 7, 'Compliant', 'Noncompliant')\n| summarize Compliant=countif(SensorCommunicationStatus=='Compliant'), Noncompliant=countif(SensorCommunicationStatus=='Noncompliant') by bin(Timestamp, 1d)\n| order by Timestamp asc",
-                            "size": 4,
-                            "title": "EDR Sensor Trend - Green=Compliant | Red=Noncompliant",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "visualization": "linechart",
-                            "chartSettings": {
-                                "showLegend": true,
-                                "seriesLabelSettings": [
-                                    {
-                                        "seriesName": "Compliant",
-                                        "color": "green"
-                                    },
-                                    {
-                                        "seriesName": "Noncompliant",
-                                        "color": "red"
-                                    }
-                                ]
-                            }
-                        },
-                        "customWidth": "100",
-                        "id": "2b34f843-e1a0-488f-a2cd-3f3201f52ce8"
-                    },
-                    {
-                        "type": 3,
-                        "name": "edrsensor-grid",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let CurrentTime = now();\nlet InventoryWindow = 90d;\nDeviceInfo\n| where Timestamp >= ago(InventoryWindow)\n| summarize arg_max(Timestamp, OnboardingStatus, SensorHealthState, DeviceName) by DeviceId\n| where OnboardingStatus == 'Onboarded'\n| extend LastSeen = Timestamp\n| extend DaysSinceLastSeen = datetime_diff('day', CurrentTime, LastSeen)\n| extend SensorCommunicationStatus = iff(DaysSinceLastSeen <= 7, 'Compliant', 'Noncompliant')\n| project DeviceName, DeviceId, LastSeen, DaysSinceLastSeen, OnboardingStatus, SensorHealthState, SensorCommunicationStatus\n| order by DaysSinceLastSeen asc",
-                            "size": 2,
-                            "title": "EDR Sensor Details",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "showExportToExcel": true,
-                            "exportToExcelOptions": "visible",
-                            "gridSettings": {
-                                "filter": true,
-                                "rowLimit": 10000,
-                                "formatters": [
-                                    {
-                                        "columnMatch": "SensorCommunicationStatus",
-                                        "formatter": 18,
-                                        "formatOptions": {
-                                            "thresholdsOptions": "icons",
-                                            "thresholdsGrid": [
-                                                {
-                                                    "operator": "==",
-                                                    "thresholdValue": "Compliant",
-                                                    "representation": "success",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": "Default",
-                                                    "thresholdValue": null,
-                                                    "representation": "2",
-                                                    "text": "{0}{1}"
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    {
-                                        "columnMatch": "SensorHealthState",
-                                        "formatter": 18,
-                                        "formatOptions": {
-                                            "thresholdsOptions": "icons",
-                                            "thresholdsGrid": [
-                                                {
-                                                    "operator": "==",
-                                                    "thresholdValue": "Active",
-                                                    "representation": "success",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": "Default",
-                                                    "thresholdValue": null,
-                                                    "representation": "3",
-                                                    "text": "{0}{1}"
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    {
-                                        "columnMatch": "DaysSinceLastSeen",
-                                        "formatter": 18,
-                                        "formatOptions": {
-                                            "thresholdsOptions": "colors",
-                                            "thresholdsGrid": [
-                                                {
-                                                    "operator": "<=",
-                                                    "thresholdValue": "7",
-                                                    "representation": "green",
-                                                    "text": "{0}d{1}"
-                                                },
-                                                {
-                                                    "operator": "<=",
-                                                    "thresholdValue": "14",
-                                                    "representation": "yellow",
-                                                    "text": "{0}d{1}"
-                                                },
-                                                {
-                                                    "operator": "Default",
-                                                    "thresholdValue": null,
-                                                    "representation": "red",
-                                                    "text": "{0}d{1}"
-                                                }
-                                            ]
-                                        }
-                                    }
-                                ]
-                            }
-                        },
-                        "customWidth": "100",
-                        "id": "309caebd-d909-4c1f-98b1-f61b9347c808"
-                    }
-                ]
+              "version": "KqlItem/1.0",
+              "query": "let InventoryWindow = 90d;\nlet SensorData = DeviceInfo\n| where Timestamp >= ago(InventoryWindow)\n| summarize arg_max(Timestamp, OnboardingStatus, SensorHealthState) by DeviceId\n| where OnboardingStatus == 'Onboarded'\n| extend SensorCommunicationStatus = iff(Timestamp >= ago(7d), 'Compliant', 'Noncompliant');\nSensorData\n| summarize Count = count() by SensorCommunicationStatus\n| extend SortOrder = case(SensorCommunicationStatus == 'Compliant', 1, SensorCommunicationStatus == 'Noncompliant', 2, 3)\n| order by SortOrder asc\n| project SensorCommunicationStatus, Count",
+              "size": 6,
+              "title": "EDR Sensor Status - Last Seen within 7 Days",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
             },
-            "id": "dbb32d7c-a8cb-4f9f-a8ef-a5546c68dc7d"
-        },
-        {
-            "type": 12,
-            "name": "group-edrav",
-            "conditionalVisibility": {
-                "parameterName": "Tab",
-                "comparison": "isEqualTo",
-                "value": "EDRAV"
-            },
+            "customWidth": "50",
+            "id": "50f952fc-535c-447e-86a6-cdecdf308a97"
+          },
+          {
+            "type": 3,
+            "name": "edrsensor-metrics",
             "content": {
-                "version": "NotebookGroup/1.0",
-                "groupType": "editable",
-                "items": [
-                    {
-                        "type": 1,
-                        "content": {
-                            "json": "**EDR / AV Installation Coverage** — EDR+AV Installed / AV Only / EDR Only / No Coverage &nbsp;·&nbsp; Sources: `DeviceInfo` · `DeviceProcessEvents` · `DeviceNetworkEvents` · `DeviceFileEvents` · `DeviceImageLoadEvents` · `DeviceRegistryEvents` &nbsp;·&nbsp; Follows Time Range selector",
-                            "style": "info"
-                        },
-                        "name": "text-edrav-header",
-                        "id": "009b4082-fbe5-4a02-b7b8-84ddfd5f3f3d"
-                    },
-                    {
-                        "type": 3,
-                        "name": "edrav-chart",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let Devices = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, OnboardingStatus, SensorHealthState, JoinType, IsAzureADJoined) by DeviceId, DeviceName\n| extend EDRLastSeen = Timestamp\n| extend JoinClassification = case(tostring(JoinType) =~ 'AAD Joined' or IsAzureADJoined == 1, 'AAD Joined', isempty(tostring(JoinType)), 'Unknown/Not Reported', tostring(JoinType));\nlet AvTelemetry = union isfuzzy=true\n(DeviceProcessEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceNetworkEvents\n| where Timestamp {TimeRange}\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceFileEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceImageLoadEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceRegistryEvents\n| where Timestamp {TimeRange}\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp);\nlet AvInstalled = AvTelemetry\n| summarize AVLastSeen = max(Timestamp) by DeviceId;\nDevices\n| join kind=leftouter AvInstalled on DeviceId\n| extend HasEDR = OnboardingStatus == 'Onboarded' and SensorHealthState == 'Active'\n| extend HasAV = isnotnull(AVLastSeen)\n| extend InstallStatus = case(HasEDR and HasAV, 'EDR+AV Installed', HasEDR and not(HasAV), 'EDR Only (No AV)', not(HasEDR) and HasAV, 'AV Only (No EDR)', not(HasEDR) and not(HasAV), 'No EDR/No AV', 'Unknown')\n| extend ComplianceStatus = iff(InstallStatus == 'EDR+AV Installed', 'Compliant', 'Not Compliant')\n| extend SortOrder = case(InstallStatus == 'EDR+AV Installed', 1, InstallStatus == 'AV Only (No EDR)', 2, InstallStatus == 'EDR Only (No AV)', 3, InstallStatus == 'No EDR/No AV', 4, 5)\n| summarize NumberOfSystems = count() by InstallStatus, SortOrder\n| order by SortOrder asc\n| project InstallStatus, NumberOfSystems",
-                            "size": 2,
-                            "title": "EDR/AV Install Status - All Devices",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "visualization": "categoricalbar",
-                            "chartSettings": {
-                                "showLegend": true,
-                                "seriesLabelSettings": [
-                                    {
-                                        "seriesName": "EDR+AV Installed",
-                                        "color": "green"
-                                    },
-                                    {
-                                        "seriesName": "AV Only (No EDR)",
-                                        "color": "#FFBF00"
-                                    },
-                                    {
-                                        "seriesName": "EDR Only (No AV)",
-                                        "color": "orange"
-                                    },
-                                    {
-                                        "seriesName": "No EDR/No AV",
-                                        "color": "red"
-                                    }
-                                ]
-                            }
-                        },
-                        "customWidth": "100",
-                        "id": "b4d0d328-e6a7-415c-a3a6-d16deebbfd94"
-                    },
-                    {
-                        "type": 3,
-                        "name": "edrav-trend",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let DeviceDaily = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, OnboardingStatus, SensorHealthState) by Day = bin(Timestamp, 1d), DeviceId, DeviceName;\nlet AvDaily = union isfuzzy=true\n(DeviceProcessEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Day = bin(Timestamp, 1d)),\n(DeviceNetworkEvents\n| where Timestamp {TimeRange}\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Day = bin(Timestamp, 1d)),\n(DeviceFileEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Day = bin(Timestamp, 1d)),\n(DeviceImageLoadEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Day = bin(Timestamp, 1d)),\n(DeviceRegistryEvents\n| where Timestamp {TimeRange}\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Day = bin(Timestamp, 1d))\n| summarize HasAVSignal = any(true) by DeviceId, Day;\nDeviceDaily\n| join kind=leftouter AvDaily on DeviceId, Day\n| extend HasEDR = OnboardingStatus == 'Onboarded' and SensorHealthState == 'Active'\n| extend HasAV = coalesce(HasAVSignal, false)\n| summarize ['EDR+AV Installed'] = countif(HasEDR and HasAV), ['AV Only (No EDR)'] = countif(not(HasEDR) and HasAV), ['EDR Only (No AV)'] = countif(HasEDR and not(HasAV)), ['No EDR/No AV'] = countif(not(HasEDR) and not(HasAV)) by Timestamp = Day\n| order by Timestamp asc",
-                            "size": 4,
-                            "title": "EDR/AV Install Trend",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "visualization": "linechart",
-                            "chartSettings": {
-                                "showLegend": true,
-                                "seriesLabelSettings": [
-                                    {
-                                        "seriesName": "EDR+AV Installed",
-                                        "color": "green"
-                                    },
-                                    {
-                                        "seriesName": "AV Only (No EDR)",
-                                        "color": "#FFBF00"
-                                    },
-                                    {
-                                        "seriesName": "EDR Only (No AV)",
-                                        "color": "orange"
-                                    },
-                                    {
-                                        "seriesName": "No EDR/No AV",
-                                        "color": "red"
-                                    }
-                                ]
-                            }
-                        },
-                        "customWidth": "100",
-                        "id": "6b45f3f0-3ac2-40da-b5c8-d3255ce6e71e"
-                    },
-                    {
-                        "type": 3,
-                        "name": "edrav-grid",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let Devices = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, OnboardingStatus, SensorHealthState, JoinType, IsAzureADJoined) by DeviceId, DeviceName\n| extend EDRLastSeen = Timestamp\n| extend JoinClassification = case(tostring(JoinType) =~ 'AAD Joined' or IsAzureADJoined == 1, 'AAD Joined', isempty(tostring(JoinType)), 'Unknown/Not Reported', tostring(JoinType));\nlet AvTelemetry = union isfuzzy=true\n(DeviceProcessEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceNetworkEvents\n| where Timestamp {TimeRange}\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceFileEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceImageLoadEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceRegistryEvents\n| where Timestamp {TimeRange}\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp);\nlet AvInstalled = AvTelemetry\n| summarize AVLastSeen = max(Timestamp) by DeviceId;\nDevices\n| join kind=leftouter AvInstalled on DeviceId\n| extend HasEDR = OnboardingStatus == 'Onboarded' and SensorHealthState == 'Active'\n| extend HasAV = isnotnull(AVLastSeen)\n| extend InstallStatus = case(HasEDR and HasAV, 'EDR+AV Installed', HasEDR and not(HasAV), 'EDR Only (No AV)', not(HasEDR) and HasAV, 'AV Only (No EDR)', not(HasEDR) and not(HasAV), 'No EDR/No AV', 'Unknown')\n| extend ComplianceStatus = iff(InstallStatus == 'EDR+AV Installed', 'Compliant', 'Not Compliant')\n| extend SortOrder = case(InstallStatus == 'EDR+AV Installed', 1, InstallStatus == 'AV Only (No EDR)', 2, InstallStatus == 'EDR Only (No AV)', 3, InstallStatus == 'No EDR/No AV', 4, 5)\n| project DeviceName, DeviceId, EDRLastSeen, AVLastSeen, OnboardingStatus, SensorHealthState, InstallStatus, ComplianceStatus , SortOrder\n| order by SortOrder asc, DeviceName asc",
-                            "size": 2,
-                            "title": "EDR/AV Install Details - All Devices",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "showExportToExcel": true,
-                            "exportToExcelOptions": "visible",
-                            "gridSettings": {
-                                "filter": true,
-                                "rowLimit": 10000,
-                                "formatters": [
-                                    {
-                                        "columnMatch": "InstallStatus",
-                                        "formatter": 18,
-                                        "formatOptions": {
-                                            "thresholdsOptions": "icons",
-                                            "thresholdsGrid": [
-                                                {
-                                                    "operator": "==",
-                                                    "thresholdValue": "EDR+AV Installed",
-                                                    "representation": "success",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": "==",
-                                                    "thresholdValue": "AV Only (No EDR)",
-                                                    "representation": "3",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": "==",
-                                                    "thresholdValue": "EDR Only (No AV)",
-                                                    "representation": "3",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": "Default",
-                                                    "thresholdValue": null,
-                                                    "representation": "2",
-                                                    "text": "{0}{1}"
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    {
-                                        "columnMatch": "ComplianceStatus",
-                                        "formatter": 18,
-                                        "formatOptions": {
-                                            "thresholdsOptions": "icons",
-                                            "thresholdsGrid": [
-                                                {
-                                                    "operator": "==",
-                                                    "thresholdValue": "Compliant",
-                                                    "representation": "success",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": "Default",
-                                                    "thresholdValue": null,
-                                                    "representation": "2",
-                                                    "text": "{0}{1}"
-                                                }
-                                            ]
-                                        }
-                                    }
-                                ]
-                            }
-                        },
-                        "customWidth": "100",
-                        "id": "b860a10d-c233-47c3-b96f-43aaaf0d5508"
-                    }
-                ]
+              "version": "KqlItem/1.0",
+              "query": "let CurrentTime = now();\nlet InventoryWindow = 90d;\nlet SensorData = DeviceInfo\n| where Timestamp >= ago(InventoryWindow)\n| summarize arg_max(Timestamp, OnboardingStatus, SensorHealthState) by DeviceId\n| where OnboardingStatus == 'Onboarded'\n| extend LastSeen = Timestamp\n| extend DaysSinceLastSeen = datetime_diff('day', CurrentTime, LastSeen)\n| extend SensorCommunicationStatus = iff(DaysSinceLastSeen <= 7, 'Compliant', 'Noncompliant');\nSensorData\n| summarize Total=count(), Compliant=countif(SensorCommunicationStatus=='Compliant')\n| extend CompliancePercentage = round((Compliant * 100.0) / Total, 2)\n| project CompliancePercentage",
+              "size": 9,
+              "title": "EDR Sensor Compliance %",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "showBorder": true,
+                "leftContent": {
+                  "columnMatch": "CompliancePercentage",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "greenRed",
+                    "showIcon": true
+                  }
+                }
+              }
             },
-            "id": "c829c5ee-4ac2-4d1c-b932-0d49a2f0b16e"
-        },
-        {
-            "type": 12,
-            "name": "group-avsensor",
-            "conditionalVisibility": {
-                "parameterName": "Tab",
-                "comparison": "isEqualTo",
-                "value": "AVSensor"
-            },
+            "customWidth": "50",
+            "id": "49c8d1c2-d388-4270-9a5e-a9eb20c97412"
+          },
+          {
+            "type": 3,
+            "name": "edrsensor-trend",
             "content": {
-                "version": "NotebookGroup/1.0",
-                "groupType": "editable",
-                "items": [
-                    {
-                        "type": 1,
-                        "content": {
-                            "json": "**AV Sensor Health** — Compliant = `MsMpEng.exe` / `mdatp` / `wdavdaemon` / `wdavdaemonapp` active ≤ 7 days &nbsp;·&nbsp; Status panels use fixed 90-day window &nbsp;·&nbsp; Linux: uses `DeviceInfo` heartbeat as fallback &nbsp;·&nbsp; Follows Time Range selector",
-                            "style": "info"
-                        },
-                        "name": "text-avsensor-header",
-                        "id": "f0cb1a23-ab45-4add-83aa-f7ab0536a49b"
-                    },
-                    {
-                        "type": 3,
-                        "name": "avsensor-chart",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let CurrentTime = now();\nlet InventoryWindow = 90d;\nlet SignalWindow = 7d;\nlet OnboardedDevices = DeviceInfo\n| where Timestamp >= ago(InventoryWindow)\n| summarize arg_max(Timestamp, OnboardingStatus, SensorHealthState) by DeviceId, DeviceName\n| where OnboardingStatus == 'Onboarded'\n| project DeviceId, DeviceName;\nlet MdavTelemetry = union isfuzzy=true\n(DeviceProcessEvents\n| where Timestamp >= ago(SignalWindow)\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceNetworkEvents\n| where Timestamp >= ago(SignalWindow)\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceFileEvents\n| where Timestamp >= ago(SignalWindow)\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceImageLoadEvents\n| where Timestamp >= ago(SignalWindow)\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceRegistryEvents\n| where Timestamp >= ago(SignalWindow)\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp);\nlet MdavLastSeen = MdavTelemetry\n| summarize LastSeen = max(Timestamp) by DeviceId;\nOnboardedDevices\n| join kind=leftouter MdavLastSeen on DeviceId\n| extend DaysSinceLastSeen = iif(isnull(LastSeen), int(null), datetime_diff('day', CurrentTime, LastSeen))\n| extend AVCommunicationStatus = iff(isnotnull(LastSeen) and DaysSinceLastSeen <= 7, 'Compliant', 'Noncompliant')\n| summarize Count = count() by AVCommunicationStatus\n| extend SortOrder = case(AVCommunicationStatus == 'Compliant', 1, AVCommunicationStatus == 'Noncompliant', 2, 3)\n| order by SortOrder asc\n| project AVCommunicationStatus, Count",
-                            "size": 6,
-                            "title": "AV Sensor Status - Defender AV Process Seen within 7 Days",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "visualization": "piechart"
-                        },
-                        "customWidth": "50",
-                        "id": "451aaa29-e6a2-43b3-9ff3-c31fcc2919c8"
-                    },
-                    {
-                        "type": 3,
-                        "name": "avsensor-metrics",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let CurrentTime = now();\nlet InventoryWindow = 90d;\nlet SignalWindow = 7d;\nlet OnboardedDevices = DeviceInfo\n| where Timestamp >= ago(InventoryWindow)\n| summarize arg_max(Timestamp, OnboardingStatus, SensorHealthState) by DeviceId, DeviceName\n| where OnboardingStatus == 'Onboarded'\n| project DeviceId, DeviceName;\nlet MdavTelemetry = union isfuzzy=true\n(DeviceProcessEvents\n| where Timestamp >= ago(SignalWindow)\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceNetworkEvents\n| where Timestamp >= ago(SignalWindow)\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceFileEvents\n| where Timestamp >= ago(SignalWindow)\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceImageLoadEvents\n| where Timestamp >= ago(SignalWindow)\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceRegistryEvents\n| where Timestamp >= ago(SignalWindow)\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp);\nlet MdavLastSeen = MdavTelemetry\n| summarize LastSeen = max(Timestamp) by DeviceId;\nOnboardedDevices\n| join kind=leftouter MdavLastSeen on DeviceId\n| extend DaysSinceLastSeen = iif(isnull(LastSeen), int(null), datetime_diff('day', CurrentTime, LastSeen))\n| extend AVCommunicationStatus = iff(isnotnull(LastSeen) and DaysSinceLastSeen <= 7, 'Compliant', 'Noncompliant')\n| summarize Total=count(), Compliant=countif(AVCommunicationStatus=='Compliant')\n| extend CompliancePercentage = round((Compliant * 100.0) / Total, 2)\n| project CompliancePercentage",
-                            "size": 9,
-                            "title": "AV Sensor Compliance %",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "visualization": "tiles",
-                            "tileSettings": {
-                                "showBorder": true,
-                                "leftContent": {
-                                    "columnMatch": "CompliancePercentage",
-                                    "formatter": 12,
-                                    "formatOptions": {
-                                        "palette": "greenRed",
-                                        "showIcon": true
-                                    }
-                                }
-                            }
-                        },
-                        "customWidth": "50",
-                        "id": "d51651ed-7e96-417d-bdab-a1347c45a502"
-                    },
-                    {
-                        "type": 3,
-                        "name": "avsensor-trend",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let OnboardedDevices = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, OnboardingStatus, SensorHealthState) by DeviceId, DeviceName\n| where OnboardingStatus == 'Onboarded'\n| project DeviceId, DeviceName;\nlet TotalOnboarded = toscalar(OnboardedDevices | count);\nlet DayBounds = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize StartDay = startofday(min(Timestamp)), EndDay = startofday(max(Timestamp));\nlet MdavDailySeen = union isfuzzy=true\n(DeviceProcessEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, SeenDay = startofday(Timestamp)),\n(DeviceNetworkEvents\n| where Timestamp {TimeRange}\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, SeenDay = startofday(Timestamp)),\n(DeviceFileEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, SeenDay = startofday(Timestamp)),\n(DeviceImageLoadEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, SeenDay = startofday(Timestamp)),\n(DeviceRegistryEvents\n| where Timestamp {TimeRange}\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, SeenDay = startofday(Timestamp))\n| where DeviceId in (OnboardedDevices | project DeviceId)\n| summarize by DeviceId, SeenDay;\nrange Day from toscalar(DayBounds | project StartDay) to toscalar(DayBounds | project EndDay) step 1d\n| extend JoinKey = 1\n| join kind=leftouter (MdavDailySeen | extend JoinKey = 1) on JoinKey\n| summarize Compliant = dcountif(DeviceId, SeenDay between (Day - 6d .. Day)) by Day\n| extend Noncompliant = TotalOnboarded - Compliant\n| project Timestamp = Day, Compliant, Noncompliant\n| order by Timestamp asc",
-                            "size": 4,
-                            "title": "AV Sensor Trend - Green=Compliant | Red=Noncompliant",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "visualization": "linechart",
-                            "chartSettings": {
-                                "showLegend": true,
-                                "seriesLabelSettings": [
-                                    {
-                                        "seriesName": "Compliant",
-                                        "color": "green"
-                                    },
-                                    {
-                                        "seriesName": "Noncompliant",
-                                        "color": "red"
-                                    }
-                                ]
-                            }
-                        },
-                        "customWidth": "100",
-                        "id": "f913a604-a22d-44d8-ab99-6d389e328cae"
-                    },
-                    {
-                        "type": 3,
-                        "name": "avsensor-grid",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let CurrentTime = now();\nlet InventoryWindow = 90d;\nlet SignalWindow = 7d;\nlet OnboardedDevices = DeviceInfo\n| where Timestamp >= ago(InventoryWindow)\n| summarize arg_max(Timestamp, OnboardingStatus, SensorHealthState, OSPlatform) by DeviceId, DeviceName\n| where OnboardingStatus == 'Onboarded'\n| project DeviceId, DeviceName, OnboardingStatus, SensorHealthState, OSPlatform, DeviceInfoLastSeen = Timestamp;\nlet MdavTelemetry = union isfuzzy=true\n(DeviceProcessEvents\n| where Timestamp >= ago(SignalWindow)\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceNetworkEvents\n| where Timestamp >= ago(SignalWindow)\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceFileEvents\n| where Timestamp >= ago(SignalWindow)\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceImageLoadEvents\n| where Timestamp >= ago(SignalWindow)\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceRegistryEvents\n| where Timestamp >= ago(SignalWindow)\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp);\nlet MdavLastSeen = MdavTelemetry\n| summarize LastSeen = max(Timestamp) by DeviceId;\nOnboardedDevices\n| join kind=leftouter MdavLastSeen on DeviceId\n| extend EffectiveLastSeen = iif(isnull(LastSeen) and OSPlatform has 'Linux', DeviceInfoLastSeen, LastSeen)\n| extend DaysSinceLastSeen = iif(isnull(EffectiveLastSeen), int(null), datetime_diff('day', CurrentTime, EffectiveLastSeen))\n| extend AVCommunicationStatus = iff(isnotnull(EffectiveLastSeen) and DaysSinceLastSeen <= 7, 'Compliant', 'Noncompliant')\n| project DeviceName, DeviceId, OSPlatform, LastSeen = EffectiveLastSeen, DaysSinceLastSeen, OnboardingStatus, SensorHealthState, AVCommunicationStatus\n| order by isnull(LastSeen) asc, DaysSinceLastSeen asc",
-                            "size": 2,
-                            "title": "AV Sensor Details",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "showExportToExcel": true,
-                            "exportToExcelOptions": "visible",
-                            "gridSettings": {
-                                "filter": true,
-                                "rowLimit": 10000,
-                                "formatters": [
-                                    {
-                                        "columnMatch": "AVCommunicationStatus",
-                                        "formatter": 18,
-                                        "formatOptions": {
-                                            "thresholdsOptions": "icons",
-                                            "thresholdsGrid": [
-                                                {
-                                                    "operator": "==",
-                                                    "thresholdValue": "Compliant",
-                                                    "representation": "success",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": "Default",
-                                                    "thresholdValue": null,
-                                                    "representation": "2",
-                                                    "text": "{0}{1}"
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    {
-                                        "columnMatch": "SensorHealthState",
-                                        "formatter": 18,
-                                        "formatOptions": {
-                                            "thresholdsOptions": "icons",
-                                            "thresholdsGrid": [
-                                                {
-                                                    "operator": "==",
-                                                    "thresholdValue": "Active",
-                                                    "representation": "success",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": "Default",
-                                                    "thresholdValue": null,
-                                                    "representation": "3",
-                                                    "text": "{0}{1}"
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    {
-                                        "columnMatch": "DaysSinceLastSeen",
-                                        "formatter": 18,
-                                        "formatOptions": {
-                                            "thresholdsOptions": "colors",
-                                            "thresholdsGrid": [
-                                                {
-                                                    "operator": "<=",
-                                                    "thresholdValue": "7",
-                                                    "representation": "green",
-                                                    "text": "{0}d{1}"
-                                                },
-                                                {
-                                                    "operator": "<=",
-                                                    "thresholdValue": "14",
-                                                    "representation": "yellow",
-                                                    "text": "{0}d{1}"
-                                                },
-                                                {
-                                                    "operator": "Default",
-                                                    "thresholdValue": null,
-                                                    "representation": "red",
-                                                    "text": "{0}d{1}"
-                                                }
-                                            ]
-                                        }
-                                    }
-                                ]
-                            }
-                        },
-                        "customWidth": "100",
-                        "id": "e991f430-04ba-486f-8797-4d69664b0a6e"
-                    }
+              "version": "KqlItem/1.0",
+              "query": "let CurrentTime = now();\nDeviceInfo\n| where Timestamp {TimeRange}\n| where OnboardingStatus == 'Onboarded'\n| summarize LastSeen = max(Timestamp) by DeviceId, DeviceName, Timestamp\n| extend DaysSinceLastSeen = datetime_diff('day', CurrentTime, LastSeen)\n| extend SensorCommunicationStatus = iff(DaysSinceLastSeen <= 7, 'Compliant', 'Noncompliant')\n| summarize Compliant=countif(SensorCommunicationStatus=='Compliant'), Noncompliant=countif(SensorCommunicationStatus=='Noncompliant') by bin(Timestamp, 1d)\n| order by Timestamp asc",
+              "size": 4,
+              "title": "EDR Sensor Trend - Green=Compliant | Red=Noncompliant",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "linechart",
+              "chartSettings": {
+                "showLegend": true,
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "Compliant",
+                    "color": "green"
+                  },
+                  {
+                    "seriesName": "Noncompliant",
+                    "color": "red"
+                  }
                 ]
+              }
             },
-            "id": "1945dc56-a939-44af-8fe0-12cc4af309c7"
-        },
-        {
-            "type": 12,
-            "name": "group-fwevents",
-            "conditionalVisibility": {
-                "parameterName": "Tab",
-                "comparison": "isEqualTo",
-                "value": "FWEvents"
-            },
+            "customWidth": "100",
+            "id": "2b34f843-e1a0-488f-a2cd-3f3201f52ce8"
+          },
+          {
+            "type": 3,
+            "name": "edrsensor-grid",
             "content": {
-                "version": "NotebookGroup/1.0",
-                "groupType": "editable",
-                "items": [
-                    {
-                        "type": 1,
-                        "content": {
-                            "json": "**Firewall Events** — `DeviceNetworkEvents` classified into: Blocked (blocked/denied/drop/reject) · Allowed (allowed/success) · Connection Activity · Failed Connection &nbsp;·&nbsp; Follows Time Range selector",
-                            "style": "info"
+              "version": "KqlItem/1.0",
+              "query": "let CurrentTime = now();\nlet InventoryWindow = 90d;\nDeviceInfo\n| where Timestamp >= ago(InventoryWindow)\n| summarize arg_max(Timestamp, OnboardingStatus, SensorHealthState, DeviceName) by DeviceId\n| where OnboardingStatus == 'Onboarded'\n| extend LastSeen = Timestamp\n| extend DaysSinceLastSeen = datetime_diff('day', CurrentTime, LastSeen)\n| extend SensorCommunicationStatus = iff(DaysSinceLastSeen <= 7, 'Compliant', 'Noncompliant')\n| project DeviceName, DeviceId, LastSeen, DaysSinceLastSeen, OnboardingStatus, SensorHealthState, SensorCommunicationStatus\n| order by DaysSinceLastSeen asc",
+              "size": 2,
+              "title": "EDR Sensor Details",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "showExportToExcel": true,
+              "exportToExcelOptions": "visible",
+              "gridSettings": {
+                "filter": true,
+                "rowLimit": 10000,
+                "formatters": [
+                  {
+                    "columnMatch": "SensorCommunicationStatus",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Compliant",
+                          "representation": "success",
+                          "text": "{0}{1}"
                         },
-                        "name": "text-fw-header",
-                        "id": "37a3c60c-76f2-472f-9b54-b9a3637e6b9c"
-                    },
-                    {
-                        "type": 3,
-                        "name": "fw-timechart",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "DeviceNetworkEvents\n| where Timestamp {TimeRange}\n| extend ActionTypeLc = tolower(ActionType)\n| extend FirewallEventLabel = case(ActionTypeLc has_any ('blocked','denied','drop','reject'), 'Blocked', ActionTypeLc has_any ('allowed','success'), 'Allowed', ActionType in~ ('ConnectionFailed','ConnectionFailedAggregatedReport'), 'Failed Connection', ActionType has_any ('ConnectionAcknowledged','ConnectionSuccess','DnsConnectionInspected','SslConnectionInspected'), 'Connection Activity', '')\n| where FirewallEventLabel != ''\n| summarize ['Number of Firewall Events']=count() by ['Event Generated Time']=bin(Timestamp, 1d), ['Firewall Event Label']=FirewallEventLabel\n| order by ['Event Generated Time'] asc",
-                            "size": 2,
-                            "title": "MDE Firewall Signals by Classification",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "visualization": "linechart"
-                        },
-                        "customWidth": "100",
-                        "id": "f80afeda-6d31-4160-8cee-9c3e7052514a"
-                    },
-                    {
-                        "type": 3,
-                        "name": "fw-grid",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "DeviceNetworkEvents\n| where Timestamp {TimeRange}\n| extend ActionTypeLc = tolower(ActionType)\n| extend FirewallEventLabel = case(ActionTypeLc has_any ('blocked','denied','drop','reject'), 'Blocked', ActionTypeLc has_any ('allowed','success'), 'Allowed', ActionType in~ ('ConnectionFailed','ConnectionFailedAggregatedReport'), 'Failed Connection', ActionType has_any ('ConnectionAcknowledged','ConnectionSuccess','DnsConnectionInspected','SslConnectionInspected'), 'Connection Activity', '')\n| where FirewallEventLabel != ''\n| extend SortOrder = case(FirewallEventLabel == 'Blocked', 1, FirewallEventLabel == 'Allowed', 2, FirewallEventLabel == 'Connection Activity', 3, FirewallEventLabel == 'Failed Connection', 4, 5)\n| summarize ['Event Count']=count(), ['Unique Remote IPs']=dcountif(RemoteIP, isnotempty(RemoteIP)), ['Unique Destination Ports']=dcountif(RemotePort, isnotnull(RemotePort)), ['Protocols Seen']=make_set(Protocol, 4), ['Action Types Seen']=make_set(ActionType, 5) by ['Firewall Event Label']=FirewallEventLabel, SortOrder, DeviceName\n| order by SortOrder asc, ['Event Count'] desc\n| project-away SortOrder",
-                            "size": 2,
-                            "title": "MDE Firewall Device Triage Summary",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "showExportToExcel": true,
-                            "exportToExcelOptions": "visible",
-                            "gridSettings": {
-                                "filter": true,
-                                "rowLimit": 10000,
-                                "formatters": [
-                                    {
-                                        "columnMatch": "Event Count",
-                                        "formatter": 4,
-                                        "formatOptions": {
-                                            "palette": "blue"
-                                        }
-                                    },
-                                    {
-                                        "columnMatch": "Unique Remote IPs",
-                                        "formatter": 4,
-                                        "formatOptions": {
-                                            "palette": "orange"
-                                        }
-                                    }
-                                ]
-                            }
-                        },
-                        "customWidth": "100",
-                        "id": "a02252ab-debb-4f49-a7b7-3a3e3ac5ff7c"
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "2",
+                          "text": "{0}{1}"
+                        }
+                      ]
                     }
+                  },
+                  {
+                    "columnMatch": "SensorHealthState",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Active",
+                          "representation": "success",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "3",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "DaysSinceLastSeen",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "<=",
+                          "thresholdValue": "7",
+                          "representation": "green",
+                          "text": "{0}d{1}"
+                        },
+                        {
+                          "operator": "<=",
+                          "thresholdValue": "14",
+                          "representation": "yellow",
+                          "text": "{0}d{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "red",
+                          "text": "{0}d{1}"
+                        }
+                      ]
+                    }
+                  }
                 ]
+              }
             },
-            "id": "07b501fd-1a12-4f25-a244-1006e0670e48"
-        },
-        {
-            "type": 12,
-            "name": "group-threatevents",
-            "conditionalVisibility": {
-                "parameterName": "Tab",
-                "comparison": "isEqualTo",
-                "value": "ThreatEvents"
-            },
+            "customWidth": "100",
+            "id": "309caebd-d909-4c1f-98b1-f61b9347c808"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "EDRSensor"
+      },
+      "name": "group-edrsensor"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
             "content": {
-                "version": "NotebookGroup/1.0",
-                "groupType": "editable",
-                "items": [
-                    {
-                        "type": 1,
-                        "content": {
-                            "json": "**Threat Events** — Sentinel incidents and alerts &nbsp;·&nbsp; Tiles: Total Incidents · Total Alerts · Open Incidents · High Severity &nbsp;·&nbsp; Source: `SecurityIncident` · Follows Time Range selector",
-                            "style": "info"
-                        },
-                        "name": "text-threat-header",
-                        "id": "8c300272-b262-49cd-9659-9e8dd4e93663"
-                    },
-                    {
-                        "type": 3,
-                        "name": "threat-tiles",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AlertsData = parse_json(AdditionalData)\n| extend AlertCount = toint(AlertsData.alertsCount)\n| summarize TotalIncidents=count(), TotalAlerts=sum(AlertCount), OpenIncidents=countif(Status != 'Closed'), HighSeverity=countif(Severity == 'High')\n| extend r = pack_array(pack('label','Total Incidents','value',TotalIncidents), pack('label','Total Alerts','value',TotalAlerts), pack('label','Open Incidents','value',OpenIncidents), pack('label','High Severity','value',HighSeverity))\n| mv-expand r\n| project label=tostring(r.label), value=toint(r.value)",
-                            "size": 4,
-                            "title": "Threat Events Summary",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "visualization": "tiles",
-                            "tileSettings": {
-                                "showBorder": false,
-                                "titleContent": {
-                                    "columnMatch": "label"
-                                },
-                                "leftContent": {
-                                    "columnMatch": "value",
-                                    "formatter": 12,
-                                    "formatOptions": {
-                                        "palette": "auto"
-                                    },
-                                    "numberFormat": {
-                                        "unit": 17,
-                                        "options": {
-                                            "style": "decimal",
-                                            "maximumFractionDigits": 0
-                                        }
-                                    }
-                                }
-                            }
-                        },
-                        "customWidth": "100",
-                        "id": "468e98ca-a97a-4b19-8c00-b4216afd6c0e"
-                    },
-                    {
-                        "type": 3,
-                        "name": "threat-piechart",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AD = parse_json(AdditionalData)\n| extend Sources = parse_json(tostring(AD.alertProductNames))\n| mv-expand Source = Sources\n| extend SourceName = tostring(Source)\n| where isnotempty(SourceName)\n| summarize Count=count() by SourceName\n| order by Count desc",
-                            "size": 3,
-                            "title": "Incidents by Detection Source",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "visualization": "piechart"
-                        },
-                        "customWidth": "50",
-                        "id": "aa14b65d-9ce0-41b1-8f6a-6f03e1cd9288"
-                    },
-                    {
-                        "type": 3,
-                        "name": "threat-tacticschart",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AD = parse_json(AdditionalData)\n| extend Tactics = parse_json(tostring(AD.tactics))\n| mv-expand Tactic = Tactics\n| extend TacticName = tostring(Tactic)\n| where isnotempty(TacticName)\n| summarize Count=count() by TacticName\n| order by Count desc\n| take 5",
-                            "size": 3,
-                            "title": "Top 5 Incidents by Tactic",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "visualization": "piechart"
-                        },
-                        "customWidth": "50",
-                        "id": "3c68ee90-e389-4632-b0f4-066e96205d2a"
-                    },
-                    {
-                        "type": 3,
-                        "name": "threat-barchart",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AlertsData = parse_json(AdditionalData)\n| extend AlertCount = toint(AlertsData.alertsCount)\n| summarize IncidentCount = count(), TotalAlerts = sum(AlertCount) by IncidentName = Title\n| top 5 by IncidentCount desc\n| extend IncidentLabel = iff(strlen(IncidentName) > 24, strcat(substring(IncidentName, 0, 24), '...'), IncidentName)\n| project IncidentLabel, IncidentCount, TotalAlerts\n| order by IncidentCount desc",
-                            "size": 0,
-                            "title": "Threat Events - Top 5 Incidents by Count",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "visualization": "categoricalbar",
-                            "chartSettings": {
-                                "xAxis": "IncidentLabel",
-                                "seriesLabelSettings": [
-                                    {
-                                        "seriesName": "IncidentCount",
-                                        "color": "blue"
-                                    },
-                                    {
-                                        "seriesName": "TotalAlerts",
-                                        "color": "orange"
-                                    }
-                                ]
-                            }
-                        },
-                        "customWidth": "100",
-                        "id": "7baf3b89-67e6-4273-8753-6c0fa0ca795e"
-                    },
-                    {
-                        "type": 3,
-                        "name": "threat-grid",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AlertsData = parse_json(AdditionalData)\n| extend AlertCount = toint(AlertsData.alertsCount)\n| extend IncidentStatus = tostring(column_ifexists('Status', ''))\n| extend IncidentSeverity = tostring(column_ifexists('Severity', ''))\n| summarize ['Incident Count']=count(), ['Total Alerts']=sum(AlertCount), ['Open Incidents']=countif(IncidentStatus != 'Closed'), ['High Severity Incidents']=countif(IncidentSeverity == 'High') by ['Incident Name']=Title\n| order by ['Incident Count'] desc",
-                            "size": 2,
-                            "title": "Threat Event Details",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "showExportToExcel": true,
-                            "exportToExcelOptions": "visible",
-                            "gridSettings": {
-                                "filter": true,
-                                "rowLimit": 10000,
-                                "formatters": [
-                                    {
-                                        "columnMatch": "Open Incidents",
-                                        "formatter": 18,
-                                        "formatOptions": {
-                                            "thresholdsOptions": "colors",
-                                            "thresholdsGrid": [
-                                                {
-                                                    "operator": "==",
-                                                    "thresholdValue": "0",
-                                                    "representation": "green",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": ">",
-                                                    "thresholdValue": "0",
-                                                    "representation": "red",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": "Default",
-                                                    "thresholdValue": null,
-                                                    "representation": "yellow",
-                                                    "text": "{0}{1}"
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    {
-                                        "columnMatch": "High Severity Incidents",
-                                        "formatter": 18,
-                                        "formatOptions": {
-                                            "thresholdsOptions": "colors",
-                                            "thresholdsGrid": [
-                                                {
-                                                    "operator": "==",
-                                                    "thresholdValue": "0",
-                                                    "representation": "green",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": ">",
-                                                    "thresholdValue": "0",
-                                                    "representation": "redBright",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": "Default",
-                                                    "thresholdValue": null,
-                                                    "representation": "yellow",
-                                                    "text": "{0}{1}"
-                                                }
-                                            ]
-                                        }
-                                    }
-                                ]
-                            }
-                        },
-                        "customWidth": "100",
-                        "id": "08d02409-5d3b-471d-91be-397f82f52512"
-                    }
-                ]
+              "json": "**EDR / AV Installation Coverage** — EDR+AV Installed / AV Only / EDR Only / No Coverage &nbsp;·&nbsp; Sources: `DeviceInfo` · `DeviceProcessEvents` · `DeviceNetworkEvents` · `DeviceFileEvents` · `DeviceImageLoadEvents` · `DeviceRegistryEvents` &nbsp;·&nbsp; Follows Time Range selector",
+              "style": "info"
             },
-            "id": "535df702-6b87-4b59-aaa5-0cd43f220255"
-        },
-        {
-            "type": 12,
-            "name": "group-dlpevents",
-            "conditionalVisibility": {
-                "parameterName": "Tab",
-                "comparison": "isEqualTo",
-                "value": "DLPEvents"
-            },
+            "name": "text-edrav-header",
+            "id": "009b4082-fbe5-4a02-b7b8-84ddfd5f3f3d"
+          },
+          {
+            "type": 3,
+            "name": "edrav-chart",
             "content": {
-                "version": "NotebookGroup/1.0",
-                "groupType": "editable",
-                "items": [
-                    {
-                        "type": 1,
-                        "content": {
-                            "json": "**DLP Events — USB / Removable Media** — USB Mass Storage connections · file writes within 900s of connection &nbsp;·&nbsp; Sources: `DeviceEvents` · `DeviceFileEvents` · Follows Time Range selector",
-                            "style": "info"
-                        },
-                        "name": "text-dlp-header",
-                        "id": "51a8913c-c860-4b49-9ee7-c23f2a8e1897"
-                    },
-                    {
-                        "type": 3,
-                        "name": "dlpevents-linechart",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let DeviceNameToSearch = '';\nlet TimespanInSeconds = 900;\nlet Connections =\nDeviceEvents\n| where Timestamp {TimeRange}\n| where (isempty(DeviceNameToSearch) or DeviceName =~ DeviceNameToSearch)\n| where ActionType == 'PnpDeviceConnected'\n| extend parsed = parse_json(AdditionalFields)\n| project\n    DeviceId,\n    DeviceName,\n    ConnectionTime = Timestamp,\n    DeviceClass = tostring(parsed.ClassName),\n    UsbDeviceId = tostring(parsed.DeviceId),\n    ClassId = tostring(parsed.DeviceId),\n    DeviceDescription = tostring(parsed.DeviceDescription),\n    VendorIds = tostring(parsed.VendorIds)\n| where DeviceClass == 'USB'\n| where DeviceDescription == 'USB Mass Storage Device';\nlet UsbWrites =\nDeviceFileEvents\n| where Timestamp {TimeRange}\n| where (isempty(DeviceNameToSearch) or DeviceName =~ DeviceNameToSearch)\n| where FolderPath !startswith 'c'\n| where FolderPath !startswith @'\\'\n| join kind=inner Connections on DeviceId\n| where datetime_diff('second', Timestamp, ConnectionTime) between (0 .. TimespanInSeconds);\nlet SpanDays =\n    toscalar(\n        UsbWrites\n        | summarize spanDays = todouble(datetime_diff('day', max(Timestamp), min(Timestamp)))\n    );\nlet BinSize = case(\n    isnull(SpanDays), 1d,\n    SpanDays <= 31, 1d,\n    SpanDays <= 120, 2d,\n    SpanDays <= 365, 7d,\n    SpanDays <= 730, 14d,\n    30d\n);\nUsbWrites\n| extend ApprovalStatus = 'USB Write Activity'\n| summarize IncidentCount = count() by ['Last Update'] = bin(Timestamp, BinSize), ApprovalStatus\n| order by ['Last Update'] asc",
-                            "size": 1,
-                            "title": "Weekly DLP: Number of USB Incidents per day (approved/not approved)",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "visualization": "linechart",
-                            "chartSettings": {
-                                "xAxis": "Last Update",
-                                "yAxis": [
-                                    "IncidentCount"
-                                ],
-                                "ySettings": {
-                                    "numberFormatSettings": {
-                                        "unit": 17,
-                                        "options": {
-                                            "style": "decimal",
-                                            "maximumFractionDigits": 0
-                                        }
-                                    }
-                                },
-                                "seriesLabelSettings": [
-                                    {
-                                        "seriesName": "Approved",
-                                        "label": "Approved USB Devices",
-                                        "color": "green"
-                                    },
-                                    {
-                                        "seriesName": "Not Approved",
-                                        "label": "Unapproved USB Devices",
-                                        "color": "red"
-                                    }
-                                ]
-                            }
-                        },
-                        "customWidth": "100",
-                        "id": "fd98d79a-ff35-426f-a33d-9b349c7dddd7"
-                    },
-                    {
-                        "type": 3,
-                        "name": "dlpevents-grid",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let DeviceNameToSearch = '';\nlet TimespanInSeconds = 900;\nlet Connections =\nDeviceEvents\n| where Timestamp {TimeRange}\n| where (isempty(DeviceNameToSearch) or DeviceName =~ DeviceNameToSearch) and ActionType == 'PnpDeviceConnected'\n| extend parsed = parse_json(AdditionalFields)\n| project DeviceId, DeviceName, ConnectionTime = Timestamp, DeviceClass = tostring(parsed.ClassName), UsbDeviceId = tostring(parsed.DeviceId), ClassId = tostring(parsed.DeviceId), DeviceDescription = tostring(parsed.DeviceDescription), VendorIds = tostring(parsed.VendorIds)\n| where DeviceClass == 'USB' and DeviceDescription == 'USB Mass Storage Device';\nDeviceFileEvents\n| where Timestamp {TimeRange}\n| where (isempty(DeviceNameToSearch) or DeviceName =~ DeviceNameToSearch) and FolderPath !startswith 'c' and FolderPath !startswith @'\\'\n| join kind=inner Connections on DeviceId\n| where datetime_diff('second', Timestamp, ConnectionTime) <= TimespanInSeconds\n| top 250 by Timestamp desc\n| project ['Last Update']=Timestamp, DeviceName, InitiatingProcessAccountName, DeviceClass, DeviceDescription, FileName",
-                            "size": 2,
-                            "title": "DLP Event Details (USB Enriched)",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "showExportToExcel": true,
-                            "exportToExcelOptions": "visible",
-                            "gridSettings": {
-                                "filter": true,
-                                "rowLimit": 100000
-                            }
-                        },
-                        "customWidth": "100",
-                        "id": "071e99e2-2b42-4ede-8b97-96bc1fae9df5"
-                    }
+              "version": "KqlItem/1.0",
+              "query": "let Devices = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, OnboardingStatus, SensorHealthState, JoinType, IsAzureADJoined) by DeviceId, DeviceName\n| extend EDRLastSeen = Timestamp\n| extend JoinClassification = case(tostring(JoinType) =~ 'AAD Joined' or IsAzureADJoined == 1, 'AAD Joined', isempty(tostring(JoinType)), 'Unknown/Not Reported', tostring(JoinType));\nlet AvTelemetry = union isfuzzy=true\n(DeviceProcessEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceNetworkEvents\n| where Timestamp {TimeRange}\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceFileEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceImageLoadEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceRegistryEvents\n| where Timestamp {TimeRange}\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp);\nlet AvInstalled = AvTelemetry\n| summarize AVLastSeen = max(Timestamp) by DeviceId;\nDevices\n| join kind=leftouter AvInstalled on DeviceId\n| extend HasEDR = OnboardingStatus == 'Onboarded' and SensorHealthState == 'Active'\n| extend HasAV = isnotnull(AVLastSeen)\n| extend InstallStatus = case(HasEDR and HasAV, 'EDR+AV Installed', HasEDR and not(HasAV), 'EDR Only (No AV)', not(HasEDR) and HasAV, 'AV Only (No EDR)', not(HasEDR) and not(HasAV), 'No EDR/No AV', 'Unknown')\n| extend ComplianceStatus = iff(InstallStatus == 'EDR+AV Installed', 'Compliant', 'Not Compliant')\n| extend SortOrder = case(InstallStatus == 'EDR+AV Installed', 1, InstallStatus == 'AV Only (No EDR)', 2, InstallStatus == 'EDR Only (No AV)', 3, InstallStatus == 'No EDR/No AV', 4, 5)\n| summarize NumberOfSystems = count() by InstallStatus, SortOrder\n| order by SortOrder asc\n| project InstallStatus, NumberOfSystems",
+              "size": 2,
+              "title": "EDR/AV Install Status - All Devices",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "categoricalbar",
+              "chartSettings": {
+                "showLegend": true,
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "EDR+AV Installed",
+                    "color": "green"
+                  },
+                  {
+                    "seriesName": "AV Only (No EDR)",
+                    "color": "#FFBF00"
+                  },
+                  {
+                    "seriesName": "EDR Only (No AV)",
+                    "color": "orange"
+                  },
+                  {
+                    "seriesName": "No EDR/No AV",
+                    "color": "red"
+                  }
                 ]
+              }
             },
-            "id": "fed93ad3-03a0-424c-9215-5514207b6d7a"
-        },
-        {
-            "type": 12,
-            "name": "group-intunefw",
-            "conditionalVisibility": {
-                "parameterName": "Tab",
-                "comparison": "isEqualTo",
-                "value": "IntuneFireWall"
-            },
+            "customWidth": "100",
+            "id": "b4d0d328-e6a7-415c-a3a6-d16deebbfd94"
+          },
+          {
+            "type": 3,
+            "name": "edrav-trend",
             "content": {
-                "version": "NotebookGroup/1.0",
-                "groupType": "editable",
-                "items": [
-                    {
-                        "type": 1,
-                        "content": {
-                            "json": "**FW Policy Compliance** — Scoped to FW Policy · Uses downstream sync and compliance activity as evidence &nbsp;·&nbsp; Sources: `IntuneAuditLogs` · `IntuneDeviceComplianceOrg` &nbsp;·&nbsp; Follows Time Range selector",
-                            "style": "info"
-                        },
-                        "name": "text-intunefw-header",
-                        "id": "406281c3-4480-47bb-b5c1-d3b08a34b94b"
-                    },
-                    {
-                        "type": 3,
-                        "name": "intunefw-chart",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let FWPolicyName = 'FW Policy';\nlet LatestAssignmentTime = toscalar(\n    IntuneAuditLogs\n    | where TimeGenerated {TimeRange}\n    | extend P = parse_json(Properties)\n    | extend PolicyName = tostring(coalesce(P.TargetDisplayNames[0], P.Targets[0].Name, ''))\n    | where PolicyName =~ FWPolicyName\n    | where OperationName has 'DeviceManagementConfigurationPolicyAssignment'\n    | where ResultType == 'Success'\n    | summarize LatestAssignment=max(TimeGenerated)\n);\nlet DevicesSynced = toscalar(\n    IntuneAuditLogs\n    | where isnotnull(LatestAssignmentTime)\n    | where TimeGenerated between (LatestAssignmentTime .. LatestAssignmentTime + 24h)\n    | where OperationName == 'syncDevice ManagedDevice'\n    | extend ManagedDeviceId = tostring(extractjson('$.TargetObjectIds[0]', Properties))\n    | where isnotempty(ManagedDeviceId)\n    | summarize dcount(ManagedDeviceId)\n);\nlet DevicesCompliance = toscalar(\n    IntuneDeviceComplianceOrg\n    | where isnotnull(LatestAssignmentTime)\n    | where TimeGenerated between (LatestAssignmentTime .. LatestAssignmentTime + 24h)\n    | where OperationName == 'DeviceCompliance'\n    | where isnotempty(DeviceId)\n    | summarize dcount(DeviceId)\n);\nunion\n(print Evidence='Successful FW Policy Assignments', Count=iff(isnull(LatestAssignmentTime), 0, 1)),\n(print Evidence='Devices Synced in 24h', Count=coalesce(DevicesSynced, 0)),\n(print Evidence='Devices with Compliance Check in 24h', Count=coalesce(DevicesCompliance, 0))",
-                            "size": 6,
-                            "title": "Latest FW Policy Evidence Snapshot",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "visualization": "categoricalbar",
-                            "chartSettings": {
-                                "showLegend": true,
-                                "seriesLabelSettings": [
-                                    {
-                                        "seriesName": "Successful FW Policy Assignments",
-                                        "color": "green"
-                                    },
-                                    {
-                                        "seriesName": "Devices Synced in 24h",
-                                        "color": "blue"
-                                    },
-                                    {
-                                        "seriesName": "Devices with Compliance Check in 24h",
-                                        "color": "orange"
-                                    }
-                                ]
-                            }
-                        },
-                        "customWidth": "60",
-                        "id": "cce73ffc-d778-49a0-824c-499cfc65b822"
-                    },
-                    {
-                        "type": 3,
-                        "name": "intunefw-metrics",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let FWPolicyName = 'FW Policy';\nlet LatestAssignmentTime = toscalar(\n    IntuneAuditLogs\n    | where TimeGenerated {TimeRange}\n    | extend P = parse_json(Properties)\n    | extend PolicyName = tostring(coalesce(P.TargetDisplayNames[0], P.Targets[0].Name, ''))\n    | where PolicyName =~ FWPolicyName\n    | where OperationName has 'DeviceManagementConfigurationPolicyAssignment'\n    | where ResultType == 'Success'\n    | summarize LatestAssignment=max(TimeGenerated)\n);\nlet DevicesSynced = toscalar(\n    IntuneAuditLogs\n    | where isnotnull(LatestAssignmentTime)\n    | where TimeGenerated between (LatestAssignmentTime .. LatestAssignmentTime + 24h)\n    | where OperationName == 'syncDevice ManagedDevice'\n    | extend ManagedDeviceId = tostring(extractjson('$.TargetObjectIds[0]', Properties))\n    | where isnotempty(ManagedDeviceId)\n    | summarize dcount(ManagedDeviceId)\n);\nlet DevicesCompliance = toscalar(\n    IntuneDeviceComplianceOrg\n    | where isnotnull(LatestAssignmentTime)\n    | where TimeGenerated between (LatestAssignmentTime .. LatestAssignmentTime + 24h)\n    | where OperationName == 'DeviceCompliance'\n    | where isnotempty(DeviceId)\n    | summarize dcount(DeviceId)\n);\nprint CompliancePercentage = iff(coalesce(DevicesSynced, 0) == 0, 0.0, round((todouble(coalesce(DevicesCompliance, 0)) * 100.0) / todouble(DevicesSynced), 2))",
-                            "size": 9,
-                            "title": "FW Policy Follow-up %",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "visualization": "tiles",
-                            "tileSettings": {
-                                "showBorder": true,
-                                "leftContent": {
-                                    "columnMatch": "CompliancePercentage",
-                                    "formatter": 12,
-                                    "formatOptions": {
-                                        "palette": "greenRed",
-                                        "showIcon": true
-                                    }
-                                }
-                            }
-                        },
-                        "customWidth": "40",
-                        "id": "693dfd1b-6c3d-4d35-af57-7817bd6f2076"
-                    },
-                    {
-                        "type": 3,
-                        "name": "intunefw-trend",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let FWPolicyName = 'FW Policy';\nlet StartDay = toscalar(IntuneAuditLogs | where TimeGenerated {TimeRange} | summarize startofday(min(TimeGenerated)));\nlet EndDay = toscalar(IntuneAuditLogs | where TimeGenerated {TimeRange} | summarize startofday(max(TimeGenerated)));\nlet DailyActivity = IntuneAuditLogs\n| where TimeGenerated {TimeRange}\n| extend P = parse_json(Properties)\n| extend PolicyName = tostring(coalesce(P.TargetDisplayNames[0], P.Targets[0].Name, ''))\n| where PolicyName =~ FWPolicyName\n| extend OperationCategory = case(OperationName has 'Assignment', 'Assignment', OperationName has 'Create', 'Create', OperationName has 'Patch', 'Update', 'Other')\n| summarize Create = countif(OperationCategory == 'Create'), Assignment = countif(OperationCategory == 'Assignment'), Update = countif(OperationCategory == 'Update') by Day = bin(TimeGenerated, 1d);\nrange Day from iif(isnull(StartDay), startofday(ago(30d)), StartDay) to iif(isnull(EndDay), startofday(now()), EndDay) step 1d\n| join kind=leftouter DailyActivity on Day\n| project Timestamp = Day, Create = coalesce(Create, 0), Assignment = coalesce(Assignment, 0), Update = coalesce(Update, 0)\n| order by Timestamp asc",
-                            "size": 4,
-                            "title": "FW Policy Activity Trend",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "visualization": "linechart",
-                            "chartSettings": {
-                                "showLegend": true,
-                                "seriesLabelSettings": [
-                                    {
-                                        "seriesName": "Create",
-                                        "color": "green"
-                                    },
-                                    {
-                                        "seriesName": "Assignment",
-                                        "color": "blue"
-                                    },
-                                    {
-                                        "seriesName": "Update",
-                                        "color": "red"
-                                    }
-                                ]
-                            }
-                        },
-                        "customWidth": "100",
-                        "id": "8d570925-d79b-4a53-85cc-e7c1a84f75f2"
-                    },
-                    {
-                        "type": 3,
-                        "name": "intunefw-grid",
-                        "content": {
-                            "version": "KqlItem/1.0",
-                            "query": "let FWPolicyName = 'FW Policy';\nlet PolicyOps = IntuneAuditLogs\n| where TimeGenerated {TimeRange}\n| where OperationName has 'DeviceManagementConfigurationPolicy'\n| extend P = parse_json(Properties)\n| extend PolicyName = tostring(coalesce(P.TargetDisplayNames[0], P.Targets[0].Name, '<unknown-policy>'))\n| where PolicyName =~ FWPolicyName\n| extend PolicyObjectId = tostring(P.TargetObjectIds[0])\n| extend AssignmentObjectId = tostring(P.TargetObjectIds[1])\n| extend AssignmentGroupId = tostring(extract('\\\"Name\\\":\\\"Target.GroupId\\\",\\\"Old\\\":.*?\\\"New\\\":\\\"([^\\\"]+)\\\"', 1, Properties))\n| extend Platforms = tostring(extract('\\\"Name\\\":\\\"Platforms\\\",\\\"Old\\\":.*?\\\"New\\\":\\\"([^\\\"]*)\\\"', 1, Properties))\n| extend SettingCount = toint(extract('\\\"Name\\\":\\\"SettingCount\\\",\\\"Old\\\":.*?\\\"New\\\":\\\"([^\\\"]+)\\\"', 1, Properties))\n| extend ApiVersion = tostring(extract('\\\"Name\\\":\\\"DeviceManagementAPIVersion\\\",\\\"Old\\\":.*?\\\"New\\\":\\\"([^\\\"]+)\\\"', 1, Properties))\n| extend AuditEventId = tostring(P.AuditEventId)\n| extend OperationCategory = case(OperationName has 'Assignment', 'Assignment', OperationName has 'Create', 'Create', OperationName has 'Patch', 'Update', 'Other')\n| project TimeGenerated, PolicyName, OperationCategory, OperationName, ResultType, Identity, PolicyObjectId, AssignmentObjectId, AssignmentGroupId, Platforms, SettingCount, ApiVersion, AuditEventId, ResultDescription;\nlet DeviceSync = IntuneAuditLogs\n| where TimeGenerated {TimeRange}\n| where OperationName == 'syncDevice ManagedDevice'\n| extend ManagedDeviceId = tostring(extractjson('$.TargetObjectIds[0]', Properties))\n| where isnotempty(ManagedDeviceId)\n| project SyncTime = TimeGenerated, ManagedDeviceId;\nlet Compliance = IntuneDeviceComplianceOrg\n| where TimeGenerated {TimeRange}\n| where OperationName == 'DeviceCompliance'\n| where isnotempty(DeviceId)\n| project ComplianceTime = TimeGenerated, DeviceId;\nPolicyOps\n| extend JoinKey = 1\n| join kind=leftouter (DeviceSync | extend JoinKey = 1) on JoinKey\n| summarize DevicesSyncedIn24h = dcountif(ManagedDeviceId, SyncTime between (TimeGenerated .. TimeGenerated + 24h)) by TimeGenerated, PolicyName, OperationCategory, OperationName, ResultType, Identity, PolicyObjectId, AssignmentObjectId, AssignmentGroupId, Platforms, SettingCount, ApiVersion, AuditEventId, ResultDescription\n| extend JoinKey = 1\n| join kind=leftouter (Compliance | extend JoinKey = 1) on JoinKey\n| summarize DevicesWithComplianceCheckIn24h = dcountif(DeviceId, ComplianceTime between (TimeGenerated .. TimeGenerated + 24h)), DevicesSyncedIn24h = any(DevicesSyncedIn24h) by TimeGenerated, PolicyName, OperationCategory, OperationName, ResultType, Identity, PolicyObjectId, AssignmentObjectId, AssignmentGroupId, Platforms, SettingCount, ApiVersion, AuditEventId, ResultDescription\n| extend DeliveryEvidence = case(OperationCategory != 'Assignment', 'N/A (not assignment)', DevicesSyncedIn24h > 0 and DevicesWithComplianceCheckIn24h > 0, 'Likely delivered (sync + compliance activity observed)', DevicesSyncedIn24h > 0, 'Partial evidence (sync observed)', 'No post-assignment signal in 24h window')\n| project ['Last Update'] = TimeGenerated, ['Policy Name'] = PolicyName, ['Operation Category'] = OperationCategory, ['Result'] = ResultType, ['Changed By'] = Identity, ['Assignment Group ID'] = AssignmentGroupId, ['Devices Synced (24h)'] = DevicesSyncedIn24h, ['Devices Compliance Check (24h)'] = DevicesWithComplianceCheckIn24h, ['Delivery Evidence'] = DeliveryEvidence\n| order by ['Last Update'] desc",
-                            "size": 2,
-                            "title": "FW Policy Detail",
-                            "timeContextFromParameter": "TimeRange",
-                            "queryType": 0,
-                            "resourceType": "microsoft.operationalinsights/workspaces",
-                            "showExportToExcel": true,
-                            "exportToExcelOptions": "visible",
-                            "gridSettings": {
-                                "filter": true,
-                                "rowLimit": 10000,
-                                "formatters": [
-                                    {
-                                        "columnMatch": "Result",
-                                        "formatter": 18,
-                                        "formatOptions": {
-                                            "thresholdsOptions": "icons",
-                                            "thresholdsGrid": [
-                                                {
-                                                    "operator": "==",
-                                                    "thresholdValue": "Success",
-                                                    "representation": "success",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": "==",
-                                                    "thresholdValue": "Failure",
-                                                    "representation": "2",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": "Default",
-                                                    "thresholdValue": null,
-                                                    "representation": "3",
-                                                    "text": "{0}{1}"
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    {
-                                        "columnMatch": "Operation Category",
-                                        "formatter": 18,
-                                        "formatOptions": {
-                                            "thresholdsOptions": "colors",
-                                            "thresholdsGrid": [
-                                                {
-                                                    "operator": "==",
-                                                    "thresholdValue": "Create",
-                                                    "representation": "green",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": "==",
-                                                    "thresholdValue": "Update",
-                                                    "representation": "orange",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": "==",
-                                                    "thresholdValue": "Assignment",
-                                                    "representation": "blue",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": "Default",
-                                                    "thresholdValue": null,
-                                                    "representation": "yellow",
-                                                    "text": "{0}{1}"
-                                                }
-                                            ]
-                                        }
-                                    },
-                                    {
-                                        "columnMatch": "Delivery Evidence",
-                                        "formatter": 18,
-                                        "formatOptions": {
-                                            "thresholdsOptions": "colors",
-                                            "thresholdsGrid": [
-                                                {
-                                                    "operator": "==",
-                                                    "thresholdValue": "Likely delivered (sync + compliance activity observed)",
-                                                    "representation": "green",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": "==",
-                                                    "thresholdValue": "Partial evidence (sync observed)",
-                                                    "representation": "blue",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": "==",
-                                                    "thresholdValue": "No post-assignment signal in 24h window",
-                                                    "representation": "red",
-                                                    "text": "{0}{1}"
-                                                },
-                                                {
-                                                    "operator": "Default",
-                                                    "thresholdValue": null,
-                                                    "representation": "yellow",
-                                                    "text": "{0}{1}"
-                                                }
-                                            ]
-                                        }
-                                    }
-                                ]
-                            }
-                        },
-                        "customWidth": "100",
-                        "id": "4286153e-fd51-46c5-98d5-5b6b3296fd25"
-                    }
+              "version": "KqlItem/1.0",
+              "query": "let DeviceDaily = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, OnboardingStatus, SensorHealthState) by Day = bin(Timestamp, 1d), DeviceId, DeviceName;\nlet AvDaily = union isfuzzy=true\n(DeviceProcessEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Day = bin(Timestamp, 1d)),\n(DeviceNetworkEvents\n| where Timestamp {TimeRange}\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Day = bin(Timestamp, 1d)),\n(DeviceFileEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Day = bin(Timestamp, 1d)),\n(DeviceImageLoadEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Day = bin(Timestamp, 1d)),\n(DeviceRegistryEvents\n| where Timestamp {TimeRange}\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Day = bin(Timestamp, 1d))\n| summarize HasAVSignal = any(true) by DeviceId, Day;\nDeviceDaily\n| join kind=leftouter AvDaily on DeviceId, Day\n| extend HasEDR = OnboardingStatus == 'Onboarded' and SensorHealthState == 'Active'\n| extend HasAV = coalesce(HasAVSignal, false)\n| summarize ['EDR+AV Installed'] = countif(HasEDR and HasAV), ['AV Only (No EDR)'] = countif(not(HasEDR) and HasAV), ['EDR Only (No AV)'] = countif(HasEDR and not(HasAV)), ['No EDR/No AV'] = countif(not(HasEDR) and not(HasAV)) by Timestamp = Day\n| order by Timestamp asc",
+              "size": 4,
+              "title": "EDR/AV Install Trend",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "linechart",
+              "chartSettings": {
+                "showLegend": true,
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "EDR+AV Installed",
+                    "color": "green"
+                  },
+                  {
+                    "seriesName": "AV Only (No EDR)",
+                    "color": "#FFBF00"
+                  },
+                  {
+                    "seriesName": "EDR Only (No AV)",
+                    "color": "orange"
+                  },
+                  {
+                    "seriesName": "No EDR/No AV",
+                    "color": "red"
+                  }
                 ]
+              }
             },
-            "id": "6c0874ee-eba4-4f5d-9124-d1abe0b18971"
-        }
-    ],
-    "fallbackResourceIds": [
-        "/subscriptions/882d9ca8-f61e-4cc8-a081-dc01aab06b8a/resourcegroups/soc-central/providers/microsoft.operationalinsights/workspaces/soc-central"
-    ],
-    "fromTemplateId": "sentinel-UserWorkbook",
-    "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json",
-    "context": {
-        "ownerId": "/subscriptions/882d9ca8-f61e-4cc8-a081-dc01aab06b8a/resourcegroups/soc-central/providers/microsoft.operationalinsights/workspaces/soc-central"
+            "customWidth": "100",
+            "id": "6b45f3f0-3ac2-40da-b5c8-d3255ce6e71e"
+          },
+          {
+            "type": 3,
+            "name": "edrav-grid",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let Devices = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, OnboardingStatus, SensorHealthState, JoinType, IsAzureADJoined) by DeviceId, DeviceName\n| extend EDRLastSeen = Timestamp\n| extend JoinClassification = case(tostring(JoinType) =~ 'AAD Joined' or IsAzureADJoined == 1, 'AAD Joined', isempty(tostring(JoinType)), 'Unknown/Not Reported', tostring(JoinType));\nlet AvTelemetry = union isfuzzy=true\n(DeviceProcessEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceNetworkEvents\n| where Timestamp {TimeRange}\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceFileEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceImageLoadEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceRegistryEvents\n| where Timestamp {TimeRange}\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp);\nlet AvInstalled = AvTelemetry\n| summarize AVLastSeen = max(Timestamp) by DeviceId;\nDevices\n| join kind=leftouter AvInstalled on DeviceId\n| extend HasEDR = OnboardingStatus == 'Onboarded' and SensorHealthState == 'Active'\n| extend HasAV = isnotnull(AVLastSeen)\n| extend InstallStatus = case(HasEDR and HasAV, 'EDR+AV Installed', HasEDR and not(HasAV), 'EDR Only (No AV)', not(HasEDR) and HasAV, 'AV Only (No EDR)', not(HasEDR) and not(HasAV), 'No EDR/No AV', 'Unknown')\n| extend ComplianceStatus = iff(InstallStatus == 'EDR+AV Installed', 'Compliant', 'Not Compliant')\n| extend SortOrder = case(InstallStatus == 'EDR+AV Installed', 1, InstallStatus == 'AV Only (No EDR)', 2, InstallStatus == 'EDR Only (No AV)', 3, InstallStatus == 'No EDR/No AV', 4, 5)\n| project DeviceName, DeviceId, EDRLastSeen, AVLastSeen, OnboardingStatus, SensorHealthState, InstallStatus, ComplianceStatus , SortOrder\n| order by SortOrder asc, DeviceName asc",
+              "size": 2,
+              "title": "EDR/AV Install Details - All Devices",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "showExportToExcel": true,
+              "exportToExcelOptions": "visible",
+              "gridSettings": {
+                "filter": true,
+                "rowLimit": 10000,
+                "formatters": [
+                  {
+                    "columnMatch": "InstallStatus",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "EDR+AV Installed",
+                          "representation": "success",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "AV Only (No EDR)",
+                          "representation": "3",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "EDR Only (No AV)",
+                          "representation": "3",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "2",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "ComplianceStatus",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Compliant",
+                          "representation": "success",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "2",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "id": "b860a10d-c233-47c3-b96f-43aaaf0d5508"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "EDRAV"
+      },
+      "name": "group-edrav"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "**AV Sensor Health** — Compliant = `MsMpEng.exe` / `mdatp` / `wdavdaemon` / `wdavdaemonapp` active ≤ 7 days &nbsp;·&nbsp; Status panels use fixed 90-day window &nbsp;·&nbsp; Linux: uses `DeviceInfo` heartbeat as fallback &nbsp;·&nbsp; Follows Time Range selector",
+              "style": "info"
+            },
+            "name": "text-avsensor-header",
+            "id": "f0cb1a23-ab45-4add-83aa-f7ab0536a49b"
+          },
+          {
+            "type": 3,
+            "name": "avsensor-chart",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let CurrentTime = now();\nlet InventoryWindow = 90d;\nlet SignalWindow = 7d;\nlet OnboardedDevices = DeviceInfo\n| where Timestamp >= ago(InventoryWindow)\n| summarize arg_max(Timestamp, OnboardingStatus, SensorHealthState) by DeviceId, DeviceName\n| where OnboardingStatus == 'Onboarded'\n| project DeviceId, DeviceName;\nlet MdavTelemetry = union isfuzzy=true\n(DeviceProcessEvents\n| where Timestamp >= ago(SignalWindow)\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceNetworkEvents\n| where Timestamp >= ago(SignalWindow)\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceFileEvents\n| where Timestamp >= ago(SignalWindow)\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceImageLoadEvents\n| where Timestamp >= ago(SignalWindow)\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceRegistryEvents\n| where Timestamp >= ago(SignalWindow)\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp);\nlet MdavLastSeen = MdavTelemetry\n| summarize LastSeen = max(Timestamp) by DeviceId;\nOnboardedDevices\n| join kind=leftouter MdavLastSeen on DeviceId\n| extend DaysSinceLastSeen = iif(isnull(LastSeen), int(null), datetime_diff('day', CurrentTime, LastSeen))\n| extend AVCommunicationStatus = iff(isnotnull(LastSeen) and DaysSinceLastSeen <= 7, 'Compliant', 'Noncompliant')\n| summarize Count = count() by AVCommunicationStatus\n| extend SortOrder = case(AVCommunicationStatus == 'Compliant', 1, AVCommunicationStatus == 'Noncompliant', 2, 3)\n| order by SortOrder asc\n| project AVCommunicationStatus, Count",
+              "size": 6,
+              "title": "AV Sensor Status - Defender AV Process Seen within 7 Days",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "id": "451aaa29-e6a2-43b3-9ff3-c31fcc2919c8"
+          },
+          {
+            "type": 3,
+            "name": "avsensor-metrics",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let CurrentTime = now();\nlet InventoryWindow = 90d;\nlet SignalWindow = 7d;\nlet OnboardedDevices = DeviceInfo\n| where Timestamp >= ago(InventoryWindow)\n| summarize arg_max(Timestamp, OnboardingStatus, SensorHealthState) by DeviceId, DeviceName\n| where OnboardingStatus == 'Onboarded'\n| project DeviceId, DeviceName;\nlet MdavTelemetry = union isfuzzy=true\n(DeviceProcessEvents\n| where Timestamp >= ago(SignalWindow)\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceNetworkEvents\n| where Timestamp >= ago(SignalWindow)\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceFileEvents\n| where Timestamp >= ago(SignalWindow)\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceImageLoadEvents\n| where Timestamp >= ago(SignalWindow)\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceRegistryEvents\n| where Timestamp >= ago(SignalWindow)\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp);\nlet MdavLastSeen = MdavTelemetry\n| summarize LastSeen = max(Timestamp) by DeviceId;\nOnboardedDevices\n| join kind=leftouter MdavLastSeen on DeviceId\n| extend DaysSinceLastSeen = iif(isnull(LastSeen), int(null), datetime_diff('day', CurrentTime, LastSeen))\n| extend AVCommunicationStatus = iff(isnotnull(LastSeen) and DaysSinceLastSeen <= 7, 'Compliant', 'Noncompliant')\n| summarize Total=count(), Compliant=countif(AVCommunicationStatus=='Compliant')\n| extend CompliancePercentage = round((Compliant * 100.0) / Total, 2)\n| project CompliancePercentage",
+              "size": 9,
+              "title": "AV Sensor Compliance %",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "showBorder": true,
+                "leftContent": {
+                  "columnMatch": "CompliancePercentage",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "greenRed",
+                    "showIcon": true
+                  }
+                }
+              }
+            },
+            "customWidth": "50",
+            "id": "d51651ed-7e96-417d-bdab-a1347c45a502"
+          },
+          {
+            "type": 3,
+            "name": "avsensor-trend",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let OnboardedDevices = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, OnboardingStatus, SensorHealthState) by DeviceId, DeviceName\n| where OnboardingStatus == 'Onboarded'\n| project DeviceId, DeviceName;\nlet TotalOnboarded = toscalar(OnboardedDevices | count);\nlet DayBounds = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize StartDay = startofday(min(Timestamp)), EndDay = startofday(max(Timestamp));\nlet MdavDailySeen = union isfuzzy=true\n(DeviceProcessEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, SeenDay = startofday(Timestamp)),\n(DeviceNetworkEvents\n| where Timestamp {TimeRange}\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, SeenDay = startofday(Timestamp)),\n(DeviceFileEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, SeenDay = startofday(Timestamp)),\n(DeviceImageLoadEvents\n| where Timestamp {TimeRange}\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, SeenDay = startofday(Timestamp)),\n(DeviceRegistryEvents\n| where Timestamp {TimeRange}\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, SeenDay = startofday(Timestamp))\n| where DeviceId in (OnboardedDevices | project DeviceId)\n| summarize by DeviceId, SeenDay;\nrange Day from toscalar(DayBounds | project StartDay) to toscalar(DayBounds | project EndDay) step 1d\n| extend JoinKey = 1\n| join kind=leftouter (MdavDailySeen | extend JoinKey = 1) on JoinKey\n| summarize Compliant = dcountif(DeviceId, SeenDay between (Day - 6d .. Day)) by Day\n| extend Noncompliant = TotalOnboarded - Compliant\n| project Timestamp = Day, Compliant, Noncompliant\n| order by Timestamp asc",
+              "size": 4,
+              "title": "AV Sensor Trend - Green=Compliant | Red=Noncompliant",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "linechart",
+              "chartSettings": {
+                "showLegend": true,
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "Compliant",
+                    "color": "green"
+                  },
+                  {
+                    "seriesName": "Noncompliant",
+                    "color": "red"
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "id": "f913a604-a22d-44d8-ab99-6d389e328cae"
+          },
+          {
+            "type": 3,
+            "name": "avsensor-grid",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let CurrentTime = now();\nlet InventoryWindow = 90d;\nlet SignalWindow = 7d;\nlet OnboardedDevices = DeviceInfo\n| where Timestamp >= ago(InventoryWindow)\n| summarize arg_max(Timestamp, OnboardingStatus, SensorHealthState, OSPlatform) by DeviceId, DeviceName\n| where OnboardingStatus == 'Onboarded'\n| project DeviceId, DeviceName, OnboardingStatus, SensorHealthState, OSPlatform, DeviceInfoLastSeen = Timestamp;\nlet MdavTelemetry = union isfuzzy=true\n(DeviceProcessEvents\n| where Timestamp >= ago(SignalWindow)\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceNetworkEvents\n| where Timestamp >= ago(SignalWindow)\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceFileEvents\n| where Timestamp >= ago(SignalWindow)\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceImageLoadEvents\n| where Timestamp >= ago(SignalWindow)\n| where FileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp') or InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp),\n(DeviceRegistryEvents\n| where Timestamp >= ago(SignalWindow)\n| where InitiatingProcessFileName in~ ('MsMpEng.exe', 'mdatp', 'wdavdaemon', 'wdavdaemonapp')\n| project DeviceId, Timestamp);\nlet MdavLastSeen = MdavTelemetry\n| summarize LastSeen = max(Timestamp) by DeviceId;\nOnboardedDevices\n| join kind=leftouter MdavLastSeen on DeviceId\n| extend EffectiveLastSeen = iif(isnull(LastSeen) and OSPlatform has 'Linux', DeviceInfoLastSeen, LastSeen)\n| extend DaysSinceLastSeen = iif(isnull(EffectiveLastSeen), int(null), datetime_diff('day', CurrentTime, EffectiveLastSeen))\n| extend AVCommunicationStatus = iff(isnotnull(EffectiveLastSeen) and DaysSinceLastSeen <= 7, 'Compliant', 'Noncompliant')\n| project DeviceName, DeviceId, OSPlatform, LastSeen = EffectiveLastSeen, DaysSinceLastSeen, OnboardingStatus, SensorHealthState, AVCommunicationStatus\n| order by isnull(LastSeen) asc, DaysSinceLastSeen asc",
+              "size": 2,
+              "title": "AV Sensor Details",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "showExportToExcel": true,
+              "exportToExcelOptions": "visible",
+              "gridSettings": {
+                "filter": true,
+                "rowLimit": 10000,
+                "formatters": [
+                  {
+                    "columnMatch": "AVCommunicationStatus",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Compliant",
+                          "representation": "success",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "2",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "SensorHealthState",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Active",
+                          "representation": "success",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "3",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "DaysSinceLastSeen",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "<=",
+                          "thresholdValue": "7",
+                          "representation": "green",
+                          "text": "{0}d{1}"
+                        },
+                        {
+                          "operator": "<=",
+                          "thresholdValue": "14",
+                          "representation": "yellow",
+                          "text": "{0}d{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "red",
+                          "text": "{0}d{1}"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "id": "e991f430-04ba-486f-8797-4d69664b0a6e"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "AVSensor"
+      },
+      "name": "group-avsensor"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "**Firewall Events** — `DeviceNetworkEvents` classified into: Blocked (blocked/denied/drop/reject) · Allowed (allowed/success) · Connection Activity · Failed Connection &nbsp;·&nbsp; Follows Time Range selector",
+              "style": "info"
+            },
+            "name": "text-fw-header",
+            "id": "37a3c60c-76f2-472f-9b54-b9a3637e6b9c"
+          },
+          {
+            "type": 3,
+            "name": "fw-timechart",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceNetworkEvents\n| where Timestamp {TimeRange}\n| extend ActionTypeLc = tolower(ActionType)\n| extend FirewallEventLabel = case(ActionTypeLc has_any ('blocked','denied','drop','reject'), 'Blocked', ActionTypeLc has_any ('allowed','success'), 'Allowed', ActionType in~ ('ConnectionFailed','ConnectionFailedAggregatedReport'), 'Failed Connection', ActionType has_any ('ConnectionAcknowledged','ConnectionSuccess','DnsConnectionInspected','SslConnectionInspected'), 'Connection Activity', '')\n| where FirewallEventLabel != ''\n| summarize ['Number of Firewall Events']=count() by ['Event Generated Time']=bin(Timestamp, 1d), ['Firewall Event Label']=FirewallEventLabel\n| order by ['Event Generated Time'] asc",
+              "size": 2,
+              "title": "MDE Firewall Signals by Classification",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "linechart"
+            },
+            "customWidth": "100",
+            "id": "f80afeda-6d31-4160-8cee-9c3e7052514a"
+          },
+          {
+            "type": 3,
+            "name": "fw-grid",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceNetworkEvents\n| where Timestamp {TimeRange}\n| extend ActionTypeLc = tolower(ActionType)\n| extend FirewallEventLabel = case(ActionTypeLc has_any ('blocked','denied','drop','reject'), 'Blocked', ActionTypeLc has_any ('allowed','success'), 'Allowed', ActionType in~ ('ConnectionFailed','ConnectionFailedAggregatedReport'), 'Failed Connection', ActionType has_any ('ConnectionAcknowledged','ConnectionSuccess','DnsConnectionInspected','SslConnectionInspected'), 'Connection Activity', '')\n| where FirewallEventLabel != ''\n| extend SortOrder = case(FirewallEventLabel == 'Blocked', 1, FirewallEventLabel == 'Allowed', 2, FirewallEventLabel == 'Connection Activity', 3, FirewallEventLabel == 'Failed Connection', 4, 5)\n| summarize ['Event Count']=count(), ['Unique Remote IPs']=dcountif(RemoteIP, isnotempty(RemoteIP)), ['Unique Destination Ports']=dcountif(RemotePort, isnotnull(RemotePort)), ['Protocols Seen']=make_set(Protocol, 4), ['Action Types Seen']=make_set(ActionType, 5) by ['Firewall Event Label']=FirewallEventLabel, SortOrder, DeviceName\n| order by SortOrder asc, ['Event Count'] desc\n| project-away SortOrder",
+              "size": 2,
+              "title": "MDE Firewall Device Triage Summary",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "showExportToExcel": true,
+              "exportToExcelOptions": "visible",
+              "gridSettings": {
+                "filter": true,
+                "rowLimit": 10000,
+                "formatters": [
+                  {
+                    "columnMatch": "Event Count",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "blue"
+                    }
+                  },
+                  {
+                    "columnMatch": "Unique Remote IPs",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "orange"
+                    }
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "id": "a02252ab-debb-4f49-a7b7-3a3e3ac5ff7c"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "FWEvents"
+      },
+      "name": "group-fwevents"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "**Threat Events** — Sentinel incidents and alerts &nbsp;·&nbsp; Tiles: Total Incidents · Total Alerts · Open Incidents · High Severity &nbsp;·&nbsp; Source: `SecurityIncident` · Follows Time Range selector",
+              "style": "info"
+            },
+            "name": "text-threat-header",
+            "id": "8c300272-b262-49cd-9659-9e8dd4e93663"
+          },
+          {
+            "type": 3,
+            "name": "threat-tiles",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AlertsData = parse_json(AdditionalData)\n| extend AlertCount = toint(AlertsData.alertsCount)\n| summarize TotalIncidents=count(), TotalAlerts=sum(AlertCount), OpenIncidents=countif(Status != 'Closed'), HighSeverity=countif(Severity == 'High')\n| extend r = pack_array(pack('label','Total Incidents','value',TotalIncidents), pack('label','Total Alerts','value',TotalAlerts), pack('label','Open Incidents','value',OpenIncidents), pack('label','High Severity','value',HighSeverity))\n| mv-expand r\n| project label=tostring(r.label), value=toint(r.value)",
+              "size": 4,
+              "title": "Threat Events Summary",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "showBorder": false,
+                "titleContent": {
+                  "columnMatch": "label"
+                },
+                "leftContent": {
+                  "columnMatch": "value",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 0
+                    }
+                  }
+                }
+              }
+            },
+            "customWidth": "100",
+            "id": "468e98ca-a97a-4b19-8c00-b4216afd6c0e"
+          },
+          {
+            "type": 3,
+            "name": "threat-piechart",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AD = parse_json(AdditionalData)\n| extend Sources = parse_json(tostring(AD.alertProductNames))\n| mv-expand Source = Sources\n| extend SourceName = tostring(Source)\n| where isnotempty(SourceName)\n| summarize Count=count() by SourceName\n| order by Count desc",
+              "size": 3,
+              "title": "Incidents by Detection Source",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "id": "aa14b65d-9ce0-41b1-8f6a-6f03e1cd9288"
+          },
+          {
+            "type": 3,
+            "name": "threat-tacticschart",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AD = parse_json(AdditionalData)\n| extend Tactics = parse_json(tostring(AD.tactics))\n| mv-expand Tactic = Tactics\n| extend TacticName = tostring(Tactic)\n| where isnotempty(TacticName)\n| summarize Count=count() by TacticName\n| order by Count desc\n| take 5",
+              "size": 3,
+              "title": "Top 5 Incidents by Tactic",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "id": "3c68ee90-e389-4632-b0f4-066e96205d2a"
+          },
+          {
+            "type": 3,
+            "name": "threat-barchart",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AlertsData = parse_json(AdditionalData)\n| extend AlertCount = toint(AlertsData.alertsCount)\n| summarize IncidentCount = count(), TotalAlerts = sum(AlertCount) by IncidentName = Title\n| top 5 by IncidentCount desc\n| extend IncidentLabel = iff(strlen(IncidentName) > 24, strcat(substring(IncidentName, 0, 24), '...'), IncidentName)\n| project IncidentLabel, IncidentCount, TotalAlerts\n| order by IncidentCount desc",
+              "size": 0,
+              "title": "Threat Events - Top 5 Incidents by Count",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "categoricalbar",
+              "chartSettings": {
+                "xAxis": "IncidentLabel",
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "IncidentCount",
+                    "color": "blue"
+                  },
+                  {
+                    "seriesName": "TotalAlerts",
+                    "color": "orange"
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "id": "7baf3b89-67e6-4273-8753-6c0fa0ca795e"
+          },
+          {
+            "type": 3,
+            "name": "threat-grid",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AlertsData = parse_json(AdditionalData)\n| extend AlertCount = toint(AlertsData.alertsCount)\n| extend IncidentStatus = tostring(column_ifexists('Status', ''))\n| extend IncidentSeverity = tostring(column_ifexists('Severity', ''))\n| summarize ['Incident Count']=count(), ['Total Alerts']=sum(AlertCount), ['Open Incidents']=countif(IncidentStatus != 'Closed'), ['High Severity Incidents']=countif(IncidentSeverity == 'High') by ['Incident Name']=Title\n| order by ['Incident Count'] desc",
+              "size": 2,
+              "title": "Threat Event Details",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "showExportToExcel": true,
+              "exportToExcelOptions": "visible",
+              "gridSettings": {
+                "filter": true,
+                "rowLimit": 10000,
+                "formatters": [
+                  {
+                    "columnMatch": "Open Incidents",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "0",
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": ">",
+                          "thresholdValue": "0",
+                          "representation": "red",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "High Severity Incidents",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "0",
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": ">",
+                          "thresholdValue": "0",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "id": "08d02409-5d3b-471d-91be-397f82f52512"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "ThreatEvents"
+      },
+      "name": "group-threatevents"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "**DLP Events — USB / Removable Media** — USB Mass Storage connections · file writes within 900s of connection &nbsp;·&nbsp; Sources: `DeviceEvents` · `DeviceFileEvents` · Follows Time Range selector",
+              "style": "info"
+            },
+            "name": "text-dlp-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let DeviceNameToSearch = '';\nlet Connections =\nDeviceEvents\n| where Timestamp {TimeRange}\n| where (isempty(DeviceNameToSearch) or DeviceName =~ DeviceNameToSearch)\n| where ActionType == 'PnpDeviceConnected'\n| extend parsed = parse_json(AdditionalFields)\n| project\n    DeviceId,\n    DeviceName,\n    ConnectionTime = Timestamp,\n    DeviceClass = tostring(parsed.ClassName),\n    UsbDeviceId = tostring(parsed.DeviceId),\n    ClassId = tostring(parsed.DeviceId),\n    DeviceDescription = tostring(parsed.DeviceDescription),\n    VendorIds = tostring(parsed.VendorIds)\n| where DeviceClass == 'USB'\n| where DeviceDescription == 'USB Mass Storage Device';\nlet UsbWrites =\nDeviceFileEvents\n| where Timestamp {TimeRange}\n| where (isempty(DeviceNameToSearch) or DeviceName =~ DeviceNameToSearch)\n| where FolderPath !startswith 'c'\n| where FolderPath !startswith @'\\'\n| join kind=inner Connections on DeviceId;\nlet SpanDays =\n    toscalar(\n        UsbWrites\n        | summarize spanDays = todouble(datetime_diff('day', max(Timestamp), min(Timestamp)))\n    );\nlet BinSize = case(\n    isnull(SpanDays), 1d,\n    SpanDays <= 31, 1d,\n    SpanDays <= 120, 2d,\n    SpanDays <= 365, 7d,\n    SpanDays <= 730, 14d,\n    30d\n);\nUsbWrites\n| extend ApprovalStatus = 'USB Write Activity'\n| summarize IncidentCount = count() by ['Last Update'] = bin(Timestamp, BinSize), ApprovalStatus\n| order by ['Last Update'] asc",
+              "size": 1,
+              "title": "Weekly DLP: Number of USB Incidents per day (approved/not approved)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "linechart",
+              "chartSettings": {
+                "xAxis": "Last Update",
+                "yAxis": [
+                  "IncidentCount"
+                ],
+                "ySettings": {
+                  "numberFormatSettings": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 0
+                    }
+                  }
+                },
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "Approved",
+                    "label": "Approved USB Devices",
+                    "color": "green"
+                  },
+                  {
+                    "seriesName": "Not Approved",
+                    "label": "Unapproved USB Devices",
+                    "color": "red"
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "name": "dlpevents-linechart"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let DeviceNameToSearch = '';\nlet Connections =\nDeviceEvents\n| where Timestamp {TimeRange}\n| where (isempty(DeviceNameToSearch) or DeviceName =~ DeviceNameToSearch) and ActionType == 'PnpDeviceConnected'\n| extend parsed = parse_json(AdditionalFields)\n| project DeviceId, DeviceName, ConnectionTime = Timestamp, DeviceClass = tostring(parsed.ClassName), UsbDeviceId = tostring(parsed.DeviceId), ClassId = tostring(parsed.DeviceId), DeviceDescription = tostring(parsed.DeviceDescription), VendorIds = tostring(parsed.VendorIds)\n| where DeviceClass == 'USB' and DeviceDescription == 'USB Mass Storage Device';\nDeviceFileEvents\n| where Timestamp {TimeRange}\n| where (isempty(DeviceNameToSearch) or DeviceName =~ DeviceNameToSearch) and FolderPath !startswith 'c' and FolderPath !startswith @'\\'\n| join kind=inner Connections on DeviceId\n| top 250 by Timestamp desc\n| project ['Last Update']=Timestamp, DeviceName, InitiatingProcessAccountName, DeviceClass, DeviceDescription, FileName",
+              "size": 2,
+              "title": "DLP Event Details (USB Enriched)",
+              "timeContextFromParameter": "TimeRange",
+              "showExportToExcel": true,
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "filter": true
+              }
+            },
+            "customWidth": "100",
+            "name": "dlpevents-grid"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "DLPEvents"
+      },
+      "name": "group-dlpevents"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "**FW Policy Compliance** — Scoped to FW Policy · Uses downstream sync and compliance activity as evidence &nbsp;·&nbsp; Sources: `IntuneAuditLogs` · `IntuneDeviceComplianceOrg` &nbsp;·&nbsp; Follows Time Range selector",
+              "style": "info"
+            },
+            "name": "text-intunefw-header",
+            "id": "406281c3-4480-47bb-b5c1-d3b08a34b94b"
+          },
+          {
+            "type": 3,
+            "name": "intunefw-chart",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let FWPolicyName = 'FW Policy';\nlet LatestAssignmentTime = toscalar(\n    IntuneAuditLogs\n    | where TimeGenerated {TimeRange}\n    | extend P = parse_json(Properties)\n    | extend PolicyName = tostring(coalesce(P.TargetDisplayNames[0], P.Targets[0].Name, ''))\n    | where PolicyName =~ FWPolicyName\n    | where OperationName has 'DeviceManagementConfigurationPolicyAssignment'\n    | where ResultType == 'Success'\n    | summarize LatestAssignment=max(TimeGenerated)\n);\nlet DevicesSynced = toscalar(\n    IntuneAuditLogs\n    | where isnotnull(LatestAssignmentTime)\n    | where TimeGenerated between (LatestAssignmentTime .. LatestAssignmentTime + 24h)\n    | where OperationName == 'syncDevice ManagedDevice'\n    | extend ManagedDeviceId = tostring(extractjson('$.TargetObjectIds[0]', Properties))\n    | where isnotempty(ManagedDeviceId)\n    | summarize dcount(ManagedDeviceId)\n);\nlet DevicesCompliance = toscalar(\n    IntuneDeviceComplianceOrg\n    | where isnotnull(LatestAssignmentTime)\n    | where TimeGenerated between (LatestAssignmentTime .. LatestAssignmentTime + 24h)\n    | where OperationName == 'DeviceCompliance'\n    | where isnotempty(DeviceId)\n    | summarize dcount(DeviceId)\n);\nunion\n(print Evidence='Successful FW Policy Assignments', Count=iff(isnull(LatestAssignmentTime), 0, 1)),\n(print Evidence='Devices Synced in 24h', Count=coalesce(DevicesSynced, 0)),\n(print Evidence='Devices with Compliance Check in 24h', Count=coalesce(DevicesCompliance, 0))",
+              "size": 6,
+              "title": "Latest FW Policy Evidence Snapshot",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "categoricalbar",
+              "chartSettings": {
+                "showLegend": true,
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "Successful FW Policy Assignments",
+                    "color": "green"
+                  },
+                  {
+                    "seriesName": "Devices Synced in 24h",
+                    "color": "blue"
+                  },
+                  {
+                    "seriesName": "Devices with Compliance Check in 24h",
+                    "color": "orange"
+                  }
+                ]
+              }
+            },
+            "customWidth": "60",
+            "id": "cce73ffc-d778-49a0-824c-499cfc65b822"
+          },
+          {
+            "type": 3,
+            "name": "intunefw-metrics",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let FWPolicyName = 'FW Policy';\nlet LatestAssignmentTime = toscalar(\n    IntuneAuditLogs\n    | where TimeGenerated {TimeRange}\n    | extend P = parse_json(Properties)\n    | extend PolicyName = tostring(coalesce(P.TargetDisplayNames[0], P.Targets[0].Name, ''))\n    | where PolicyName =~ FWPolicyName\n    | where OperationName has 'DeviceManagementConfigurationPolicyAssignment'\n    | where ResultType == 'Success'\n    | summarize LatestAssignment=max(TimeGenerated)\n);\nlet DevicesSynced = toscalar(\n    IntuneAuditLogs\n    | where isnotnull(LatestAssignmentTime)\n    | where TimeGenerated between (LatestAssignmentTime .. LatestAssignmentTime + 24h)\n    | where OperationName == 'syncDevice ManagedDevice'\n    | extend ManagedDeviceId = tostring(extractjson('$.TargetObjectIds[0]', Properties))\n    | where isnotempty(ManagedDeviceId)\n    | summarize dcount(ManagedDeviceId)\n);\nlet DevicesCompliance = toscalar(\n    IntuneDeviceComplianceOrg\n    | where isnotnull(LatestAssignmentTime)\n    | where TimeGenerated between (LatestAssignmentTime .. LatestAssignmentTime + 24h)\n    | where OperationName == 'DeviceCompliance'\n    | where isnotempty(DeviceId)\n    | summarize dcount(DeviceId)\n);\nprint CompliancePercentage = iff(coalesce(DevicesSynced, 0) == 0, 0.0, round((todouble(coalesce(DevicesCompliance, 0)) * 100.0) / todouble(DevicesSynced), 2))",
+              "size": 9,
+              "title": "FW Policy Follow-up %",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "showBorder": true,
+                "leftContent": {
+                  "columnMatch": "CompliancePercentage",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "greenRed",
+                    "showIcon": true
+                  }
+                }
+              }
+            },
+            "customWidth": "40",
+            "id": "693dfd1b-6c3d-4d35-af57-7817bd6f2076"
+          },
+          {
+            "type": 3,
+            "name": "intunefw-trend",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let FWPolicyName = 'FW Policy';\nlet StartDay = toscalar(IntuneAuditLogs | where TimeGenerated {TimeRange} | summarize startofday(min(TimeGenerated)));\nlet EndDay = toscalar(IntuneAuditLogs | where TimeGenerated {TimeRange} | summarize startofday(max(TimeGenerated)));\nlet DailyActivity = IntuneAuditLogs\n| where TimeGenerated {TimeRange}\n| extend P = parse_json(Properties)\n| extend PolicyName = tostring(coalesce(P.TargetDisplayNames[0], P.Targets[0].Name, ''))\n| where PolicyName =~ FWPolicyName\n| extend OperationCategory = case(OperationName has 'Assignment', 'Assignment', OperationName has 'Create', 'Create', OperationName has 'Patch', 'Update', 'Other')\n| summarize Create = countif(OperationCategory == 'Create'), Assignment = countif(OperationCategory == 'Assignment'), Update = countif(OperationCategory == 'Update') by Day = bin(TimeGenerated, 1d);\nrange Day from iif(isnull(StartDay), startofday(ago(30d)), StartDay) to iif(isnull(EndDay), startofday(now()), EndDay) step 1d\n| join kind=leftouter DailyActivity on Day\n| project Timestamp = Day, Create = coalesce(Create, 0), Assignment = coalesce(Assignment, 0), Update = coalesce(Update, 0)\n| order by Timestamp asc",
+              "size": 4,
+              "title": "FW Policy Activity Trend",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "linechart",
+              "chartSettings": {
+                "showLegend": true,
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "Create",
+                    "color": "green"
+                  },
+                  {
+                    "seriesName": "Assignment",
+                    "color": "blue"
+                  },
+                  {
+                    "seriesName": "Update",
+                    "color": "red"
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "id": "8d570925-d79b-4a53-85cc-e7c1a84f75f2"
+          },
+          {
+            "type": 3,
+            "name": "intunefw-grid",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let FWPolicyName = 'FW Policy';\nlet PolicyOps = IntuneAuditLogs\n| where TimeGenerated {TimeRange}\n| where OperationName has 'DeviceManagementConfigurationPolicy'\n| extend P = parse_json(Properties)\n| extend PolicyName = tostring(coalesce(P.TargetDisplayNames[0], P.Targets[0].Name, '<unknown-policy>'))\n| where PolicyName =~ FWPolicyName\n| extend PolicyObjectId = tostring(P.TargetObjectIds[0])\n| extend AssignmentObjectId = tostring(P.TargetObjectIds[1])\n| extend AssignmentGroupId = tostring(extract('\\\"Name\\\":\\\"Target.GroupId\\\",\\\"Old\\\":.*?\\\"New\\\":\\\"([^\\\"]+)\\\"', 1, Properties))\n| extend Platforms = tostring(extract('\\\"Name\\\":\\\"Platforms\\\",\\\"Old\\\":.*?\\\"New\\\":\\\"([^\\\"]*)\\\"', 1, Properties))\n| extend SettingCount = toint(extract('\\\"Name\\\":\\\"SettingCount\\\",\\\"Old\\\":.*?\\\"New\\\":\\\"([^\\\"]+)\\\"', 1, Properties))\n| extend ApiVersion = tostring(extract('\\\"Name\\\":\\\"DeviceManagementAPIVersion\\\",\\\"Old\\\":.*?\\\"New\\\":\\\"([^\\\"]+)\\\"', 1, Properties))\n| extend AuditEventId = tostring(P.AuditEventId)\n| extend OperationCategory = case(OperationName has 'Assignment', 'Assignment', OperationName has 'Create', 'Create', OperationName has 'Patch', 'Update', 'Other')\n| project TimeGenerated, PolicyName, OperationCategory, OperationName, ResultType, Identity, PolicyObjectId, AssignmentObjectId, AssignmentGroupId, Platforms, SettingCount, ApiVersion, AuditEventId, ResultDescription;\nlet DeviceSync = IntuneAuditLogs\n| where TimeGenerated {TimeRange}\n| where OperationName == 'syncDevice ManagedDevice'\n| extend ManagedDeviceId = tostring(extractjson('$.TargetObjectIds[0]', Properties))\n| where isnotempty(ManagedDeviceId)\n| project SyncTime = TimeGenerated, ManagedDeviceId;\nlet Compliance = IntuneDeviceComplianceOrg\n| where TimeGenerated {TimeRange}\n| where OperationName == 'DeviceCompliance'\n| where isnotempty(DeviceId)\n| project ComplianceTime = TimeGenerated, DeviceId;\nPolicyOps\n| extend JoinKey = 1\n| join kind=leftouter (DeviceSync | extend JoinKey = 1) on JoinKey\n| summarize DevicesSyncedIn24h = dcountif(ManagedDeviceId, SyncTime between (TimeGenerated .. TimeGenerated + 24h)) by TimeGenerated, PolicyName, OperationCategory, OperationName, ResultType, Identity, PolicyObjectId, AssignmentObjectId, AssignmentGroupId, Platforms, SettingCount, ApiVersion, AuditEventId, ResultDescription\n| extend JoinKey = 1\n| join kind=leftouter (Compliance | extend JoinKey = 1) on JoinKey\n| summarize DevicesWithComplianceCheckIn24h = dcountif(DeviceId, ComplianceTime between (TimeGenerated .. TimeGenerated + 24h)), DevicesSyncedIn24h = any(DevicesSyncedIn24h) by TimeGenerated, PolicyName, OperationCategory, OperationName, ResultType, Identity, PolicyObjectId, AssignmentObjectId, AssignmentGroupId, Platforms, SettingCount, ApiVersion, AuditEventId, ResultDescription\n| extend DeliveryEvidence = case(OperationCategory != 'Assignment', 'N/A (not assignment)', DevicesSyncedIn24h > 0 and DevicesWithComplianceCheckIn24h > 0, 'Likely delivered (sync + compliance activity observed)', DevicesSyncedIn24h > 0, 'Partial evidence (sync observed)', 'No post-assignment signal in 24h window')\n| project ['Last Update'] = TimeGenerated, ['Policy Name'] = PolicyName, ['Operation Category'] = OperationCategory, ['Result'] = ResultType, ['Changed By'] = Identity, ['Assignment Group ID'] = AssignmentGroupId, ['Devices Synced (24h)'] = DevicesSyncedIn24h, ['Devices Compliance Check (24h)'] = DevicesWithComplianceCheckIn24h, ['Delivery Evidence'] = DeliveryEvidence\n| order by ['Last Update'] desc",
+              "size": 2,
+              "title": "FW Policy Detail",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "showExportToExcel": true,
+              "exportToExcelOptions": "visible",
+              "gridSettings": {
+                "filter": true,
+                "rowLimit": 10000,
+                "formatters": [
+                  {
+                    "columnMatch": "Result",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Success",
+                          "representation": "success",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Failure",
+                          "representation": "2",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "3",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "Operation Category",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Create",
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Update",
+                          "representation": "orange",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Assignment",
+                          "representation": "blue",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "Delivery Evidence",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Likely delivered (sync + compliance activity observed)",
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Partial evidence (sync observed)",
+                          "representation": "blue",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "No post-assignment signal in 24h window",
+                          "representation": "red",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "id": "4286153e-fd51-46c5-98d5-5b6b3296fd25"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "IntuneFireWall"
+      },
+      "name": "group-intunefw"
     }
+  ],
+  "fallbackResourceIds": [
+    "/subscriptions/882d9ca8-f61e-4cc8-a081-dc01aab06b8a/resourcegroups/soc-central/providers/microsoft.operationalinsights/workspaces/soc-central"
+  ],
+  "fromTemplateId": "sentinel-UserWorkbook",
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
 }

@@ -1,110 +1,161 @@
-# DC SYSVOL & AD Replication Health Monitor
-## Microsoft Sentinel / Azure Monitor Workbook
+# DC SYSVOL and AD Replication Health Monitor
 
-**File:** `SYSVOL-DC-Replication-Monitor.workbook`  
-**Deploy template:** `azuredeploy.json`
+## Intro
+This package publishes a Microsoft Sentinel / Azure Monitor workbook for Domain Controller replication health and SOC operations.
 
----
+It is built for day-1 operations with:
+- Environment-wide replication KPIs
+- DFSR and NTFRS deep-dive troubleshooting views
+- Directory Service replication and DNS dependency analysis
+- Cross-source critical event triage
+- Per-DC health scoring and silent host detection
+- Log volume and cost estimation
 
-## Purpose
-This workbook provides full operational visibility into SYSVOL replication health across all Domain Controllers. It consumes events from three DCR XPath-collected Windows Event Log sources:
+## Summary For SOC And CISO
+This workbook gives SOC teams fast triage coverage for replication-impacting issues while giving CISO leaders clear visibility into replication risk concentration and operational trends.
 
-| Event Log | XPath | Coverage |
+- SOC focus: find failing DCs quickly, prioritize highest-impact replication faults, and track recovery.
+- CISO focus: understand enterprise replication risk posture, affected scope, and sustained stability trends.
+
+### Tab Breakdown
+| Tab | SOC Use | CISO Use |
 |---|---|---|
-| `DFS Replication` | `DFS Replication!*` | DFSR-based SYSVOL replication (Server 2008 R2+) |
-| `File Replication Service` | `File Replication Service!*` | NTFRS-based SYSVOL replication (legacy) |
-| `Directory Service` | `Directory Service!*` | Active Directory DB, KCC, and AD replication |
+| Overview | Validate whether replication telemetry is healthy and complete across all DCs. | Review high-level replication health and severity posture in one view. |
+| DFS Replication | Investigate DFSR stoppage, out-of-sync conditions, and service disruption patterns. | Track concentration of DFSR critical conditions over time. |
+| File Replication (NTFRS) | Triage journal wrap, SYSVOL not-ready state, and partner connectivity faults. | Assess residual NTFRS risk in legacy or mixed environments. |
+| Directory Service | Investigate AD replication failures, KCC topology issues, and DNS-linked faults. | Monitor AD replication reliability and enterprise directory health risk. |
+| SOC Security and MDE | Correlate focus event IDs with SecurityEvent/MDE/Arc operational signals. | Measure detection and operational telemetry breadth for DC assets. |
+| Critical Events | Prioritize multi-source failures and highest-severity events for immediate action. | Track systemic risk where multiple replication subsystems are failing. |
+| DC Health Matrix | Score each DC by subsystem health and identify silent or degraded systems fast. | View enterprise-wide DC health distribution and outlier systems. |
+| Log Volume and Cost | Estimate billed volume trends and projected 30-day cost by source and host. | Forecast cost exposure and optimize telemetry investment. |
 
----
+## Workbook Overview Screenshots
 
-## Tabs
+### Overview Tab
+![Overview Tab - Placeholder 1](https://placehold.co/1600x900?text=Overview+Tab+Screenshot+1)
+![Overview Tab - Placeholder 2](https://placehold.co/1600x900?text=Overview+Tab+Screenshot+2)
 
-| Tab | Description |
-|---|---|
-| **📊 Overview** | Summary KPI tiles, volume timeline (areachart), events by source (pie), severity bar chart, error distribution by hour, all-DC event summary table |
-| **🔄 DFS Replication** | DFSR KPIs, hourly timeline, event ID bar chart, top DCs by critical events, event ID reference table (with remediation notes), service start/stop/halt timeline, error detail table |
-| **📁 File Replication (NTFRS)** | NTFRS KPIs, hourly timeline, event ID bar chart, journal wrap errors by DC, SYSVOL failure events by DC, partner connectivity timeline, event ID reference table (with remediation notes), error detail table |
-| **🏢 Directory Service** | DS KPIs, hourly timeline, AD replication event ID bar chart, DNS failure analysis (2087/2088), replication failure detail by DC, event ID reference table (with remediation notes), error detail table |
-| **🚨 Critical Events** | Cross-source critical timeline, error distribution by DC + source, multi-source impact table, top 25 critical event IDs, stacked bar chart top-25 DCs, all errors full detail |
-| **🖥️ DC Health Matrix** | Per-DC health scorecard (🔴/🟡/🟢/⚪ per source), stacked error comparison, error rate avg/max/total per hour, silent DC detection, per-DC error timeline |
+### DFS Replication Tab
+![DFSR Tab - Placeholder 1](https://placehold.co/1600x900?text=DFSR+Tab+Screenshot+1)
+![DFSR Tab - Placeholder 2](https://placehold.co/1600x900?text=DFSR+Tab+Screenshot+2)
 
----
+### File Replication (NTFRS) Tab
+![NTFRS Tab - Placeholder 1](https://placehold.co/1600x900?text=NTFRS+Tab+Screenshot+1)
+![NTFRS Tab - Placeholder 2](https://placehold.co/1600x900?text=NTFRS+Tab+Screenshot+2)
 
-## Critical Event IDs Covered
+### Directory Service Tab
+![Directory Service Tab - Placeholder 1](https://placehold.co/1600x900?text=Directory+Service+Tab+Screenshot+1)
+![Directory Service Tab - Placeholder 2](https://placehold.co/1600x900?text=Directory+Service+Tab+Screenshot+2)
 
-### DFSR (DFS Replication)
-| Event ID | Severity | Meaning |
-|---|---|---|
-| 2213 | 🔴 Critical | DFSR STOPPED — BurFlags D4/D2 restore required |
-| 4012 | 🔴 Critical | Partner exceeded max out-of-sync time |
-| 5002 | 🔴 Critical | DFSR service stopped unexpectedly |
-| 6016 | 🔴 Critical | Could not synchronize replicated folder |
-| 4002 | 🔴 Critical | Failed to initialize replication |
-| 4004 | 🟡 Warning | Out of disk space on staging volume |
-| 2104 | 🟡 Warning | Error replicating a specific file |
-| 5008 | 🟡 Warning | Staging area full — file not replicated |
-| 2212 | 🟡 Warning | Multiple DFSR instances detected |
-| 1206 | 🟡 Warning | Volume dirty flag set |
-| 2214 | 🟢 Info | Recovered from unexpected shutdown |
-| 5004 | 🟢 Info | DFSR service started |
-| 6018 | 🟢 Info | Sync recovered after error |
+### SOC Security and MDE Tab
+![SOC Security and MDE Tab - Placeholder 1](https://placehold.co/1600x900?text=SOC+Security+and+MDE+Tab+Screenshot+1)
+![SOC Security and MDE Tab - Placeholder 2](https://placehold.co/1600x900?text=SOC+Security+and+MDE+Tab+Screenshot+2)
 
-### NTFRS (File Replication Service)
-| Event ID | Severity | Meaning |
-|---|---|---|
-| 13508 | 🔴 Critical | Trouble replicating from partner |
-| 13520 | 🔴 Critical | JRNL_WRAP_ERROR — D2 BurFlags required |
-| 13522 | 🔴 Critical | FRS not responding (timeout) |
-| 13548 | 🔴 Critical | FRS cannot be contacted |
-| 13552 | 🔴 Critical | SYSVOL replication failing |
-| 13555 | 🔴 Critical | Serious FRS service problems |
-| 13572 | 🔴 Critical | DC SYSVOL NOT READY |
-| 13568 | 🟡 Warning | Auto D2 BurFlags applied (journal wrap) |
-| 13536 | 🟡 Warning | Cannot resolve partner DNS name |
-| 13509 | 🟢 Info | Replication enabled with partner |
-| 13553 | 🟢 Info | Connection established with partner |
-| 13573 | 🟢 Info | SYSVOL ready / sharing started |
+### Critical Events Tab
+![Critical Events Tab - Placeholder 1](https://placehold.co/1600x900?text=Critical+Events+Tab+Screenshot+1)
+![Critical Events Tab - Placeholder 2](https://placehold.co/1600x900?text=Critical+Events+Tab+Screenshot+2)
+
+### DC Health Matrix Tab
+![DC Health Matrix Tab - Placeholder 1](https://placehold.co/1600x900?text=DC+Health+Matrix+Tab+Screenshot+1)
+![DC Health Matrix Tab - Placeholder 2](https://placehold.co/1600x900?text=DC+Health+Matrix+Tab+Screenshot+2)
+
+### Log Volume and Cost Tab
+![Log Volume and Cost Tab - Placeholder 1](https://placehold.co/1600x900?text=Log+Volume+and+Cost+Tab+Screenshot+1)
+![Log Volume and Cost Tab - Placeholder 2](https://placehold.co/1600x900?text=Log+Volume+and+Cost+Tab+Screenshot+2)
+
+## Section Details And What Each One Does
+
+### Overview
+- What it does: provides enterprise-level KPI and trend snapshots across DFS Replication, File Replication Service, and Directory Service logs.
+- Primary visuals: KPI tiles, event volume timeline, source distribution, severity mix, top DC summary.
+- Why it matters: confirms collection coverage and quickly identifies whether replication risk is rising or isolated.
+
+### DFS Replication
+- What it does: focuses on DFSR-specific replication failures and service health indicators.
+- Primary visuals: critical event ID trends, top impacted DCs, service stop/start/halt timelines, detailed recent error table.
+- Why it matters: catches 2213/4012/5002/6016 class failures that can interrupt SYSVOL consistency.
+
+### File Replication (NTFRS)
+- What it does: tracks NTFRS health for legacy or transitional environments still relying on FRS behavior.
+- Primary visuals: journal wrap and SYSVOL readiness indicators, partner connectivity patterns, critical event reference.
+- Why it matters: identifies SYSVOL readiness and partner replication risk where NTFRS is still present.
 
 ### Directory Service
-| Event ID | Severity | Meaning |
-|---|---|---|
-| 1311 | 🔴 Critical | KCC replication errors detected |
-| 1388 | 🔴 Critical | Inbound replication disabled |
-| 1925 | 🔴 Critical | Replication link establishment failed |
-| 2042 | 🔴 Critical | Too long since last replication — DC isolated |
-| 1866 | 🔴 Critical | KCC cannot build spanning tree |
-| 1645 | 🔴 Critical | No RID pools available |
-| 1173 | 🔴 Critical | Internal AD transaction error |
-| 1168 | 🔴 Critical | Unexpected internal exception |
-| 5805 | 🔴 Critical | Session setup failed |
-| 2087 | 🟡 Warning | DNS failure caused replication failure |
-| 1864 | 🟡 Warning | Replication warning threshold reached |
-| 2088 | 🟡 Warning | DNS failure (replication succeeded via IP) |
-| 1655 | 🟡 Warning | Global catalog contact failed |
+- What it does: analyzes AD replication and topology health from Directory Service events.
+- Primary visuals: AD replication event distributions, DNS failure breakdown (2087/2088), replication failure detail by DC.
+- Why it matters: surfaces isolated DCs, KCC path failures, and directory-level replication integrity risk.
 
----
+### SOC Security and MDE
+- What it does: combines high-priority replication event IDs with SecurityEvent, MDE operational signals, and Arc heartbeat visibility.
+- Primary visuals: focus event KPI set, source trend comparisons, DC signal summary for network/process/logon activity.
+- Why it matters: gives SOC a cross-domain operational view for correlation and faster triage decisions.
 
-## Import Into Sentinel
+### Critical Events
+- What it does: unifies critical and error-level events across all three replication data sources.
+- Primary visuals: cross-source timeline, source-stacked error distribution, multi-source impact table, full detail feed.
+- Why it matters: prioritizes systems failing in multiple subsystems where business impact is highest.
 
-### Option 1 — Import via Azure Portal (recommended)
-1. Open **Microsoft Sentinel** → **Workbooks** → **+ Add workbook**
-2. Click **Edit** → open the advanced editor (`</>`)
-3. Paste the contents of `SYSVOL-DC-Replication-Monitor.workbook`
-4. Click **Apply** → **Save**
-5. Set the title: `DC SYSVOL & AD Replication Health Monitor`
-6. Select your **Log Analytics Workspace** as the data source
+### DC Health Matrix
+- What it does: produces a per-DC scorecard across DFSR, NTFRS, and Directory Service with an overall health state.
+- Primary visuals: scorecard table, stacked error totals, hourly error-rate summary, silent DC detection.
+- Why it matters: supports daily operational review and helps teams rank remediation by measurable risk.
 
-### Option 2 — ARM Template Deploy
-```bash
-az deployment group create \
-  --resource-group <your-rg> \
-  --template-file azuredeploy.json \
-  --parameters workbookSourceId="/subscriptions/<subId>/resourceGroups/<rg>/providers/Microsoft.OperationalInsights/workspaces/<wsName>"
+### Log Volume and Cost
+- What it does: estimates ingestion and cost from billed-size telemetry for workbook-covered events.
+- Primary visuals: KPI tiles, daily billed trend, by-source volume/cost, per-device 30-day projection.
+- Why it matters: ties operational telemetry value to spend so teams can optimize signal quality and budget.
+
+## Prerequisites
+- A Microsoft Sentinel-enabled Log Analytics workspace
+- Permissions to deploy ARM templates in the target resource group
+- Reader access to relevant security and operations tables
+- Event collection configured for:
+  - DFS Replication
+  - File Replication Service
+  - Directory Service
+
+## The Structure
+This folder contains:
+- SYSVOL-DC-Replication-Monitor.workbook: workbook JSON payload for manual import
+- azuredeploy.json: one-click ARM deployment template
+- README.md: documentation page for this workbook
+
+## How To Deploy
+Use one of the deployment buttons below.
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FDashboards%2FSYSVOL-DC-Replication-Monitor%2Fazuredeploy.json)
+
+[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FDashboards%2FSYSVOL-DC-Replication-Monitor%2Fazuredeploy.json)
+
+### Deployment Inputs
+When the deployment blade opens, provide:
+- workbookDisplayName: DC SYSVOL and AD Replication Health Monitor (or your preferred name)
+- workbookSourceId: full resource ID of your target Log Analytics workspace
+- workbookType: sentinel (default) or workbook
+- workbookId: keep generated GUID unless updating an existing workbook resource
+
+## Manual Import (Portal)
+1. Go to Microsoft Sentinel in your target workspace.
+2. Select Workbooks, then New.
+3. Open Advanced Editor.
+4. Paste the contents of SYSVOL-DC-Replication-Monitor.workbook.
+5. Apply and Save.
+
+## How To Publish This Page To GitHub
+1. Save changes in this folder.
+2. Commit and push to your repository.
+3. Open this folder in GitHub to verify README rendering.
+
+Example commands:
+
+```powershell
+cd C:\Users\jobarbar\Defender_XDR
+git add Dashboards/SYSVOL-DC-Replication-Monitor/README.md
+git commit -m "Add full README page with section details and screenshot placeholders"
+git push
 ```
 
----
-
-## Requirements
-- DCR with XPaths: `DFS Replication!*`, `File Replication Service!*`, `Directory Service!*`
-- Events must be flowing into the `Event` table in your Log Analytics Workspace (confirm with the screenshot query shown in the Overview of this workbook)
-- Workbook works with both **Azure Monitor** and **Microsoft Sentinel** Workbooks gallery
+## Replace Placeholder Screenshots Later
+- Upload your real screenshots to GitHub issue attachments or repo assets.
+- Replace each placeholder image URL in this README with your final screenshot URL.
+- Keep the same headings so the page layout stays clean and consistent.

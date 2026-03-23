@@ -1506,7 +1506,7 @@
             "name": "socsecurity-mde-ops-summary",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let netRaw = union isfuzzy=true\n  (DeviceNetworkEvents\n  | where Timestamp {TimeRange}\n  | where \"value::all\" in ({Computers}) or DeviceName in~ ({Computers})\n  | project TimeGenerated=Timestamp, Computer=DeviceName, Action=tostring(ActionType), RemoteIP=tostring(RemoteIP), RemoteUrl=tostring(RemoteUrl), RemotePort=tostring(RemotePort), Protocol=tostring(Protocol)),\n  (datatable(TimeGenerated:datetime, Computer:string, Action:string, RemoteIP:string, RemoteUrl:string, RemotePort:string, Protocol:string)[]);\nlet net = netRaw\n| summarize Events=count(), UniqueActions=dcount(Action), UniqueRemoteIPs=dcountif(RemoteIP, isnotempty(RemoteIP)), UniqueRemoteUrls=dcountif(RemoteUrl, isnotempty(RemoteUrl)), UniqueRemotePorts=dcountif(RemotePort, isnotempty(RemotePort)), Protocols=make_set_if(Protocol, isnotempty(Protocol), 8), LastSeen=max(TimeGenerated) by Computer\n| extend Signal=\"Network\";\nlet proc = union isfuzzy=true\n  (DeviceProcessEvents\n  | where Timestamp {TimeRange}\n  | where \"value::all\" in ({Computers}) or DeviceName in~ ({Computers})\n  | project TimeGenerated=Timestamp, Computer=DeviceName, Action=tostring(ActionType)),\n  (datatable(TimeGenerated:datetime, Computer:string, Action:string)[])\n| summarize Events=count(), UniqueActions=dcount(Action), LastSeen=max(TimeGenerated) by Computer\n| extend Signal=\"Process\", UniqueRemoteIPs=long(null), UniqueRemoteUrls=long(null), UniqueRemotePorts=long(null), Protocols=dynamic(null);\nlet logon = union isfuzzy=true\n  (DeviceLogonEvents\n  | where Timestamp {TimeRange}\n  | where \"value::all\" in ({Computers}) or DeviceName in~ ({Computers})\n  | project TimeGenerated=Timestamp, Computer=DeviceName, Action=tostring(ActionType)),\n  (datatable(TimeGenerated:datetime, Computer:string, Action:string)[])\n| summarize Events=count(), UniqueActions=dcount(Action), LastSeen=max(TimeGenerated) by Computer\n| extend Signal=\"Logon\", UniqueRemoteIPs=long(null), UniqueRemoteUrls=long(null), UniqueRemotePorts=long(null), Protocols=dynamic(null);\nunion net, proc, logon\n| order by Events desc",
+              "query": "let netRaw = union isfuzzy=true\n  (DeviceNetworkEvents\n  | where Timestamp {TimeRange}\n  | where \"value::all\" in ({Computers}) or DeviceName in~ ({Computers})\n  | project TimeGenerated=Timestamp, Computer=DeviceName, Action=tostring(ActionType), RemoteIP=tostring(RemoteIP), RemoteUrl=tostring(RemoteUrl), RemotePort=tostring(RemotePort), Protocol=tostring(Protocol)),\n  (datatable(TimeGenerated:datetime, Computer:string, Action:string, RemoteIP:string, RemoteUrl:string, RemotePort:string, Protocol:string)[]);\nlet net = netRaw\n| summarize Events=count(), UniqueActions=dcount(Action), UniqueRemoteIPs=dcountif(RemoteIP, isnotempty(RemoteIP)), UniqueRemoteUrls=dcountif(RemoteUrl, isnotempty(RemoteUrl)), UniqueRemotePorts=dcountif(RemotePort, isnotempty(RemotePort)), Protocols=make_set_if(Protocol, isnotempty(Protocol), 8), LastSeen=max(TimeGenerated) by Computer\n| extend Signal=\"Network\";\nlet proc = union isfuzzy=true\n  (DeviceProcessEvents\n  | where Timestamp {TimeRange}\n  | where \"value::all\" in ({Computers}) or DeviceName in~ ({Computers})\n  | project TimeGenerated=Timestamp, Computer=DeviceName, Action=tostring(ActionType)),\n  (datatable(TimeGenerated:datetime, Computer:string, Action:string)[])\n| summarize Events=count(), UniqueActions=dcount(Action), LastSeen=max(TimeGenerated) by Computer\n| extend Signal=\"Process\", UniqueRemoteIPs=long(null), UniqueRemoteUrls=long(null), UniqueRemotePorts=long(null), Protocols=dynamic(null);\nlet logon = union isfuzzy=true\n  (DeviceLogonEvents\n  | where Timestamp {TimeRange}\n  | where \"value::all\" in ({Computers}) or DeviceName in~ ({Computers})\n  | project TimeGenerated=Timestamp, Computer=DeviceName, Action=tostring(ActionType)),\n  (datatable(TimeGenerated:datetime, Computer:string, Action:string)[])\n| summarize Events=count(), UniqueActions=dcount(Action), LastSeen=max(TimeGenerated) by Computer\n| extend Signal=\"Logon\", UniqueRemoteIPs=long(null), UniqueRemoteUrls=long(null), UniqueRemotePorts=long(null), Protocols=dynamic(null);\nunion net, proc, logon\n| extend SignalOrder=case(Signal == \"Network\", 0, Signal == \"Process\", 1, Signal == \"Logon\", 2, 3)\n| order by SignalOrder asc, Events desc\n| project-away SignalOrder",
               "size": 0,
               "title": "MDE Operational Signals by DC (Network, Process, Logon)",
               "timeContextFromParameter": "TimeRange",
@@ -1529,6 +1529,30 @@
                     "formatOptions": {
                       "min": 0,
                       "palette": "blue"
+                    }
+                  },
+                  {
+                    "columnMatch": "UniqueRemoteIPs",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "orange"
+                    }
+                  },
+                  {
+                    "columnMatch": "UniqueRemoteUrls",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "yellowRed"
+                    }
+                  },
+                  {
+                    "columnMatch": "UniqueRemotePorts",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "green"
                     }
                   }
                 ]

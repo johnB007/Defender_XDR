@@ -178,244 +178,45 @@
       "content": {
         "version": "NotebookGroup/1.0",
         "groupType": "editable",
-        "title": "Ingestion (TBs per day)",
-        "items": [
-          {
-            "type": 12,
-            "content": {
-              "version": "NotebookGroup/1.0",
-              "groupType": "editable",
-              "items": [
-                {
-                  "type": 3,
-                  "content": {
-                    "version": "KqlItem/1.0",
-                    "query": "Usage\n| where IsBillable == true\n| project TimeGenerated, DataType, Quantity\n| summarize IngestionVolumeinTB=sum(Quantity)/1048576 by bin(TimeGenerated, 1d), DataType",
-                    "size": 2,
-                    "timeContextFromParameter": "TimePicker",
-                    "exportFieldName": "DataType",
-                    "exportParameterName": "SelectedDataType",
-                    "queryType": 0,
-                    "resourceType": "microsoft.operationalinsights/workspaces",
-                    "visualization": "barchart"
-                  },
-                  "name": "query - 2"
-                },
-                {
-                  "type": 1,
-                  "content": {
-                    "json": "### Drill-Down: Daily Ingestion Detail\n\nClick a color segment in the chart above to filter details below. Use the **Export** button (↓) on the grid to download results as CSV.",
-                    "style": "info"
-                  },
-                  "conditionalVisibility": {
-                    "parameterName": "SelectedDataType",
-                    "comparison": "isNotEqualTo",
-                    "value": ""
-                  },
-                  "name": "text - drilldown-total-hint"
-                },
-                {
-                  "type": 3,
-                  "content": {
-                    "version": "KqlItem/1.0",
-                    "query": "let avgDaily = toscalar(Usage | where IsBillable == true | where DataType == '{SelectedDataType}' | summarize DailyGB = sum(Quantity)/1024 by bin(TimeGenerated, 1d) | summarize avg(DailyGB));\nUsage\n| where IsBillable == true\n| where DataType == '{SelectedDataType}'\n| summarize Ingestion_MB=round(sum(Quantity),2), Ingestion_GB=round(sum(Quantity)/1024,4), Ingestion_TB=round(sum(Quantity)/1048576,8), RecordCount=count() by bin(TimeGenerated, 1d), DataType, Solution\n| extend AvgDaily_GB=round(avgDaily,4), PctOfAvg=round(Ingestion_GB/iif(avgDaily==0,1.0,avgDaily)*100,1), SpikeStatus=iff(Ingestion_GB > avgDaily*2.0, 'CRITICAL SPIKE', iff(Ingestion_GB > avgDaily*1.5, 'ELEVATED', 'Normal'))\n| project TimeGenerated, DataType, Solution, Ingestion_MB, Ingestion_GB, Ingestion_TB, AvgDaily_GB, PctOfAvg, SpikeStatus, RecordCount\n| order by TimeGenerated desc",
-                    "size": 1,
-                    "title": "Spike Detail: {SelectedDataType} — Daily vs Average (export to CSV for cloud team)",
-                    "timeContextFromParameter": "TimePicker",
-                    "queryType": 0,
-                    "resourceType": "microsoft.operationalinsights/workspaces",
-                    "visualization": "table",
-                    "gridSettings": {
-                      "formatters": [
-                        {
-                          "columnMatch": "TimeGenerated",
-                          "formatter": 6
-                        },
-                        {
-                          "columnMatch": "Ingestion_MB",
-                          "formatter": 4,
-                          "formatOptions": {
-                            "palette": "blue",
-                            "showBorder": false
-                          },
-                          "numberFormat": {
-                            "unit": 0,
-                            "options": {
-                              "style": "decimal",
-                              "maximumFractionDigits": 2
-                            }
-                          }
-                        },
-                        {
-                          "columnMatch": "Ingestion_GB",
-                          "formatter": 4,
-                          "formatOptions": {
-                            "palette": "green",
-                            "showBorder": false
-                          },
-                          "numberFormat": {
-                            "unit": 0,
-                            "options": {
-                              "style": "decimal",
-                              "maximumFractionDigits": 4
-                            }
-                          }
-                        },
-                        {
-                          "columnMatch": "Ingestion_TB",
-                          "formatter": 4,
-                          "formatOptions": {
-                            "palette": "orange",
-                            "showBorder": false
-                          },
-                          "numberFormat": {
-                            "unit": 0,
-                            "options": {
-                              "style": "decimal",
-                              "maximumFractionDigits": 8
-                            }
-                          }
-                        },
-                        {
-                          "columnMatch": "PctOfAvg",
-                          "formatter": 4,
-                          "formatOptions": {
-                            "palette": "redGreen",
-                            "showBorder": false
-                          },
-                          "numberFormat": {
-                            "unit": 0,
-                            "options": {
-                              "style": "decimal",
-                              "maximumFractionDigits": 1
-                            }
-                          }
-                        },
-                        {
-                          "columnMatch": "SpikeStatus",
-                          "formatter": 18,
-                          "formatOptions": {
-                            "thresholdsOptions": "colors",
-                            "thresholdsGrid": [
-                              {
-                                "operator": "contains",
-                                "thresholdValue": "CRITICAL",
-                                "representation": "redBright",
-                                "text": "{0}{1}"
-                              },
-                              {
-                                "operator": "contains",
-                                "thresholdValue": "ELEVATED",
-                                "representation": "yellow",
-                                "text": "{0}{1}"
-                              },
-                              {
-                                "operator": "Default",
-                                "thresholdValue": null,
-                                "representation": "green",
-                                "text": "{0}{1}"
-                              }
-                            ]
-                          }
-                        }
-                      ],
-                      "filter": true,
-                      "sortBy": [
-                        {
-                          "itemKey": "TimeGenerated",
-                          "sortOrder": 2
-                        }
-                      ],
-                      "exportAllFields": true
-                    }
-                  },
-                  "conditionalVisibility": {
-                    "parameterName": "SelectedDataType",
-                    "comparison": "isNotEqualTo",
-                    "value": ""
-                  },
-                  "name": "query - drilldown-total"
-                }
-              ]
-            },
-            "conditionalVisibility": {
-              "parameterName": "Tab",
-              "comparison": "isEqualTo",
-              "value": "First"
-            },
-            "name": "Ingestion (TBs per day)"
-          }
-        ]
-      },
-      "conditionalVisibility": {
-        "parameterName": "Tab",
-        "comparison": "isEqualTo",
-        "value": "First"
-      },
-      "name": "Ingestion"
-    },
-    {
-      "type": 12,
-      "content": {
-        "version": "NotebookGroup/1.0",
-        "groupType": "editable",
-        "title": "Device Tables Breakout (GBs per day)",
+        "title": "Ingestion (GBs per day)",
         "items": [
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Usage\r\n| project TimeGenerated, DataType, Quantity\r\n| where DataType in ('DeviceEvents', 'DeviceFileEvents', 'DeviceNetworkEvents','DeviceProcessEvents', 'DeviceImageLoadEvents', 'DeviceLogonEvents', 'DeviceNetworkInfo', 'DeviceRegistryEvents')\r\n| summarize IngestionVolumeGB=sum(Quantity)/1024 by bin(TimeGenerated, 1d), DataType\r\n",
+              "query": "Usage\n| where IsBillable == true\n| project TimeGenerated, DataType, Quantity\n| summarize Ingestion_GB=sum(Quantity)/1024 by bin(TimeGenerated, 1d), DataType",
               "size": 2,
+              "timeContextFromParameter": "TimePicker",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart",
+              "chartSettings": {
+                "createOtherGroup": 50
+              }
+            },
+            "name": "chart-total"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "Usage\n| where IsBillable == true\n| project TimeGenerated, DataType, Quantity\n| summarize Ingestion_GB=round(sum(Quantity)/1024,2), Ingestion_TB=round(sum(Quantity)/1048576,6) by DataType\n| extend Total_GB = toscalar(Usage | where IsBillable==true | summarize sum(Quantity)/1024)\n| extend Pct_of_Total=round(Ingestion_GB/iif(Total_GB==0.0,1.0,Total_GB)*100,1)\n| project DataType, Ingestion_GB, Ingestion_TB, Pct_of_Total\n| order by Ingestion_GB desc",
+              "size": 3,
+              "title": "Click a row below to drill down  ▼  (sorted by size)",
               "timeContextFromParameter": "TimePicker",
               "exportFieldName": "DataType",
               "exportParameterName": "SelectedDataType",
-              "queryType": 0,
-              "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "unstackedbar",
-              "chartSettings": {
-                "xSettings": {
-                  "label": "Volume in GB"
-                }
-              }
-            },
-            "name": "query - 2"
-          },
-          {
-            "type": 1,
-            "content": {
-              "json": "### Drill-Down: Device Table Ingestion Detail\n\nClick a bar segment above to populate per-day ingestion details below. Use the **Export** button on the grid to download as CSV.",
-              "style": "info"
-            },
-            "conditionalVisibility": {
-              "parameterName": "SelectedDataType",
-              "comparison": "isNotEqualTo",
-              "value": ""
-            },
-            "name": "text - drilldown-device-hint"
-          },
-          {
-            "type": 3,
-            "content": {
-              "version": "KqlItem/1.0",
-              "query": "Usage\n| where DataType == '{SelectedDataType}'\n| project TimeGenerated, DataType, Solution, Quantity_MB=Quantity, Quantity_GB=Quantity/1024, IsBillable\n| order by TimeGenerated desc",
-              "size": 1,
-              "title": "Detail: {SelectedDataType} — Daily Ingestion Breakdown",
-              "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "table",
               "gridSettings": {
                 "formatters": [
                   {
-                    "columnMatch": "TimeGenerated",
-                    "formatter": 6
-                  },
-                  {
-                    "columnMatch": "Quantity_MB",
+                    "columnMatch": "Ingestion_GB",
                     "formatter": 4,
                     "formatOptions": {
-                      "palette": "blue"
+                      "palette": "blue",
+                      "showBorder": false
                     },
                     "numberFormat": {
                       "unit": 0,
@@ -426,272 +227,61 @@
                     }
                   },
                   {
-                    "columnMatch": "Quantity_GB",
+                    "columnMatch": "Ingestion_TB",
                     "formatter": 4,
                     "formatOptions": {
-                      "palette": "green"
+                      "palette": "orange",
+                      "showBorder": false
                     },
                     "numberFormat": {
                       "unit": 0,
                       "options": {
                         "style": "decimal",
-                        "maximumFractionDigits": 4
+                        "maximumFractionDigits": 6
                       }
                     }
-                  }
-                ],
-                "filter": true,
-                "sortBy": [
-                  {
-                    "itemKey": "TimeGenerated",
-                    "sortOrder": 2
-                  }
-                ],
-                "exportAllFields": true
-              }
-            },
-            "conditionalVisibility": {
-              "parameterName": "SelectedDataType",
-              "comparison": "isNotEqualTo",
-              "value": ""
-            },
-            "name": "query - drilldown-device"
-          }
-        ]
-      },
-      "conditionalVisibility": {
-        "parameterName": "Tab",
-        "comparison": "isEqualTo",
-        "value": "Second"
-      },
-      "name": "Device Related Tables"
-    },
-    {
-      "type": 12,
-      "content": {
-        "version": "NotebookGroup/1.0",
-        "groupType": "editable",
-        "title": "Device File Events - Count",
-        "items": [
-          {
-            "type": 1,
-            "content": {
-              "json": "Important! The count represented in the chart below does NOT include events from Microsoft, Google, or blank (no vendor).",
-              "style": "warning"
-            },
-            "name": "text - 1"
-          },
-          {
-            "type": 3,
-            "content": {
-              "version": "KqlItem/1.0",
-              "query": "DeviceFileEvents\r\n| where InitiatingProcessVersionInfoCompanyName !startswith \"Microsoft\" and InitiatingProcessVersionInfoCompanyName != '' and InitiatingProcessVersionInfoCompanyName !startswith \"Google\"\r\n| summarize count() by InitiatingProcessVersionInfoCompanyName, bin(TimeGenerated, 1d)",
-              "size": 2,
-              "timeContextFromParameter": "TimePicker",
-              "exportFieldName": "InitiatingProcessVersionInfoCompanyName",
-              "exportParameterName": "SelectedVendor",
-              "queryType": 0,
-              "resourceType": "microsoft.operationalinsights/workspaces",
-              "chartSettings": {
-                "createOtherGroup": 50
-              },
-              "visualization": "barchart"
-            },
-            "name": "query - 3"
-          },
-          {
-            "type": 1,
-            "content": {
-              "json": "### Drill-Down: {SelectedVendor} — Device File Events\n\nClick a vendor color in the chart above. Detailed records appear below. Use the **Export** button to download as CSV.",
-              "style": "info"
-            },
-            "conditionalVisibility": {
-              "parameterName": "SelectedVendor",
-              "comparison": "isNotEqualTo",
-              "value": ""
-            },
-            "name": "text - drilldown-dfe-hint"
-          },
-          {
-            "type": 3,
-            "content": {
-              "version": "KqlItem/1.0",
-              "query": "DeviceFileEvents\n| where InitiatingProcessVersionInfoCompanyName == '{SelectedVendor}'\n| project TimeGenerated, DeviceName, FileName, FolderPath, ActionType, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessVersionInfoCompanyName, InitiatingProcessVersionInfoProductName, InitiatingProcessVersionInfoFileVersion, InitiatingProcessAccountName, InitiatingProcessAccountDomain, SHA256\n| order by TimeGenerated desc",
-              "size": 1,
-              "title": "Detail: {SelectedVendor} — Device File Events",
-              "timeContextFromParameter": "TimePicker",
-              "queryType": 0,
-              "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "table",
-              "gridSettings": {
-                "formatters": [
-                  {
-                    "columnMatch": "TimeGenerated",
-                    "formatter": 6
                   },
                   {
-                    "columnMatch": "ActionType",
-                    "formatter": 18,
+                    "columnMatch": "Pct_of_Total",
+                    "formatter": 4,
                     "formatOptions": {
-                      "thresholdsOptions": "icons",
-                      "thresholdsGrid": [
-                        {
-                          "operator": "Default",
-                          "thresholdValue": null,
-                          "representation": "2",
-                          "text": "{0}{1}"
-                        }
-                      ]
+                      "palette": "green",
+                      "showBorder": false
+                    },
+                    "numberFormat": {
+                      "unit": 0,
+                      "options": {
+                        "style": "decimal",
+                        "maximumFractionDigits": 1
+                      }
+                    }
+                  },
+                  {
+                    "columnMatch": "EventCount",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "blue",
+                      "showBorder": false
                     }
                   }
                 ],
                 "filter": true,
                 "sortBy": [
                   {
-                    "itemKey": "TimeGenerated",
+                    "itemKey": "Ingestion_GB",
                     "sortOrder": 2
                   }
                 ],
-                "exportAllFields": true
+                "rowLimit": 50,
+                "labelSettings": []
               }
             },
-            "conditionalVisibility": {
-              "parameterName": "SelectedVendor",
-              "comparison": "isNotEqualTo",
-              "value": ""
-            },
-            "name": "query - drilldown-dfe"
-          }
-        ]
-      },
-      "conditionalVisibility": {
-        "parameterName": "Tab",
-        "comparison": "isEqualTo",
-        "value": "Third"
-      },
-      "name": "Device File Events"
-    },
-    {
-      "type": 12,
-      "content": {
-        "version": "NotebookGroup/1.0",
-        "groupType": "editable",
-        "title": "Device Network Events - Count",
-        "items": [
-          {
-            "type": 1,
-            "content": {
-              "json": "Important! The count represented in the chart below does NOT include events from Microsoft, Google, or blank (no vendor).",
-              "style": "warning"
-            },
-            "name": "text - 1"
-          },
-          {
-            "type": 3,
-            "content": {
-              "version": "KqlItem/1.0",
-              "query": "DeviceNetworkEvents\r\n| where InitiatingProcessVersionInfoCompanyName !startswith \"Microsoft\" and InitiatingProcessVersionInfoCompanyName != '' and InitiatingProcessVersionInfoCompanyName !startswith \"Google\"\r\n| summarize count() by InitiatingProcessVersionInfoCompanyName, bin(TimeGenerated, 1d)",
-              "size": 2,
-              "timeContextFromParameter": "TimePicker",
-              "exportFieldName": "InitiatingProcessVersionInfoCompanyName",
-              "exportParameterName": "SelectedVendor",
-              "queryType": 0,
-              "resourceType": "microsoft.operationalinsights/workspaces",
-              "chartSettings": {
-                "createOtherGroup": 50
-              },
-              "visualization": "barchart"
-            },
-            "name": "query - 6"
+            "name": "selector-grid-DataType"
           },
           {
             "type": 1,
             "content": {
-              "json": "### Drill-Down: {SelectedVendor} — Device Network Events\n\nClick a vendor color in the chart above. Detailed records appear below. Use the **Export** button to download as CSV.",
-              "style": "info"
-            },
-            "conditionalVisibility": {
-              "parameterName": "SelectedVendor",
-              "comparison": "isNotEqualTo",
-              "value": ""
-            },
-            "name": "text - drilldown-dne-hint"
-          },
-          {
-            "type": 3,
-            "content": {
-              "version": "KqlItem/1.0",
-              "query": "DeviceNetworkEvents\n| where InitiatingProcessVersionInfoCompanyName == '{SelectedVendor}'\n| project TimeGenerated, DeviceName, ActionType, RemoteIP, RemotePort, RemoteUrl, LocalIP, LocalPort, Protocol, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessVersionInfoCompanyName, InitiatingProcessAccountName, InitiatingProcessAccountDomain\n| order by TimeGenerated desc",
-              "size": 1,
-              "title": "Detail: {SelectedVendor} — Device Network Events",
-              "timeContextFromParameter": "TimePicker",
-              "queryType": 0,
-              "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "table",
-              "gridSettings": {
-                "formatters": [
-                  {
-                    "columnMatch": "TimeGenerated",
-                    "formatter": 6
-                  }
-                ],
-                "filter": true,
-                "sortBy": [
-                  {
-                    "itemKey": "TimeGenerated",
-                    "sortOrder": 2
-                  }
-                ],
-                "exportAllFields": true
-              }
-            },
-            "conditionalVisibility": {
-              "parameterName": "SelectedVendor",
-              "comparison": "isNotEqualTo",
-              "value": ""
-            },
-            "name": "query - drilldown-dne"
-          }
-        ]
-      },
-      "conditionalVisibility": {
-        "parameterName": "Tab",
-        "comparison": "isEqualTo",
-        "value": "Fourth"
-      },
-      "name": "Device Network Events"
-    },
-    {
-      "type": 12,
-      "content": {
-        "version": "NotebookGroup/1.0",
-        "groupType": "editable",
-        "title": "Non Device Ingestion (TBs per day)",
-        "items": [
-          {
-            "type": 3,
-            "content": {
-              "version": "KqlItem/1.0",
-              "query": "Usage\r\n| where IsBillable == true\r\n| where DataType !startswith \"Device\"\r\n| project TimeGenerated, DataType, Quantity\r\n| summarize IngestionVolumeinTB=sum(Quantity)/1048576 by bin(TimeGenerated, 1d), DataType",
-              "size": 2,
-              "timeContextFromParameter": "TimePicker",
-              "exportFieldName": "DataType",
-              "exportParameterName": "SelectedDataType",
-              "queryType": 0,
-              "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "barchart"
-            },
-            "conditionalVisibility": {
-              "parameterName": "Tab",
-              "comparison": "isEqualTo",
-              "value": "Fifth"
-            },
-            "name": "query - 5"
-          },
-          {
-            "type": 1,
-            "content": {
-              "json": "### Drill-Down: {SelectedDataType} — Non-Device Ingestion Detail\n\nClick a color in the chart above to see raw ingestion records below. Use the **Export** button to download as CSV.",
+              "json": "### Drilldown: **{SelectedDataType}** — Daily Spike Analysis\n\nShowing daily ingestion vs. rolling average. SpikeStatus flags days >1.5× or >2× average. Use the **⬇ Export** button (top-right of grid) to download CSV for the cloud team.",
               "style": "info"
             },
             "conditionalVisibility": {
@@ -699,15 +289,15 @@
               "comparison": "isNotEqualTo",
               "value": ""
             },
-            "name": "text - drilldown-nondevice-hint"
+            "name": "hint-SelectedDataType"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let avgDaily = toscalar(Usage | where IsBillable == true | where DataType == '{SelectedDataType}' | summarize DailyGB = sum(Quantity)/1024 by bin(TimeGenerated, 1d) | summarize avg(DailyGB));\nUsage\n| where IsBillable == true\n| where DataType == '{SelectedDataType}'\n| summarize Ingestion_MB=round(sum(Quantity),2), Ingestion_GB=round(sum(Quantity)/1024,4), Ingestion_TB=round(sum(Quantity)/1048576,8), RecordCount=count() by bin(TimeGenerated, 1d), DataType, Solution\n| extend AvgDaily_GB=round(avgDaily,4), PctOfAvg=round(Ingestion_GB/iif(avgDaily==0,1.0,avgDaily)*100,1), SpikeStatus=iff(Ingestion_GB > avgDaily*2.0, 'CRITICAL SPIKE', iff(Ingestion_GB > avgDaily*1.5, 'ELEVATED', 'Normal'))\n| project TimeGenerated, DataType, Solution, Ingestion_MB, Ingestion_GB, Ingestion_TB, AvgDaily_GB, PctOfAvg, SpikeStatus, RecordCount\n| order by TimeGenerated desc",
+              "query": "let avgDailyGB = toscalar(\n  Usage\n  | where IsBillable == true\n  | where DataType == '{SelectedDataType}'\n  | summarize DailyGB = sum(Quantity)/1024 by bin(TimeGenerated, 1d)\n  | summarize avg(DailyGB)\n);\nUsage\n| where IsBillable == true\n| where DataType == '{SelectedDataType}'\n| summarize Ingestion_MB=round(sum(Quantity),2), Ingestion_GB=round(sum(Quantity)/1024,4), Ingestion_TB=round(sum(Quantity)/1048576,8), RecordCount=count() by bin(TimeGenerated, 1d), DataType, Solution\n| extend AvgDaily_GB=round(avgDailyGB,4)\n| extend Pct_of_Avg=round(Ingestion_GB / iif(avgDailyGB==0.0,1.0,avgDailyGB)*100,1)\n| extend SpikeStatus=iff(Ingestion_GB > avgDailyGB*2.0,'CRITICAL SPIKE',iff(Ingestion_GB > avgDailyGB*1.5,'ELEVATED','Normal'))\n| project TimeGenerated, DataType, Solution, Ingestion_MB, Ingestion_GB, Ingestion_TB, AvgDaily_GB, Pct_of_Avg, SpikeStatus, RecordCount\n| order by TimeGenerated desc",
               "size": 1,
-              "title": "Spike Detail: {SelectedDataType} — Daily vs Average (export to CSV for cloud team)",
+              "title": "Daily Spike Detail — {SelectedDataType} (export CSV → cloud team)",
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -764,7 +354,22 @@
                     }
                   },
                   {
-                    "columnMatch": "PctOfAvg",
+                    "columnMatch": "AvgDaily_GB",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "gray",
+                      "showBorder": false
+                    },
+                    "numberFormat": {
+                      "unit": 0,
+                      "options": {
+                        "style": "decimal",
+                        "maximumFractionDigits": 4
+                      }
+                    }
+                  },
+                  {
+                    "columnMatch": "Pct_of_Avg",
                     "formatter": 4,
                     "formatOptions": {
                       "palette": "redGreen",
@@ -813,7 +418,8 @@
                     "sortOrder": 2
                   }
                 ],
-                "exportAllFields": true
+                "exportAllFields": true,
+                "labelSettings": []
               }
             },
             "conditionalVisibility": {
@@ -821,7 +427,701 @@
               "comparison": "isNotEqualTo",
               "value": ""
             },
-            "name": "query - drilldown-nondevice"
+            "name": "drilldown-SelectedDataType"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "First"
+      },
+      "name": "Ingestion"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "Device Tables Breakout (GBs per day)",
+        "items": [
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "Usage\n| project TimeGenerated, DataType, Quantity\n| where DataType in ('DeviceEvents','DeviceFileEvents','DeviceNetworkEvents','DeviceProcessEvents','DeviceImageLoadEvents','DeviceLogonEvents','DeviceNetworkInfo','DeviceRegistryEvents')\n| summarize Ingestion_GB=sum(Quantity)/1024 by bin(TimeGenerated, 1d), DataType",
+              "size": 2,
+              "timeContextFromParameter": "TimePicker",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart",
+              "chartSettings": {
+                "createOtherGroup": 50
+              }
+            },
+            "name": "chart-device"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "Usage\n| where DataType in ('DeviceEvents','DeviceFileEvents','DeviceNetworkEvents','DeviceProcessEvents','DeviceImageLoadEvents','DeviceLogonEvents','DeviceNetworkInfo','DeviceRegistryEvents')\n| summarize Ingestion_GB=round(sum(Quantity)/1024,2), Ingestion_TB=round(sum(Quantity)/1048576,6) by DataType\n| extend Total_GB = toscalar(Usage | where DataType in ('DeviceEvents','DeviceFileEvents','DeviceNetworkEvents','DeviceProcessEvents','DeviceImageLoadEvents','DeviceLogonEvents','DeviceNetworkInfo','DeviceRegistryEvents') | summarize sum(Quantity)/1024)\n| extend Pct_of_Total=round(Ingestion_GB/iif(Total_GB==0.0,1.0,Total_GB)*100,1)\n| project DataType, Ingestion_GB, Ingestion_TB, Pct_of_Total\n| order by Ingestion_GB desc",
+              "size": 3,
+              "title": "Click a row to drill down  ▼",
+              "timeContextFromParameter": "TimePicker",
+              "exportFieldName": "DataType",
+              "exportParameterName": "SelectedDataType",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Ingestion_GB",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "blue",
+                      "showBorder": false
+                    },
+                    "numberFormat": {
+                      "unit": 0,
+                      "options": {
+                        "style": "decimal",
+                        "maximumFractionDigits": 2
+                      }
+                    }
+                  },
+                  {
+                    "columnMatch": "Ingestion_TB",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "orange",
+                      "showBorder": false
+                    },
+                    "numberFormat": {
+                      "unit": 0,
+                      "options": {
+                        "style": "decimal",
+                        "maximumFractionDigits": 6
+                      }
+                    }
+                  },
+                  {
+                    "columnMatch": "Pct_of_Total",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "green",
+                      "showBorder": false
+                    },
+                    "numberFormat": {
+                      "unit": 0,
+                      "options": {
+                        "style": "decimal",
+                        "maximumFractionDigits": 1
+                      }
+                    }
+                  },
+                  {
+                    "columnMatch": "EventCount",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "blue",
+                      "showBorder": false
+                    }
+                  }
+                ],
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "Ingestion_GB",
+                    "sortOrder": 2
+                  }
+                ],
+                "rowLimit": 50,
+                "labelSettings": []
+              }
+            },
+            "name": "selector-grid-DataType"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "### Drilldown: **{SelectedDataType}** — Daily Ingestion\n\nUse **⬇ Export** to download CSV for the cloud team.",
+              "style": "info"
+            },
+            "conditionalVisibility": {
+              "parameterName": "SelectedDataType",
+              "comparison": "isNotEqualTo",
+              "value": ""
+            },
+            "name": "hint-SelectedDataType"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "Usage\n| where DataType == '{SelectedDataType}'\n| summarize Ingestion_MB=round(sum(Quantity),2), Ingestion_GB=round(sum(Quantity)/1024,4), RecordCount=count() by bin(TimeGenerated, 1d), DataType, Solution\n| order by TimeGenerated desc",
+              "size": 1,
+              "title": "Detail: {SelectedDataType} — Daily Ingestion Breakdown",
+              "timeContextFromParameter": "TimePicker",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "TimeGenerated",
+                    "formatter": 6
+                  },
+                  {
+                    "columnMatch": "Ingestion_MB",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "blue",
+                      "showBorder": false
+                    },
+                    "numberFormat": {
+                      "unit": 0,
+                      "options": {
+                        "style": "decimal",
+                        "maximumFractionDigits": 2
+                      }
+                    }
+                  },
+                  {
+                    "columnMatch": "Ingestion_GB",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "green",
+                      "showBorder": false
+                    },
+                    "numberFormat": {
+                      "unit": 0,
+                      "options": {
+                        "style": "decimal",
+                        "maximumFractionDigits": 4
+                      }
+                    }
+                  }
+                ],
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "TimeGenerated",
+                    "sortOrder": 2
+                  }
+                ],
+                "exportAllFields": true,
+                "labelSettings": []
+              }
+            },
+            "conditionalVisibility": {
+              "parameterName": "SelectedDataType",
+              "comparison": "isNotEqualTo",
+              "value": ""
+            },
+            "name": "drilldown-SelectedDataType"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "Second"
+      },
+      "name": "Device Related Tables"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "DeviceFileEvents - Count (excl. Microsoft/Google)",
+        "items": [
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceFileEvents\n| where InitiatingProcessVersionInfoCompanyName !startswith 'Microsoft'\n    and InitiatingProcessVersionInfoCompanyName !startswith 'Google'\n    and isnotempty(InitiatingProcessVersionInfoCompanyName)\n| summarize EventCount=count() by InitiatingProcessVersionInfoCompanyName, bin(TimeGenerated, 1d)",
+              "size": 2,
+              "timeContextFromParameter": "TimePicker",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart",
+              "chartSettings": {
+                "createOtherGroup": 50
+              }
+            },
+            "name": "chart-dfe"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceFileEvents\n| where InitiatingProcessVersionInfoCompanyName !startswith 'Microsoft'\n    and InitiatingProcessVersionInfoCompanyName !startswith 'Google'\n    and isnotempty(InitiatingProcessVersionInfoCompanyName)\n| summarize EventCount=count() by InitiatingProcessVersionInfoCompanyName\n| order by EventCount desc",
+              "size": 3,
+              "title": "Click a vendor row to drill down  ▼",
+              "timeContextFromParameter": "TimePicker",
+              "exportFieldName": "InitiatingProcessVersionInfoCompanyName",
+              "exportParameterName": "SelectedVendor",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "EventCount",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "blue",
+                      "showBorder": false
+                    }
+                  }
+                ],
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "EventCount",
+                    "sortOrder": 2
+                  }
+                ],
+                "rowLimit": 50,
+                "labelSettings": []
+              }
+            },
+            "name": "selector-Third"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "### Drilldown: **{SelectedVendor}** — DeviceFileEvents Events\n\nUse **⬇ Export** button to download as CSV for the cloud team.",
+              "style": "info"
+            },
+            "conditionalVisibility": {
+              "parameterName": "SelectedVendor",
+              "comparison": "isNotEqualTo",
+              "value": ""
+            },
+            "name": "hint-SelectedVendor"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceFileEvents\n| where InitiatingProcessVersionInfoCompanyName == '{SelectedVendor}'\n| project TimeGenerated, DeviceName, FileName, FolderPath, ActionType, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessVersionInfoCompanyName, InitiatingProcessVersionInfoProductName, InitiatingProcessVersionInfoFileVersion, InitiatingProcessAccountName, InitiatingProcessAccountDomain, SHA256\n| order by TimeGenerated desc",
+              "size": 1,
+              "title": "Detail: {SelectedVendor} — DeviceFileEvents",
+              "timeContextFromParameter": "TimePicker",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "TimeGenerated",
+                    "formatter": 6
+                  }
+                ],
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "TimeGenerated",
+                    "sortOrder": 2
+                  }
+                ],
+                "exportAllFields": true,
+                "labelSettings": []
+              }
+            },
+            "conditionalVisibility": {
+              "parameterName": "SelectedVendor",
+              "comparison": "isNotEqualTo",
+              "value": ""
+            },
+            "name": "drilldown-SelectedVendor"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "Third"
+      },
+      "name": "Device File Events"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "DeviceNetworkEvents - Count (excl. Microsoft/Google)",
+        "items": [
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceNetworkEvents\n| where InitiatingProcessVersionInfoCompanyName !startswith 'Microsoft'\n    and InitiatingProcessVersionInfoCompanyName !startswith 'Google'\n    and isnotempty(InitiatingProcessVersionInfoCompanyName)\n| summarize EventCount=count() by InitiatingProcessVersionInfoCompanyName, bin(TimeGenerated, 1d)",
+              "size": 2,
+              "timeContextFromParameter": "TimePicker",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart",
+              "chartSettings": {
+                "createOtherGroup": 50
+              }
+            },
+            "name": "chart-dne"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceNetworkEvents\n| where InitiatingProcessVersionInfoCompanyName !startswith 'Microsoft'\n    and InitiatingProcessVersionInfoCompanyName !startswith 'Google'\n    and isnotempty(InitiatingProcessVersionInfoCompanyName)\n| summarize EventCount=count() by InitiatingProcessVersionInfoCompanyName\n| order by EventCount desc",
+              "size": 3,
+              "title": "Click a vendor row to drill down  ▼",
+              "timeContextFromParameter": "TimePicker",
+              "exportFieldName": "InitiatingProcessVersionInfoCompanyName",
+              "exportParameterName": "SelectedVendor",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "EventCount",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "blue",
+                      "showBorder": false
+                    }
+                  }
+                ],
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "EventCount",
+                    "sortOrder": 2
+                  }
+                ],
+                "rowLimit": 50,
+                "labelSettings": []
+              }
+            },
+            "name": "selector-Fourth"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "### Drilldown: **{SelectedVendor}** — DeviceNetworkEvents Events\n\nUse **⬇ Export** button to download as CSV for the cloud team.",
+              "style": "info"
+            },
+            "conditionalVisibility": {
+              "parameterName": "SelectedVendor",
+              "comparison": "isNotEqualTo",
+              "value": ""
+            },
+            "name": "hint-SelectedVendor"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceNetworkEvents\n| where InitiatingProcessVersionInfoCompanyName == '{SelectedVendor}'\n| project TimeGenerated, DeviceName, ActionType, RemoteIP, RemotePort, RemoteUrl, LocalIP, LocalPort, Protocol, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessVersionInfoCompanyName, InitiatingProcessAccountName, InitiatingProcessAccountDomain\n| order by TimeGenerated desc",
+              "size": 1,
+              "title": "Detail: {SelectedVendor} — DeviceNetworkEvents",
+              "timeContextFromParameter": "TimePicker",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "TimeGenerated",
+                    "formatter": 6
+                  }
+                ],
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "TimeGenerated",
+                    "sortOrder": 2
+                  }
+                ],
+                "exportAllFields": true,
+                "labelSettings": []
+              }
+            },
+            "conditionalVisibility": {
+              "parameterName": "SelectedVendor",
+              "comparison": "isNotEqualTo",
+              "value": ""
+            },
+            "name": "drilldown-SelectedVendor"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "Fourth"
+      },
+      "name": "Device Network Events"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "Non Device Ingestion (GBs per day)",
+        "items": [
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "Usage\n| where IsBillable == true\n| where DataType !startswith 'Device'\n| project TimeGenerated, DataType, Quantity\n| summarize Ingestion_GB=sum(Quantity)/1024 by bin(TimeGenerated, 1d), DataType",
+              "size": 2,
+              "timeContextFromParameter": "TimePicker",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart",
+              "chartSettings": {
+                "createOtherGroup": 50
+              }
+            },
+            "name": "chart-nondevice"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "Usage\n| where IsBillable == true\n| where DataType !startswith 'Device'\n| summarize Ingestion_GB=round(sum(Quantity)/1024,2), Ingestion_TB=round(sum(Quantity)/1048576,6) by DataType\n| extend Total_GB = toscalar(Usage | where IsBillable==true | where DataType !startswith 'Device' | summarize sum(Quantity)/1024)\n| extend Pct_of_Total=round(Ingestion_GB/iif(Total_GB==0.0,1.0,Total_GB)*100,1)\n| project DataType, Ingestion_GB, Ingestion_TB, Pct_of_Total\n| order by Ingestion_GB desc",
+              "size": 3,
+              "title": "Click a row to drill down  ▼",
+              "timeContextFromParameter": "TimePicker",
+              "exportFieldName": "DataType",
+              "exportParameterName": "SelectedDataType",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Ingestion_GB",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "blue",
+                      "showBorder": false
+                    },
+                    "numberFormat": {
+                      "unit": 0,
+                      "options": {
+                        "style": "decimal",
+                        "maximumFractionDigits": 2
+                      }
+                    }
+                  },
+                  {
+                    "columnMatch": "Ingestion_TB",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "orange",
+                      "showBorder": false
+                    },
+                    "numberFormat": {
+                      "unit": 0,
+                      "options": {
+                        "style": "decimal",
+                        "maximumFractionDigits": 6
+                      }
+                    }
+                  },
+                  {
+                    "columnMatch": "Pct_of_Total",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "green",
+                      "showBorder": false
+                    },
+                    "numberFormat": {
+                      "unit": 0,
+                      "options": {
+                        "style": "decimal",
+                        "maximumFractionDigits": 1
+                      }
+                    }
+                  },
+                  {
+                    "columnMatch": "EventCount",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "blue",
+                      "showBorder": false
+                    }
+                  }
+                ],
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "Ingestion_GB",
+                    "sortOrder": 2
+                  }
+                ],
+                "rowLimit": 50,
+                "labelSettings": []
+              }
+            },
+            "name": "selector-grid-DataType"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "### Drilldown: **{SelectedDataType}** — Daily Spike Analysis\n\nUse **⬇ Export** to download CSV for the cloud team.",
+              "style": "info"
+            },
+            "conditionalVisibility": {
+              "parameterName": "SelectedDataType",
+              "comparison": "isNotEqualTo",
+              "value": ""
+            },
+            "name": "hint-SelectedDataType"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let avgDailyGB = toscalar(\n  Usage\n  | where IsBillable == true\n  | where DataType == '{SelectedDataType}'\n  | summarize DailyGB = sum(Quantity)/1024 by bin(TimeGenerated, 1d)\n  | summarize avg(DailyGB)\n);\nUsage\n| where IsBillable == true\n| where DataType == '{SelectedDataType}'\n| summarize Ingestion_MB=round(sum(Quantity),2), Ingestion_GB=round(sum(Quantity)/1024,4), Ingestion_TB=round(sum(Quantity)/1048576,8), RecordCount=count() by bin(TimeGenerated, 1d), DataType, Solution\n| extend AvgDaily_GB=round(avgDailyGB,4)\n| extend Pct_of_Avg=round(Ingestion_GB / iif(avgDailyGB==0.0,1.0,avgDailyGB)*100,1)\n| extend SpikeStatus=iff(Ingestion_GB > avgDailyGB*2.0,'CRITICAL SPIKE',iff(Ingestion_GB > avgDailyGB*1.5,'ELEVATED','Normal'))\n| project TimeGenerated, DataType, Solution, Ingestion_MB, Ingestion_GB, Ingestion_TB, AvgDaily_GB, Pct_of_Avg, SpikeStatus, RecordCount\n| order by TimeGenerated desc",
+              "size": 1,
+              "title": "Daily Spike Detail — {SelectedDataType} (export CSV → cloud team)",
+              "timeContextFromParameter": "TimePicker",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "TimeGenerated",
+                    "formatter": 6
+                  },
+                  {
+                    "columnMatch": "Ingestion_MB",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "blue",
+                      "showBorder": false
+                    },
+                    "numberFormat": {
+                      "unit": 0,
+                      "options": {
+                        "style": "decimal",
+                        "maximumFractionDigits": 2
+                      }
+                    }
+                  },
+                  {
+                    "columnMatch": "Ingestion_GB",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "green",
+                      "showBorder": false
+                    },
+                    "numberFormat": {
+                      "unit": 0,
+                      "options": {
+                        "style": "decimal",
+                        "maximumFractionDigits": 4
+                      }
+                    }
+                  },
+                  {
+                    "columnMatch": "Ingestion_TB",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "orange",
+                      "showBorder": false
+                    },
+                    "numberFormat": {
+                      "unit": 0,
+                      "options": {
+                        "style": "decimal",
+                        "maximumFractionDigits": 8
+                      }
+                    }
+                  },
+                  {
+                    "columnMatch": "AvgDaily_GB",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "gray",
+                      "showBorder": false
+                    },
+                    "numberFormat": {
+                      "unit": 0,
+                      "options": {
+                        "style": "decimal",
+                        "maximumFractionDigits": 4
+                      }
+                    }
+                  },
+                  {
+                    "columnMatch": "Pct_of_Avg",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "redGreen",
+                      "showBorder": false
+                    },
+                    "numberFormat": {
+                      "unit": 0,
+                      "options": {
+                        "style": "decimal",
+                        "maximumFractionDigits": 1
+                      }
+                    }
+                  },
+                  {
+                    "columnMatch": "SpikeStatus",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "CRITICAL",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "ELEVATED",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "TimeGenerated",
+                    "sortOrder": 2
+                  }
+                ],
+                "exportAllFields": true,
+                "labelSettings": []
+              }
+            },
+            "conditionalVisibility": {
+              "parameterName": "SelectedDataType",
+              "comparison": "isNotEqualTo",
+              "value": ""
+            },
+            "name": "drilldown-SelectedDataType"
           }
         ]
       },
@@ -837,38 +1137,65 @@
       "content": {
         "version": "NotebookGroup/1.0",
         "groupType": "editable",
-        "title": "Device Process Events - Count",
+        "title": "DeviceProcessEvents - Count (excl. Microsoft/Google)",
         "items": [
           {
-            "type": 1,
+            "type": 3,
             "content": {
-              "json": "Important! The count represented in the chart below does NOT include events from Microsoft, Google, or blank (no vendor).",
-              "style": "warning"
+              "version": "KqlItem/1.0",
+              "query": "DeviceProcessEvents\n| where InitiatingProcessVersionInfoCompanyName !startswith 'Microsoft'\n    and InitiatingProcessVersionInfoCompanyName !startswith 'Google'\n    and isnotempty(InitiatingProcessVersionInfoCompanyName)\n| summarize EventCount=count() by InitiatingProcessVersionInfoCompanyName, bin(TimeGenerated, 1d)",
+              "size": 2,
+              "timeContextFromParameter": "TimePicker",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart",
+              "chartSettings": {
+                "createOtherGroup": 50
+              }
             },
-            "name": "text - 1"
+            "name": "chart-dpe"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceProcessEvents\r\n| where InitiatingProcessVersionInfoCompanyName !startswith \"Microsoft\" \r\n    and InitiatingProcessVersionInfoCompanyName !startswith \"Google\"\r\n    and isnotempty(InitiatingProcessVersionInfoCompanyName)\r\n| summarize count() by InitiatingProcessVersionInfoCompanyName, bin(TimeGenerated, 1d)",
-              "size": 2,
+              "query": "DeviceProcessEvents\n| where InitiatingProcessVersionInfoCompanyName !startswith 'Microsoft'\n    and InitiatingProcessVersionInfoCompanyName !startswith 'Google'\n    and isnotempty(InitiatingProcessVersionInfoCompanyName)\n| summarize EventCount=count() by InitiatingProcessVersionInfoCompanyName\n| order by EventCount desc",
+              "size": 3,
+              "title": "Click a vendor row to drill down  ▼",
               "timeContextFromParameter": "TimePicker",
               "exportFieldName": "InitiatingProcessVersionInfoCompanyName",
               "exportParameterName": "SelectedVendor",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "chartSettings": {
-                "createOtherGroup": 50
-              },
-              "visualization": "barchart"
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "EventCount",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "blue",
+                      "showBorder": false
+                    }
+                  }
+                ],
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "EventCount",
+                    "sortOrder": 2
+                  }
+                ],
+                "rowLimit": 50,
+                "labelSettings": []
+              }
             },
-            "name": "query - 6"
+            "name": "selector-Sixth"
           },
           {
             "type": 1,
             "content": {
-              "json": "### Drill-Down: {SelectedVendor} — Device Process Events\n\nClick a vendor color in the chart above. Detailed records appear below. Use the **Export** button to download as CSV.",
+              "json": "### Drilldown: **{SelectedVendor}** — DeviceProcessEvents Events\n\nUse **⬇ Export** button to download as CSV for the cloud team.",
               "style": "info"
             },
             "conditionalVisibility": {
@@ -876,7 +1203,7 @@
               "comparison": "isNotEqualTo",
               "value": ""
             },
-            "name": "text - drilldown-dpe-hint"
+            "name": "hint-SelectedVendor"
           },
           {
             "type": 3,
@@ -884,7 +1211,7 @@
               "version": "KqlItem/1.0",
               "query": "DeviceProcessEvents\n| where InitiatingProcessVersionInfoCompanyName == '{SelectedVendor}'\n| project TimeGenerated, DeviceName, ActionType, FileName, FolderPath, ProcessCommandLine, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessVersionInfoCompanyName, InitiatingProcessVersionInfoProductName, InitiatingProcessVersionInfoFileVersion, AccountName, AccountDomain, SHA256\n| order by TimeGenerated desc",
               "size": 1,
-              "title": "Detail: {SelectedVendor} — Device Process Events",
+              "title": "Detail: {SelectedVendor} — DeviceProcessEvents",
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -903,7 +1230,8 @@
                     "sortOrder": 2
                   }
                 ],
-                "exportAllFields": true
+                "exportAllFields": true,
+                "labelSettings": []
               }
             },
             "conditionalVisibility": {
@@ -911,7 +1239,7 @@
               "comparison": "isNotEqualTo",
               "value": ""
             },
-            "name": "query - drilldown-dpe"
+            "name": "drilldown-SelectedVendor"
           }
         ]
       },
@@ -927,25 +1255,15 @@
       "content": {
         "version": "NotebookGroup/1.0",
         "groupType": "editable",
-        "title": "Device Registry Events - Count",
+        "title": "DeviceRegistryEvents - Count (excl. Microsoft/Google)",
         "items": [
-          {
-            "type": 1,
-            "content": {
-              "json": "Important! The count represented in the chart below does NOT include events from Microsoft, Google, or blank (no vendor).",
-              "style": "warning"
-            },
-            "name": "text - 1"
-          },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceRegistryEvents\r\n| where InitiatingProcessVersionInfoCompanyName !startswith \"Microsoft\" and InitiatingProcessVersionInfoCompanyName != '' and InitiatingProcessVersionInfoCompanyName !startswith \"Google\"\r\n| summarize count() by InitiatingProcessVersionInfoCompanyName, bin(TimeGenerated, 1d)",
+              "query": "DeviceRegistryEvents\n| where InitiatingProcessVersionInfoCompanyName !startswith 'Microsoft'\n    and InitiatingProcessVersionInfoCompanyName !startswith 'Google'\n    and isnotempty(InitiatingProcessVersionInfoCompanyName)\n| summarize EventCount=count() by InitiatingProcessVersionInfoCompanyName, bin(TimeGenerated, 1d)",
               "size": 2,
               "timeContextFromParameter": "TimePicker",
-              "exportFieldName": "InitiatingProcessVersionInfoCompanyName",
-              "exportParameterName": "SelectedVendor",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "barchart",
@@ -953,12 +1271,49 @@
                 "createOtherGroup": 50
               }
             },
-            "name": "query - 0"
+            "name": "chart-dre"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceRegistryEvents\n| where InitiatingProcessVersionInfoCompanyName !startswith 'Microsoft'\n    and InitiatingProcessVersionInfoCompanyName !startswith 'Google'\n    and isnotempty(InitiatingProcessVersionInfoCompanyName)\n| summarize EventCount=count() by InitiatingProcessVersionInfoCompanyName\n| order by EventCount desc",
+              "size": 3,
+              "title": "Click a vendor row to drill down  ▼",
+              "timeContextFromParameter": "TimePicker",
+              "exportFieldName": "InitiatingProcessVersionInfoCompanyName",
+              "exportParameterName": "SelectedVendor",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "EventCount",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "blue",
+                      "showBorder": false
+                    }
+                  }
+                ],
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "EventCount",
+                    "sortOrder": 2
+                  }
+                ],
+                "rowLimit": 50,
+                "labelSettings": []
+              }
+            },
+            "name": "selector-Seventh"
           },
           {
             "type": 1,
             "content": {
-              "json": "### Drill-Down: {SelectedVendor} — Device Registry Events\n\nClick a vendor color in the chart above. Detailed records appear below. Use the **Export** button to download as CSV.",
+              "json": "### Drilldown: **{SelectedVendor}** — DeviceRegistryEvents Events\n\nUse **⬇ Export** button to download as CSV for the cloud team.",
               "style": "info"
             },
             "conditionalVisibility": {
@@ -966,7 +1321,7 @@
               "comparison": "isNotEqualTo",
               "value": ""
             },
-            "name": "text - drilldown-dre-hint"
+            "name": "hint-SelectedVendor"
           },
           {
             "type": 3,
@@ -974,7 +1329,7 @@
               "version": "KqlItem/1.0",
               "query": "DeviceRegistryEvents\n| where InitiatingProcessVersionInfoCompanyName == '{SelectedVendor}'\n| project TimeGenerated, DeviceName, ActionType, RegistryKey, RegistryValueName, RegistryValueData, PreviousRegistryKey, PreviousRegistryValueName, PreviousRegistryValueData, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessVersionInfoCompanyName, InitiatingProcessAccountName, InitiatingProcessAccountDomain\n| order by TimeGenerated desc",
               "size": 1,
-              "title": "Detail: {SelectedVendor} — Device Registry Events",
+              "title": "Detail: {SelectedVendor} — DeviceRegistryEvents",
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -993,7 +1348,8 @@
                     "sortOrder": 2
                   }
                 ],
-                "exportAllFields": true
+                "exportAllFields": true,
+                "labelSettings": []
               }
             },
             "conditionalVisibility": {
@@ -1001,7 +1357,7 @@
               "comparison": "isNotEqualTo",
               "value": ""
             },
-            "name": "query - drilldown-dre"
+            "name": "drilldown-SelectedVendor"
           }
         ]
       },
@@ -1010,32 +1366,22 @@
         "comparison": "isEqualTo",
         "value": "Seventh"
       },
-      "name": "DeviceRegistry"
+      "name": "Device Registry Events"
     },
     {
       "type": 12,
       "content": {
         "version": "NotebookGroup/1.0",
         "groupType": "editable",
-        "title": "Device Image Load Events - Count",
+        "title": "DeviceImageLoadEvents - Count (excl. Microsoft/Google)",
         "items": [
-          {
-            "type": 1,
-            "content": {
-              "json": "Important! The count represented in the chart below does NOT include events from Microsoft, Google, or blank (no vendor).",
-              "style": "warning"
-            },
-            "name": "text - 1"
-          },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceImageLoadEvents\r\n| where InitiatingProcessVersionInfoCompanyName !startswith \"Microsoft\" and InitiatingProcessVersionInfoCompanyName != '' and InitiatingProcessVersionInfoCompanyName !startswith \"Google\"\r\n| summarize count() by InitiatingProcessVersionInfoCompanyName, bin(TimeGenerated, 1d)\r\n",
+              "query": "DeviceImageLoadEvents\n| where InitiatingProcessVersionInfoCompanyName !startswith 'Microsoft'\n    and InitiatingProcessVersionInfoCompanyName !startswith 'Google'\n    and isnotempty(InitiatingProcessVersionInfoCompanyName)\n| summarize EventCount=count() by InitiatingProcessVersionInfoCompanyName, bin(TimeGenerated, 1d)",
               "size": 2,
               "timeContextFromParameter": "TimePicker",
-              "exportFieldName": "InitiatingProcessVersionInfoCompanyName",
-              "exportParameterName": "SelectedVendor",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "barchart",
@@ -1043,12 +1389,49 @@
                 "createOtherGroup": 50
               }
             },
-            "name": "query - 0"
+            "name": "chart-dile"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceImageLoadEvents\n| where InitiatingProcessVersionInfoCompanyName !startswith 'Microsoft'\n    and InitiatingProcessVersionInfoCompanyName !startswith 'Google'\n    and isnotempty(InitiatingProcessVersionInfoCompanyName)\n| summarize EventCount=count() by InitiatingProcessVersionInfoCompanyName\n| order by EventCount desc",
+              "size": 3,
+              "title": "Click a vendor row to drill down  ▼",
+              "timeContextFromParameter": "TimePicker",
+              "exportFieldName": "InitiatingProcessVersionInfoCompanyName",
+              "exportParameterName": "SelectedVendor",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "EventCount",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "blue",
+                      "showBorder": false
+                    }
+                  }
+                ],
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "EventCount",
+                    "sortOrder": 2
+                  }
+                ],
+                "rowLimit": 50,
+                "labelSettings": []
+              }
+            },
+            "name": "selector-Eighth"
           },
           {
             "type": 1,
             "content": {
-              "json": "### Drill-Down: {SelectedVendor} — Device Image Load Events\n\nClick a vendor color in the chart above. Detailed records appear below. Use the **Export** button to download as CSV.",
+              "json": "### Drilldown: **{SelectedVendor}** — DeviceImageLoadEvents Events\n\nUse **⬇ Export** button to download as CSV for the cloud team.",
               "style": "info"
             },
             "conditionalVisibility": {
@@ -1056,15 +1439,15 @@
               "comparison": "isNotEqualTo",
               "value": ""
             },
-            "name": "text - drilldown-dile-hint"
+            "name": "hint-SelectedVendor"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceImageLoadEvents\n| where InitiatingProcessVersionInfoCompanyName == '{SelectedVendor}'\n| project TimeGenerated, DeviceName, ActionType, FileName, FolderPath, SHA256, IsSigned, Signer, Issuer, SignerHash, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessVersionInfoCompanyName, InitiatingProcessVersionInfoProductName, InitiatingProcessAccountName, InitiatingProcessAccountDomain\n| order by TimeGenerated desc",
+              "query": "DeviceImageLoadEvents\n| where InitiatingProcessVersionInfoCompanyName == '{SelectedVendor}'\n| project TimeGenerated, DeviceName, ActionType, FileName, FolderPath, SHA256, IsSigned, Signer, Issuer, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessVersionInfoCompanyName, InitiatingProcessVersionInfoProductName, InitiatingProcessAccountName, InitiatingProcessAccountDomain\n| order by TimeGenerated desc",
               "size": 1,
-              "title": "Detail: {SelectedVendor} — Device Image Load Events",
+              "title": "Detail: {SelectedVendor} — DeviceImageLoadEvents",
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -1074,27 +1457,6 @@
                   {
                     "columnMatch": "TimeGenerated",
                     "formatter": 6
-                  },
-                  {
-                    "columnMatch": "IsSigned",
-                    "formatter": 18,
-                    "formatOptions": {
-                      "thresholdsOptions": "icons",
-                      "thresholdsGrid": [
-                        {
-                          "operator": "==",
-                          "thresholdValue": "1",
-                          "representation": "success",
-                          "text": "Signed"
-                        },
-                        {
-                          "operator": "Default",
-                          "thresholdValue": null,
-                          "representation": "failed",
-                          "text": "Unsigned"
-                        }
-                      ]
-                    }
                   }
                 ],
                 "filter": true,
@@ -1104,7 +1466,8 @@
                     "sortOrder": 2
                   }
                 ],
-                "exportAllFields": true
+                "exportAllFields": true,
+                "labelSettings": []
               }
             },
             "conditionalVisibility": {
@@ -1112,7 +1475,7 @@
               "comparison": "isNotEqualTo",
               "value": ""
             },
-            "name": "query - drilldown-dile"
+            "name": "drilldown-SelectedVendor"
           }
         ]
       },
@@ -1121,42 +1484,72 @@
         "comparison": "isEqualTo",
         "value": "Eighth"
       },
-      "name": "DeviceImage"
+      "name": "Device Image Load Events"
     },
     {
       "type": 12,
       "content": {
         "version": "NotebookGroup/1.0",
         "groupType": "editable",
-        "title": "Device Events - Count",
+        "title": "DeviceEvents - Count (excl. Microsoft/Google)",
         "items": [
           {
-            "type": 1,
+            "type": 3,
             "content": {
-              "json": "Important! The count represented in the chart below does NOT include events from Microsoft, Google, or blank (no vendor).",
-              "style": "warning"
+              "version": "KqlItem/1.0",
+              "query": "DeviceEvents\n| where InitiatingProcessVersionInfoCompanyName !startswith 'Microsoft'\n    and InitiatingProcessVersionInfoCompanyName !startswith 'Google'\n    and isnotempty(InitiatingProcessVersionInfoCompanyName)\n| summarize EventCount=count() by InitiatingProcessVersionInfoCompanyName, bin(TimeGenerated, 1d)",
+              "size": 2,
+              "timeContextFromParameter": "TimePicker",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart",
+              "chartSettings": {
+                "createOtherGroup": 50
+              }
             },
-            "name": "text - 12"
+            "name": "chart-de"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceEvents\r\n| where InitiatingProcessVersionInfoCompanyName !startswith \"Microsoft\" and InitiatingProcessVersionInfoCompanyName != '' and InitiatingProcessVersionInfoCompanyName !startswith \"Google\"\r\n| summarize count() by InitiatingProcessVersionInfoCompanyName, bin(TimeGenerated, 1d)",
-              "size": 2,
+              "query": "DeviceEvents\n| where InitiatingProcessVersionInfoCompanyName !startswith 'Microsoft'\n    and InitiatingProcessVersionInfoCompanyName !startswith 'Google'\n    and isnotempty(InitiatingProcessVersionInfoCompanyName)\n| summarize EventCount=count() by InitiatingProcessVersionInfoCompanyName\n| order by EventCount desc",
+              "size": 3,
+              "title": "Click a vendor row to drill down  ▼",
               "timeContextFromParameter": "TimePicker",
               "exportFieldName": "InitiatingProcessVersionInfoCompanyName",
               "exportParameterName": "SelectedVendor",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "barchart"
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "EventCount",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "blue",
+                      "showBorder": false
+                    }
+                  }
+                ],
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "EventCount",
+                    "sortOrder": 2
+                  }
+                ],
+                "rowLimit": 50,
+                "labelSettings": []
+              }
             },
-            "name": "query - 11"
+            "name": "selector-Ninth"
           },
           {
             "type": 1,
             "content": {
-              "json": "### Drill-Down: {SelectedVendor} — Device Events\n\nClick a vendor color in the chart above. Detailed records appear below. Use the **Export** button to download as CSV.",
+              "json": "### Drilldown: **{SelectedVendor}** — DeviceEvents Events\n\nUse **⬇ Export** button to download as CSV for the cloud team.",
               "style": "info"
             },
             "conditionalVisibility": {
@@ -1164,7 +1557,7 @@
               "comparison": "isNotEqualTo",
               "value": ""
             },
-            "name": "text - drilldown-de-hint"
+            "name": "hint-SelectedVendor"
           },
           {
             "type": 3,
@@ -1172,7 +1565,7 @@
               "version": "KqlItem/1.0",
               "query": "DeviceEvents\n| where InitiatingProcessVersionInfoCompanyName == '{SelectedVendor}'\n| project TimeGenerated, DeviceName, ActionType, FileName, FolderPath, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessVersionInfoCompanyName, InitiatingProcessVersionInfoProductName, InitiatingProcessAccountName, InitiatingProcessAccountDomain, AdditionalFields\n| order by TimeGenerated desc",
               "size": 1,
-              "title": "Detail: {SelectedVendor} — Device Events",
+              "title": "Detail: {SelectedVendor} — DeviceEvents",
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -1191,7 +1584,8 @@
                     "sortOrder": 2
                   }
                 ],
-                "exportAllFields": true
+                "exportAllFields": true,
+                "labelSettings": []
               }
             },
             "conditionalVisibility": {
@@ -1199,7 +1593,7 @@
               "comparison": "isNotEqualTo",
               "value": ""
             },
-            "name": "query - drilldown-de"
+            "name": "drilldown-SelectedVendor"
           }
         ]
       },

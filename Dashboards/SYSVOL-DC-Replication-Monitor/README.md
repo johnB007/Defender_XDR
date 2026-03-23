@@ -1,7 +1,7 @@
 # DC SYSVOL and AD Replication Health Monitor
 
 ## Intro
-This package publishes a Microsoft Sentinel / Azure Monitor workbook for Domain Controller replication health and SOC operations.
+This package publishes a Microsoft Sentinel / Azure Monitor workbook for Domain Controller replication health from a sysadmin and security operations perspective.
 
 It is built for day-1 operations with:
 - Environment-wide replication KPIs
@@ -11,23 +11,23 @@ It is built for day-1 operations with:
 - Per-DC health scoring and silent host detection
 - Log volume and cost estimation
 
-## Summary For SOC And CISO
-This workbook gives SOC teams fast triage coverage for replication-impacting issues while giving CISO leaders clear visibility into replication risk concentration and operational trends.
+## Summary For Sysadmin And Security
+This workbook gives sysadmin and security teams fast triage coverage for replication-impacting issues, clear visibility into risk concentration, and practical operational trends for remediation.
 
-- SOC focus: find failing DCs quickly, prioritize highest-impact replication faults, and track recovery.
-- CISO focus: understand enterprise replication risk posture, affected scope, and sustained stability trends.
+- Find failing DCs quickly, prioritize highest-impact replication faults, and track recovery.
+- Understand replication risk posture, affected scope, and sustained stability trends.
 
 ### Tab Breakdown
-| Tab | SOC Use | CISO Use |
-|---|---|---|
-| Overview | Validate whether replication telemetry is healthy and complete across all DCs. | Review high-level replication health and severity posture in one view. |
-| DFS Replication | Investigate DFSR stoppage, out-of-sync conditions, and service disruption patterns. | Track concentration of DFSR critical conditions over time. |
-| File Replication (NTFRS) | Triage journal wrap, SYSVOL not-ready state, and partner connectivity faults. | Assess residual NTFRS risk in legacy or mixed environments. |
-| Directory Service | Investigate AD replication failures, KCC topology issues, and DNS-linked faults. | Monitor AD replication reliability and enterprise directory health risk. |
-| SOC Security and MDE | Correlate focus event IDs with SecurityEvent/MDE/Arc operational signals. | Measure detection and operational telemetry breadth for DC assets. |
-| Critical Events | Prioritize multi-source failures and highest-severity events for immediate action. | Track systemic risk where multiple replication subsystems are failing. |
-| DC Health Matrix | Score each DC by subsystem health and identify silent or degraded systems fast. | View enterprise-wide DC health distribution and outlier systems. |
-| Log Volume and Cost | Estimate billed volume trends and projected 30-day cost by source and host. | Forecast cost exposure and optimize telemetry investment. |
+| Tab | Sysadmin And Security Use |
+|---|---|
+| Overview | Validate whether replication telemetry is healthy and complete across all DCs, and review high-level health and severity posture in one view. |
+| DFS Replication | Investigate DFSR stoppage, out-of-sync conditions, and service disruption patterns while tracking concentration of critical DFSR conditions over time. |
+| File Replication (NTFRS) | Triage journal wrap, SYSVOL not-ready state, and partner connectivity faults while assessing residual NTFRS risk in legacy or mixed environments. |
+| Directory Service | Investigate AD replication failures, KCC topology issues, and DNS-linked faults while monitoring enterprise directory health risk. |
+| Security and MDE | Correlate focus event IDs with SecurityEvent, MDE, and Arc operational signals to measure telemetry breadth for DC assets. |
+| Critical Events | Prioritize multi-source failures and highest-severity events for immediate action while tracking systemic risk across replication subsystems. |
+| DC Health Matrix | Score each DC by subsystem health and identify silent or degraded systems quickly while reviewing enterprise-wide health distribution and outliers. |
+| Log Volume and Cost | Estimate billed volume trends and projected 30-day cost by source and host to forecast cost exposure and optimize telemetry investment. |
 
 ## Workbook Overview Screenshots
 
@@ -47,9 +47,9 @@ This workbook gives SOC teams fast triage coverage for replication-impacting iss
 ![Directory Service Tab - Placeholder 1](https://placehold.co/1600x900?text=Directory+Service+Tab+Screenshot+1)
 ![Directory Service Tab - Placeholder 2](https://placehold.co/1600x900?text=Directory+Service+Tab+Screenshot+2)
 
-### SOC Security and MDE Tab
-![SOC Security and MDE Tab - Placeholder 1](https://placehold.co/1600x900?text=SOC+Security+and+MDE+Tab+Screenshot+1)
-![SOC Security and MDE Tab - Placeholder 2](https://placehold.co/1600x900?text=SOC+Security+and+MDE+Tab+Screenshot+2)
+### Security and MDE Tab
+![Security and MDE Tab - Placeholder 1](https://placehold.co/1600x900?text=Security+and+MDE+Tab+Screenshot+1)
+![Security and MDE Tab - Placeholder 2](https://placehold.co/1600x900?text=Security+and+MDE+Tab+Screenshot+2)
 
 ### Critical Events Tab
 ![Critical Events Tab - Placeholder 1](https://placehold.co/1600x900?text=Critical+Events+Tab+Screenshot+1)
@@ -85,10 +85,10 @@ This workbook gives SOC teams fast triage coverage for replication-impacting iss
 - Primary visuals: AD replication event distributions, DNS failure breakdown (2087/2088), replication failure detail by DC.
 - Why it matters: surfaces isolated DCs, KCC path failures, and directory-level replication integrity risk.
 
-### SOC Security and MDE
+### Security and MDE
 - What it does: combines high-priority replication event IDs with SecurityEvent, MDE operational signals, and Arc heartbeat visibility.
 - Primary visuals: focus event KPI set, source trend comparisons, DC signal summary for network/process/logon activity.
-- Why it matters: gives SOC a cross-domain operational view for correlation and faster triage decisions.
+- Why it matters: gives sysadmin and security teams a cross-domain operational view for correlation and faster triage decisions.
 
 ### Critical Events
 - What it does: unifies critical and error-level events across all three replication data sources.

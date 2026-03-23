@@ -10,6 +10,89 @@
       "name": "banner-header"
     },
     {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "param-tab",
+            "version": "KqlParameterItem/1.0",
+            "name": "Tab",
+            "type": 1,
+            "isHiddenWhenLocked": true,
+            "value": "Overview"
+          },
+          {
+            "id": "param-timerange",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "label": "Time Range",
+            "type": 4,
+            "isRequired": true,
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 3600000
+                },
+                {
+                  "durationMs": 14400000
+                },
+                {
+                  "durationMs": 43200000
+                },
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 172800000
+                },
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 2592000000
+                },
+                {
+                  "durationMs": 7776000000
+                }
+              ],
+              "allowCustom": true
+            },
+            "value": {
+              "durationMs": 86400000
+            }
+          },
+          {
+            "id": "param-computers",
+            "version": "KqlParameterItem/1.0",
+            "name": "Computers",
+            "label": "Domain Controllers",
+            "type": 2,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "query": "Event\n| where EventLog in (\"DFS Replication\",\"File Replication Service\",\"Directory Service\")\n| summarize by Computer\n| order by Computer asc\n| project Computer",
+            "value": [
+              "value::all"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "showDefault": false
+            },
+            "timeContextFromParameter": "TimeRange",
+            "queryType": 0,
+            "resourceType": "microsoft.operationalinsights/workspaces"
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "global-parameters"
+    },
+    {
       "type": 11,
       "content": {
         "version": "LinkItem/1.0",
@@ -51,7 +134,7 @@
             "id": "tab-socsecurity",
             "cellValue": "Tab",
             "linkTarget": "parameter",
-            "linkLabel": "SOC Security and MDE",
+            "linkLabel": "Security and MDE",
             "subTarget": "SOCSecurity",
             "style": "link"
           },
@@ -83,68 +166,6 @@
       },
       "name": "tabs"
     },
-    {
-      "type": 9,
-      "content": {
-        "version": "KqlParameterItem/1.0",
-        "parameters": [
-          {
-            "id": "param-tab",
-            "version": "KqlParameterItem/1.0",
-            "name": "Tab",
-            "type": 1,
-            "isHiddenWhenLocked": true,
-            "value": "Overview"
-          },
-          {
-            "id": "param-timerange",
-            "version": "KqlParameterItem/1.0",
-            "name": "TimeRange",
-            "label": "Time Range",
-            "type": 4,
-            "isRequired": true,
-            "typeSettings": {
-              "selectableValues": [
-                { "durationMs": 3600000 },
-                { "durationMs": 14400000 },
-                { "durationMs": 43200000 },
-                { "durationMs": 86400000 },
-                { "durationMs": 172800000 },
-                { "durationMs": 604800000 },
-                { "durationMs": 2592000000 },
-                { "durationMs": 7776000000 }
-              ],
-              "allowCustom": true
-            },
-            "value": { "durationMs": 86400000 }
-          },
-          {
-            "id": "param-computers",
-            "version": "KqlParameterItem/1.0",
-            "name": "Computers",
-            "label": "Domain Controllers",
-            "type": 2,
-            "multiSelect": true,
-            "quote": "'",
-            "delimiter": ",",
-            "query": "Event\n| where EventLog in (\"DFS Replication\",\"File Replication Service\",\"Directory Service\")\n| summarize by Computer\n| order by Computer asc\n| project Computer",
-            "value": ["value::all"],
-            "typeSettings": {
-              "additionalResourceOptions": ["value::all"],
-              "showDefault": false
-            },
-            "timeContextFromParameter": "TimeRange",
-            "queryType": 0,
-            "resourceType": "microsoft.operationalinsights/workspaces"
-          }
-        ],
-        "style": "pills",
-        "queryType": 0,
-        "resourceType": "microsoft.operationalinsights/workspaces"
-      },
-      "name": "global-parameters"
-    },
-
     {
       "type": 12,
       "name": "group-overview",
@@ -179,12 +200,23 @@
               "visualization": "tiles",
               "tileSettings": {
                 "showBorder": true,
-                "titleContent": { "columnMatch": "Metric", "formatter": 1 },
+                "titleContent": {
+                  "columnMatch": "Metric",
+                  "formatter": 1
+                },
                 "leftContent": {
                   "columnMatch": "Value",
                   "formatter": 12,
-                  "formatOptions": { "palette": "auto" },
-                  "numberFormat": { "unit": 17, "options": { "style": "decimal", "maximumFractionDigits": 0 } }
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 0
+                    }
+                  }
                 }
               }
             }
@@ -201,7 +233,9 @@
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "areachart",
-              "chartSettings": { "showLegend": true }
+              "chartSettings": {
+                "showLegend": true
+              }
             }
           },
           {
@@ -216,7 +250,9 @@
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "piechart",
-              "chartSettings": { "showLegend": true }
+              "chartSettings": {
+                "showLegend": true
+              }
             },
             "customWidth": "33"
           },
@@ -232,7 +268,9 @@
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "barchart",
-              "chartSettings": { "showLegend": true }
+              "chartSettings": {
+                "showLegend": true
+              }
             },
             "customWidth": "33"
           },
@@ -251,9 +289,18 @@
               "chartSettings": {
                 "showLegend": true,
                 "seriesLabelSettings": [
-                  { "seriesName": "Error", "color": "red" },
-                  { "seriesName": "Critical", "color": "redBright" },
-                  { "seriesName": "Warning", "color": "yellow" }
+                  {
+                    "seriesName": "Error",
+                    "color": "red"
+                  },
+                  {
+                    "seriesName": "Critical",
+                    "color": "redBright"
+                  },
+                  {
+                    "seriesName": "Warning",
+                    "color": "yellow"
+                  }
                 ]
               }
             },
@@ -271,7 +318,9 @@
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "barchart",
-              "chartSettings": { "showLegend": true }
+              "chartSettings": {
+                "showLegend": true
+              }
             }
           },
           {
@@ -294,26 +343,76 @@
                     "formatOptions": {
                       "thresholdsOptions": "colors",
                       "thresholdsGrid": [
-                        { "operator": "==", "thresholdValue": "Critical", "representation": "redBright", "text": "{0}{1}" },
-                        { "operator": "==", "thresholdValue": "Degraded", "representation": "orange", "text": "{0}{1}" },
-                        { "operator": "==", "thresholdValue": "Warning", "representation": "yellow", "text": "{0}{1}" },
-                        { "operator": "==", "thresholdValue": "Healthy", "representation": "green", "text": "{0}{1}" },
-                        { "operator": "Default", "thresholdValue": null, "representation": "blue", "text": "{0}{1}" }
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Critical",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Degraded",
+                          "representation": "orange",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Warning",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Healthy",
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "blue",
+                          "text": "{0}{1}"
+                        }
                       ]
                     }
                   },
-                  { "columnMatch": "Errors", "formatter": 8, "formatOptions": { "min": 0, "palette": "redBright" } },
-                  { "columnMatch": "TotalEvents", "formatter": 8, "formatOptions": { "min": 0, "palette": "blue" } },
-                  { "columnMatch": "Warnings", "formatter": 8, "formatOptions": { "min": 0, "palette": "yellow" } }
+                  {
+                    "columnMatch": "Errors",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "TotalEvents",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "blue"
+                    }
+                  },
+                  {
+                    "columnMatch": "Warnings",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "yellow"
+                    }
+                  }
                 ],
-                "sortBy": [{ "itemKey": "Errors", "sortOrder": 2 }]
+                "sortBy": [
+                  {
+                    "itemKey": "Errors",
+                    "sortOrder": 2
+                  }
+                ]
               }
             }
           }
         ]
       }
     },
-
     {
       "type": 12,
       "name": "group-dfsr",
@@ -348,12 +447,23 @@
               "visualization": "tiles",
               "tileSettings": {
                 "showBorder": true,
-                "titleContent": { "columnMatch": "Metric", "formatter": 1 },
+                "titleContent": {
+                  "columnMatch": "Metric",
+                  "formatter": 1
+                },
                 "leftContent": {
                   "columnMatch": "Value",
                   "formatter": 12,
-                  "formatOptions": { "palette": "auto" },
-                  "numberFormat": { "unit": 17, "options": { "style": "decimal", "maximumFractionDigits": 0 } }
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 0
+                    }
+                  }
                 }
               }
             }
@@ -373,10 +483,22 @@
               "chartSettings": {
                 "showLegend": true,
                 "seriesLabelSettings": [
-                  { "seriesName": "Error", "color": "red" },
-                  { "seriesName": "Critical", "color": "redBright" },
-                  { "seriesName": "Warning", "color": "yellow" },
-                  { "seriesName": "Information", "color": "blue" }
+                  {
+                    "seriesName": "Error",
+                    "color": "red"
+                  },
+                  {
+                    "seriesName": "Critical",
+                    "color": "redBright"
+                  },
+                  {
+                    "seriesName": "Warning",
+                    "color": "yellow"
+                  },
+                  {
+                    "seriesName": "Information",
+                    "color": "blue"
+                  }
                 ]
               }
             }
@@ -387,13 +509,15 @@
             "content": {
               "version": "KqlItem/1.0",
               "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog == \"DFS Replication\"\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| summarize Count=count() by EventID\n| extend EventDescription=case(\n    EventID == 2213, \"2213: STOPPED — manual fixup required\",\n    EventID == 2212, \"2212: Multiple active DFSR instances\",\n    EventID == 2214, \"2214: Started after unexpected shutdown\",\n    EventID == 4012, \"4012: Partner exceeded max out-of-sync\",\n    EventID == 4004, \"4004: Out of disk space\",\n    EventID == 5002, \"5002: DFSR service STOPPED\",\n    EventID == 5004, \"5004: DFSR service started\",\n    EventID == 6016, \"6016: Could NOT sync replicated folder\",\n    EventID == 6018, \"6018: Sync recovered after error\",\n    EventID == 2104, \"2104: Error replicating a file\",\n    EventID == 4002, \"4002: FAILED to initialize\",\n    EventID == 5008, \"5008: File not replicated — staging full\",\n    EventID == 1202, \"1202: Replication group initialized\",\n    EventID == 1206, \"1206: Volume detected dirty\",\n    strcat(tostring(EventID), \": Other DFSR Event\")\n  )\n| order by Count desc\n| project EventDescription, Count",
-              "size": 1,
+              "size": 0,
               "title": "DFSR Events by Event ID",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "barchart",
-              "chartSettings": { "showLegend": true }
+              "chartSettings": {
+                "showLegend": true
+              }
             },
             "customWidth": "50"
           },
@@ -403,13 +527,15 @@
             "content": {
               "version": "KqlItem/1.0",
               "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog == \"DFS Replication\"\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventID in (2213, 4012, 5002, 6016, 4002, 4004, 2104, 5008, 2212, 1206)\n| summarize CriticalCount=count() by Computer\n| top 25 by CriticalCount desc",
-              "size": 1,
+              "size": 0,
               "title": "Top DCs by DFSR Critical/Warning Events",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "barchart",
-              "chartSettings": { "showLegend": false }
+              "chartSettings": {
+                "showLegend": false
+              }
             },
             "customWidth": "50"
           },
@@ -433,15 +559,49 @@
                     "formatOptions": {
                       "thresholdsOptions": "colors",
                       "thresholdsGrid": [
-                        { "operator": "contains", "thresholdValue": "Critical", "representation": "redBright", "text": "{0}{1}" },
-                        { "operator": "contains", "thresholdValue": "Warning", "representation": "yellow", "text": "{0}{1}" },
-                        { "operator": "contains", "thresholdValue": "Info", "representation": "green", "text": "{0}{1}" },
-                        { "operator": "Default", "thresholdValue": null, "representation": "blue", "text": "{0}{1}" }
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Critical",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Warning",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Info",
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "blue",
+                          "text": "{0}{1}"
+                        }
                       ]
                     }
                   },
-                  { "columnMatch": "Count", "formatter": 8, "formatOptions": { "min": 0, "palette": "redBright" } },
-                  { "columnMatch": "AffectedDCs", "formatter": 8, "formatOptions": { "min": 0, "palette": "orange" } }
+                  {
+                    "columnMatch": "Count",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "AffectedDCs",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "orange"
+                    }
+                  }
                 ]
               }
             }
@@ -461,10 +621,22 @@
               "chartSettings": {
                 "showLegend": true,
                 "seriesLabelSettings": [
-                  { "seriesName": "Replication HALTED", "color": "redBright" },
-                  { "seriesName": "Service Stopped", "color": "red" },
-                  { "seriesName": "Service Started", "color": "green" },
-                  { "seriesName": "Replication Recovered", "color": "lime" }
+                  {
+                    "seriesName": "Replication HALTED",
+                    "color": "redBright"
+                  },
+                  {
+                    "seriesName": "Service Stopped",
+                    "color": "red"
+                  },
+                  {
+                    "seriesName": "Service Started",
+                    "color": "green"
+                  },
+                  {
+                    "seriesName": "Replication Recovered",
+                    "color": "lime"
+                  }
                 ]
               }
             }
@@ -489,22 +661,46 @@
                     "formatOptions": {
                       "thresholdsOptions": "colors",
                       "thresholdsGrid": [
-                        { "operator": "==", "thresholdValue": "Critical", "representation": "redBright", "text": "{0}{1}" },
-                        { "operator": "==", "thresholdValue": "Error", "representation": "red", "text": "{0}{1}" },
-                        { "operator": "==", "thresholdValue": "Warning", "representation": "yellow", "text": "{0}{1}" },
-                        { "operator": "Default", "thresholdValue": null, "representation": "blue", "text": "{0}{1}" }
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Critical",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Error",
+                          "representation": "red",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Warning",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "blue",
+                          "text": "{0}{1}"
+                        }
                       ]
                     }
                   }
                 ],
-                "sortBy": [{ "itemKey": "TimeGenerated", "sortOrder": 2 }]
+                "sortBy": [
+                  {
+                    "itemKey": "TimeGenerated",
+                    "sortOrder": 2
+                  }
+                ]
               }
             }
           }
         ]
       }
     },
-
     {
       "type": 12,
       "name": "group-ntfrs",
@@ -539,12 +735,23 @@
               "visualization": "tiles",
               "tileSettings": {
                 "showBorder": true,
-                "titleContent": { "columnMatch": "Metric", "formatter": 1 },
+                "titleContent": {
+                  "columnMatch": "Metric",
+                  "formatter": 1
+                },
                 "leftContent": {
                   "columnMatch": "Value",
                   "formatter": 12,
-                  "formatOptions": { "palette": "auto" },
-                  "numberFormat": { "unit": 17, "options": { "style": "decimal", "maximumFractionDigits": 0 } }
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 0
+                    }
+                  }
                 }
               }
             }
@@ -564,9 +771,18 @@
               "chartSettings": {
                 "showLegend": true,
                 "seriesLabelSettings": [
-                  { "seriesName": "Error", "color": "red" },
-                  { "seriesName": "Warning", "color": "yellow" },
-                  { "seriesName": "Information", "color": "blue" }
+                  {
+                    "seriesName": "Error",
+                    "color": "red"
+                  },
+                  {
+                    "seriesName": "Warning",
+                    "color": "yellow"
+                  },
+                  {
+                    "seriesName": "Information",
+                    "color": "blue"
+                  }
                 ]
               }
             }
@@ -577,13 +793,15 @@
             "content": {
               "version": "KqlItem/1.0",
               "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog == \"File Replication Service\"\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| summarize Count=count() by EventID\n| extend EventDescription=case(\n    EventID == 13508, \"13508: Trouble enabling replication from partner\",\n    EventID == 13509, \"13509: Replication enabled with partner\",\n    EventID == 13516, \"13516: No longer preventing DC promotion\",\n    EventID == 13520, \"13520: JRNL_WRAP_ERROR — D2 BurFlags required\",\n    EventID == 13522, \"13522: FRS not responding — timeout\",\n    EventID == 13536, \"13536: Cannot resolve partner DNS name\",\n    EventID == 13548, \"13548: FRS cannot be contacted\",\n    EventID == 13552, \"13552: SYSVOL replication FAILING\",\n    EventID == 13553, \"13553: Connection established with partner\",\n    EventID == 13555, \"13555: Serious FRS service problems\",\n    EventID == 13566, \"13566: BurFlags restore mode detected\",\n    EventID == 13568, \"13568: Journal wrap — auto D2 BurFlags set\",\n    EventID == 13572, \"13572: DC SYSVOL NOT READY\",\n    EventID == 13573, \"13573: SYSVOL ready / sharing started\",\n    strcat(tostring(EventID), \": Other NTFRS Event\")\n  )\n| order by Count desc\n| project EventDescription, Count",
-              "size": 1,
+              "size": 0,
               "title": "NTFRS Events by Event ID",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "barchart",
-              "chartSettings": { "showLegend": false }
+              "chartSettings": {
+                "showLegend": false
+              }
             },
             "customWidth": "50"
           },
@@ -593,13 +811,15 @@
             "content": {
               "version": "KqlItem/1.0",
               "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog == \"File Replication Service\"\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventID in (13520, 13568)\n| summarize JournalWrapEvents=count(), LastOccurrence=max(TimeGenerated) by Computer\n| order by JournalWrapEvents desc",
-              "size": 1,
+              "size": 0,
               "title": "Journal Wrap Errors (13520 / 13568) by DC",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "barchart",
-              "chartSettings": { "showLegend": false }
+              "chartSettings": {
+                "showLegend": false
+              }
             },
             "customWidth": "50"
           },
@@ -609,13 +829,15 @@
             "content": {
               "version": "KqlItem/1.0",
               "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog == \"File Replication Service\"\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventID in (13552, 13572)\n| summarize SYSVOLFailures=count(), LastOccurrence=max(TimeGenerated) by Computer, EventID\n| extend EventType=iff(EventID==13552, \"SYSVOL Replication Failing\", \"SYSVOL Not Ready\")\n| order by SYSVOLFailures desc",
-              "size": 1,
+              "size": 0,
               "title": "SYSVOL Failures (13552 / 13572) by DC",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "barchart",
-              "chartSettings": { "showLegend": true }
+              "chartSettings": {
+                "showLegend": true
+              }
             },
             "customWidth": "50"
           },
@@ -625,7 +847,7 @@
             "content": {
               "version": "KqlItem/1.0",
               "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog == \"File Replication Service\"\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventID in (13508, 13548, 13553)\n| summarize Count=count() by bin(TimeGenerated, 1h), EventID\n| extend EventType=case(\n    EventID == 13508, \"Partner Unreachable (13508)\",\n    EventID == 13548, \"FRS Cannot Contact (13548)\",\n    EventID == 13553, \"Partner Connected (13553)\",\n    \"Other\"\n  )\n| project TimeGenerated, EventType, Count\n| order by TimeGenerated asc",
-              "size": 1,
+              "size": 0,
               "title": "NTFRS Partner Connectivity Timeline (13508 failing / 13553 established)",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
@@ -634,9 +856,18 @@
               "chartSettings": {
                 "showLegend": true,
                 "seriesLabelSettings": [
-                  { "seriesName": "Partner Unreachable (13508)", "color": "red" },
-                  { "seriesName": "FRS Cannot Contact (13548)", "color": "orange" },
-                  { "seriesName": "Partner Connected (13553)", "color": "green" }
+                  {
+                    "seriesName": "Partner Unreachable (13508)",
+                    "color": "red"
+                  },
+                  {
+                    "seriesName": "FRS Cannot Contact (13548)",
+                    "color": "orange"
+                  },
+                  {
+                    "seriesName": "Partner Connected (13553)",
+                    "color": "green"
+                  }
                 ]
               }
             },
@@ -662,15 +893,49 @@
                     "formatOptions": {
                       "thresholdsOptions": "colors",
                       "thresholdsGrid": [
-                        { "operator": "contains", "thresholdValue": "Critical", "representation": "redBright", "text": "{0}{1}" },
-                        { "operator": "contains", "thresholdValue": "Warning", "representation": "yellow", "text": "{0}{1}" },
-                        { "operator": "contains", "thresholdValue": "Info", "representation": "green", "text": "{0}{1}" },
-                        { "operator": "Default", "thresholdValue": null, "representation": "blue", "text": "{0}{1}" }
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Critical",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Warning",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Info",
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "blue",
+                          "text": "{0}{1}"
+                        }
                       ]
                     }
                   },
-                  { "columnMatch": "Count", "formatter": 8, "formatOptions": { "min": 0, "palette": "redBright" } },
-                  { "columnMatch": "AffectedDCs", "formatter": 8, "formatOptions": { "min": 0, "palette": "orange" } }
+                  {
+                    "columnMatch": "Count",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "AffectedDCs",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "orange"
+                    }
+                  }
                 ]
               }
             }
@@ -695,10 +960,30 @@
                     "formatOptions": {
                       "thresholdsOptions": "colors",
                       "thresholdsGrid": [
-                        { "operator": "==", "thresholdValue": "Error", "representation": "red", "text": "{0}{1}" },
-                        { "operator": "==", "thresholdValue": "Critical", "representation": "redBright", "text": "{0}{1}" },
-                        { "operator": "==", "thresholdValue": "Warning", "representation": "yellow", "text": "{0}{1}" },
-                        { "operator": "Default", "thresholdValue": null, "representation": "blue", "text": "{0}{1}" }
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Error",
+                          "representation": "red",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Critical",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Warning",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "blue",
+                          "text": "{0}{1}"
+                        }
                       ]
                     }
                   }
@@ -709,7 +994,6 @@
         ]
       }
     },
-
     {
       "type": 12,
       "name": "group-ds",
@@ -744,12 +1028,23 @@
               "visualization": "tiles",
               "tileSettings": {
                 "showBorder": true,
-                "titleContent": { "columnMatch": "Metric", "formatter": 1 },
+                "titleContent": {
+                  "columnMatch": "Metric",
+                  "formatter": 1
+                },
                 "leftContent": {
                   "columnMatch": "Value",
                   "formatter": 12,
-                  "formatOptions": { "palette": "auto" },
-                  "numberFormat": { "unit": 17, "options": { "style": "decimal", "maximumFractionDigits": 0 } }
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 0
+                    }
+                  }
                 }
               }
             }
@@ -769,10 +1064,22 @@
               "chartSettings": {
                 "showLegend": true,
                 "seriesLabelSettings": [
-                  { "seriesName": "Error", "color": "red" },
-                  { "seriesName": "Critical", "color": "redBright" },
-                  { "seriesName": "Warning", "color": "yellow" },
-                  { "seriesName": "Information", "color": "blue" }
+                  {
+                    "seriesName": "Error",
+                    "color": "red"
+                  },
+                  {
+                    "seriesName": "Critical",
+                    "color": "redBright"
+                  },
+                  {
+                    "seriesName": "Warning",
+                    "color": "yellow"
+                  },
+                  {
+                    "seriesName": "Information",
+                    "color": "blue"
+                  }
                 ]
               }
             }
@@ -783,13 +1090,15 @@
             "content": {
               "version": "KqlItem/1.0",
               "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog == \"Directory Service\"\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventID in (1311, 1388, 1925, 1926, 2042, 2087, 2088, 1864, 1866, 1645, 5805, 1173, 1168, 1655)\n| summarize Count=count() by EventID\n| extend EventDescription=case(\n    EventID == 1311, \"1311: KCC replication errors detected\",\n    EventID == 1388, \"1388: Inbound replication DISABLED\",\n    EventID == 1925, \"1925: Replication link establishment FAILED\",\n    EventID == 1926, \"1926: Read-only partition link failed\",\n    EventID == 2042, \"2042: Too long since last replication — ISOLATED DC\",\n    EventID == 2087, \"2087: DNS lookup failure — replication failed\",\n    EventID == 2088, \"2088: DNS failure (replication still succeeded)\",\n    EventID == 1864, \"1864: Replication warning threshold reached\",\n    EventID == 1866, \"1866: KCC cannot build spanning tree\",\n    EventID == 1645, \"1645: No RID pools available\",\n    EventID == 5805, \"5805: Session setup failed\",\n    EventID == 1173, \"1173: Internal AD transaction error\",\n    EventID == 1168, \"1168: Unexpected internal exception\",\n    EventID == 1655, \"1655: Global catalog contact failed\",\n    strcat(tostring(EventID), \": Other DS Event\")\n  )\n| order by Count desc\n| project EventDescription, Count",
-              "size": 1,
+              "size": 0,
               "title": "AD Replication & DS Events by Event ID",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "barchart",
-              "chartSettings": { "showLegend": false }
+              "chartSettings": {
+                "showLegend": false
+              }
             },
             "customWidth": "50"
           },
@@ -799,13 +1108,15 @@
             "content": {
               "version": "KqlItem/1.0",
               "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog == \"Directory Service\"\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventID in (1311, 1388, 1925, 1926, 2042, 1864, 1866, 1645, 5805, 1173, 1168, 2087)\n| summarize CriticalCount=count() by Computer\n| top 25 by CriticalCount desc",
-              "size": 1,
+              "size": 0,
               "title": "Top DCs by AD Replication / DS Critical Events",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "barchart",
-              "chartSettings": { "showLegend": false }
+              "chartSettings": {
+                "showLegend": false
+              }
             },
             "customWidth": "50"
           },
@@ -815,7 +1126,7 @@
             "content": {
               "version": "KqlItem/1.0",
               "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog == \"Directory Service\"\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventID in (2087, 2088)\n| summarize\n    TotalDNSEvents=count(),\n    DNS_Fail_Repl_Failed=countif(EventID==2087),\n    DNS_Fail_Repl_OK=countif(EventID==2088),\n    LastOccurrence=max(TimeGenerated)\n  by Computer\n| extend DNSStatus=case(\n    DNS_Fail_Repl_Failed > 0 and DNS_Fail_Repl_OK == 0, \"DNS Failing — Replication Also Failing\",\n    DNS_Fail_Repl_Failed > 0, \"DNS Failing — But Replication Recovered\",\n    \"DNS Resolution OK (2088 only)\"\n  )\n| order by DNS_Fail_Repl_Failed desc\n| project Computer, DNSStatus, DNS_Fail_Repl_Failed, DNS_Fail_Repl_OK, LastOccurrence",
-              "size": 1,
+              "size": 0,
               "title": "DNS Lookup Failure Analysis (2087 / 2088) by DC",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
@@ -829,13 +1140,35 @@
                     "formatOptions": {
                       "thresholdsOptions": "colors",
                       "thresholdsGrid": [
-                        { "operator": "contains", "thresholdValue": "Failing — Replication Also Failing", "representation": "redBright", "text": "{0}{1}" },
-                        { "operator": "contains", "thresholdValue": "Failing — But Replication Recovered", "representation": "yellow", "text": "{0}{1}" },
-                        { "operator": "Default", "thresholdValue": null, "representation": "green", "text": "{0}{1}" }
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Failing — Replication Also Failing",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Failing — But Replication Recovered",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        }
                       ]
                     }
                   },
-                  { "columnMatch": "DNS_Fail_Repl_Failed", "formatter": 8, "formatOptions": { "min": 0, "palette": "redBright" } }
+                  {
+                    "columnMatch": "DNS_Fail_Repl_Failed",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "redBright"
+                    }
+                  }
                 ]
               }
             },
@@ -847,7 +1180,7 @@
             "content": {
               "version": "KqlItem/1.0",
               "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog == \"Directory Service\"\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventID in (1311, 1388, 1925, 2042)\n| summarize\n    ReplicationErrors=count(),\n    LastError=max(TimeGenerated),\n    FirstError=min(TimeGenerated),\n    DistinctEventIDs=dcount(EventID),\n    Event1311=countif(EventID==1311),\n    Event1388=countif(EventID==1388),\n    Event1925=countif(EventID==1925),\n    Event2042=countif(EventID==2042)\n  by Computer\n| extend HoursWithoutRepl=datetime_diff(\"hour\", now(), LastError)\n| order by ReplicationErrors desc\n| project Computer, ReplicationErrors, Event2042, Event1388, Event1925, Event1311, DistinctEventIDs, FirstError, LastError",
-              "size": 1,
+              "size": 0,
               "title": "AD Replication Failure Detail by DC",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
@@ -855,9 +1188,30 @@
               "visualization": "table",
               "gridSettings": {
                 "formatters": [
-                  { "columnMatch": "ReplicationErrors", "formatter": 8, "formatOptions": { "min": 0, "palette": "redBright" } },
-                  { "columnMatch": "Event2042", "formatter": 8, "formatOptions": { "min": 0, "palette": "red" } },
-                  { "columnMatch": "Event1388", "formatter": 8, "formatOptions": { "min": 0, "palette": "orange" } }
+                  {
+                    "columnMatch": "ReplicationErrors",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "Event2042",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "red"
+                    }
+                  },
+                  {
+                    "columnMatch": "Event1388",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "orange"
+                    }
+                  }
                 ]
               }
             },
@@ -883,14 +1237,43 @@
                     "formatOptions": {
                       "thresholdsOptions": "colors",
                       "thresholdsGrid": [
-                        { "operator": "contains", "thresholdValue": "Critical", "representation": "redBright", "text": "{0}{1}" },
-                        { "operator": "contains", "thresholdValue": "Warning", "representation": "yellow", "text": "{0}{1}" },
-                        { "operator": "Default", "thresholdValue": null, "representation": "blue", "text": "{0}{1}" }
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Critical",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Warning",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "blue",
+                          "text": "{0}{1}"
+                        }
                       ]
                     }
                   },
-                  { "columnMatch": "Count", "formatter": 8, "formatOptions": { "min": 0, "palette": "redBright" } },
-                  { "columnMatch": "AffectedDCs", "formatter": 8, "formatOptions": { "min": 0, "palette": "orange" } }
+                  {
+                    "columnMatch": "Count",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "AffectedDCs",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "orange"
+                    }
+                  }
                 ]
               }
             }
@@ -915,10 +1298,30 @@
                     "formatOptions": {
                       "thresholdsOptions": "colors",
                       "thresholdsGrid": [
-                        { "operator": "==", "thresholdValue": "Error", "representation": "red", "text": "{0}{1}" },
-                        { "operator": "==", "thresholdValue": "Critical", "representation": "redBright", "text": "{0}{1}" },
-                        { "operator": "==", "thresholdValue": "Warning", "representation": "yellow", "text": "{0}{1}" },
-                        { "operator": "Default", "thresholdValue": null, "representation": "blue", "text": "{0}{1}" }
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Error",
+                          "representation": "red",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Critical",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Warning",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "blue",
+                          "text": "{0}{1}"
+                        }
                       ]
                     }
                   }
@@ -929,7 +1332,6 @@
         ]
       }
     },
-
     {
       "type": 12,
       "name": "group-socsecurity",
@@ -945,7 +1347,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## SOC Security and MDE Operations\nThis tab is focused on SOC operations for domain controllers using security telemetry, MDE advanced hunting data, and Arc-connected heartbeat signals. It emphasizes your high-priority replication and service event IDs: **4012, 2213, 5002, 5008, 4202, 4204, 4412, 4414, 1206, 1202**.",
+              "json": "## Security and MDE Operations\nThis tab is focused on sysadmin and security operations for domain controllers using security telemetry, MDE advanced hunting data, and Arc-connected heartbeat signals. It emphasizes your high-priority replication and service event IDs: **4012, 2213, 5002, 5008, 4202, 4204, 4412, 4414, 1206, 1202**.",
               "style": "error"
             },
             "name": "socsecurity-header"
@@ -955,21 +1357,32 @@
             "name": "socsecurity-kpis",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let focusIds = dynamic([4012,2213,5002,5008,4202,4204,4412,4414,1206,1202]);\nlet focusEvents = Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"File Replication Service\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventID in (4012,2213,5002,5008,4202,4204,4412,4414,1206,1202);\nlet secEvents = union isfuzzy=true\n  (SecurityEvent\n  | where TimeGenerated {TimeRange}\n  | where \"value::all\" in ({Computers}) or Computer in ({Computers})\n  | where EventID in (4012,2213,5002,5008,4202,4204,4412,4414,1206,1202)\n  | project TimeGenerated, Computer, EventID),\n  (Event\n  | where TimeGenerated {TimeRange}\n  | where 1 == 0\n  | project TimeGenerated, Computer, EventID);\nlet mdeNetwork = union isfuzzy=true\n  (DeviceNetworkEvents\n  | where Timestamp {TimeRange}\n  | where \"value::all\" in ({Computers}) or DeviceName in ({Computers})\n  | project TimeGenerated=Timestamp, Computer=DeviceName),\n  (Event\n  | where TimeGenerated {TimeRange}\n  | where 1 == 0\n  | project TimeGenerated, Computer);\nlet mdeAuth = union isfuzzy=true\n  (DeviceLogonEvents\n  | where Timestamp {TimeRange}\n  | where \"value::all\" in ({Computers}) or DeviceName in ({Computers})\n  | project TimeGenerated=Timestamp, Computer=DeviceName),\n  (Event\n  | where TimeGenerated {TimeRange}\n  | where 1 == 0\n  | project TimeGenerated, Computer);\nlet arcHeartbeat = union isfuzzy=true\n  (Heartbeat\n  | where TimeGenerated {TimeRange}\n  | where ResourceType has \"microsoft.hybridcompute/machines\"\n  | where \"value::all\" in ({Computers}) or Computer in ({Computers})\n  | project TimeGenerated, Computer),\n  (Event\n  | where TimeGenerated {TimeRange}\n  | where 1 == 0\n  | project TimeGenerated, Computer);\nlet focusCount = toscalar(focusEvents | count);\nlet securityCount = toscalar(secEvents | count);\nlet uniqueDCs = toscalar(focusEvents | summarize dcount(Computer));\nlet mdeNetworkCount = toscalar(mdeNetwork | count);\nlet mdeLogonCount = toscalar(mdeAuth | count);\nlet arcHeartbeatCount = toscalar(arcHeartbeat | count);\nprint Metric=\"Focus ID Events (Event)\", Value=focusCount\n| union (print Metric=\"Focus ID Events (SecurityEvent)\", Value=securityCount)\n| union (print Metric=\"DCs with Focus IDs\", Value=uniqueDCs)\n| union (print Metric=\"MDE Network Events\", Value=mdeNetworkCount)\n| union (print Metric=\"MDE Logon Events\", Value=mdeLogonCount)\n| union (print Metric=\"Arc Heartbeat Records\", Value=arcHeartbeatCount)",
+              "query": "let focusIds = dynamic([4012,2213,5002,5008,4202,4204,4412,4414,1206,1202]);\nlet focusEvents = Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"File Replication Service\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventID in (4012,2213,5002,5008,4202,4204,4412,4414,1206,1202);\nlet secEvents = union isfuzzy=true\n  (SecurityEvent\n  | where TimeGenerated {TimeRange}\n  | where \"value::all\" in ({Computers}) or Computer in ({Computers})\n  | where EventID in (4012,2213,5002,5008,4202,4204,4412,4414,1206,1202)\n  | project TimeGenerated, Computer, EventID),\n  (datatable(TimeGenerated:datetime, Computer:string, EventID:int)[]);\nlet mdeNetwork = union isfuzzy=true\n  (DeviceNetworkEvents\n  | where Timestamp {TimeRange}\n  | where \"value::all\" in ({Computers}) or DeviceName in ({Computers})\n  | project TimeGenerated=Timestamp, Computer=DeviceName),\n  (datatable(TimeGenerated:datetime, Computer:string)[]);\nlet mdeAuth = union isfuzzy=true\n  (DeviceLogonEvents\n  | where Timestamp {TimeRange}\n  | where \"value::all\" in ({Computers}) or DeviceName in ({Computers})\n  | project TimeGenerated=Timestamp, Computer=DeviceName),\n  (datatable(TimeGenerated:datetime, Computer:string)[]);\nlet arcHeartbeat = union isfuzzy=true\n  (Heartbeat\n  | where TimeGenerated {TimeRange}\n  | where ResourceType has \"microsoft.hybridcompute/machines\"\n  | where \"value::all\" in ({Computers}) or Computer in ({Computers})\n  | project TimeGenerated, Computer),\n  (datatable(TimeGenerated:datetime, Computer:string)[]);\nlet focusCount = toscalar(focusEvents | count);\nlet securityCount = toscalar(secEvents | count);\nlet uniqueDCs = toscalar(focusEvents | summarize dcount(Computer));\nlet mdeNetworkCount = toscalar(mdeNetwork | count);\nlet mdeLogonCount = toscalar(mdeAuth | count);\nlet arcHeartbeatCount = toscalar(arcHeartbeat | count);\nprint Metric=\"Focus ID Events (Event)\", Value=focusCount\n| union (print Metric=\"Focus ID Events (SecurityEvent)\", Value=securityCount)\n| union (print Metric=\"DCs with Focus IDs\", Value=uniqueDCs)\n| union (print Metric=\"MDE Network Events\", Value=mdeNetworkCount)\n| union (print Metric=\"MDE Logon Events\", Value=mdeLogonCount)\n| union (print Metric=\"Arc Heartbeat Records\", Value=arcHeartbeatCount)",
               "size": 4,
-              "title": "SOC Security KPIs",
+              "title": "Security Operations KPIs",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "tiles",
               "tileSettings": {
                 "showBorder": true,
-                "titleContent": { "columnMatch": "Metric", "formatter": 1 },
+                "titleContent": {
+                  "columnMatch": "Metric",
+                  "formatter": 1
+                },
                 "leftContent": {
                   "columnMatch": "Value",
                   "formatter": 12,
-                  "formatOptions": { "palette": "auto" },
-                  "numberFormat": { "unit": 17, "options": { "style": "decimal", "maximumFractionDigits": 0 } }
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 0
+                    }
+                  }
                 }
               }
             }
@@ -979,7 +1392,7 @@
             "name": "socsecurity-focusid-timeline",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let focus = dynamic([4012,2213,5002,5008,4202,4204,4412,4414,1206,1202]);\nlet fromEvent = Event\n| where TimeGenerated {TimeRange}\n| where EventID in (4012,2213,5002,5008,4202,4204,4412,4414,1206,1202)\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| project TimeGenerated, Computer, EventID, Source=\"Event\";\nlet fromSecurity = union isfuzzy=true\n  (SecurityEvent\n  | where TimeGenerated {TimeRange}\n  | where EventID in (4012,2213,5002,5008,4202,4204,4412,4414,1206,1202)\n  | where \"value::all\" in ({Computers}) or Computer in ({Computers})\n  | project TimeGenerated, Computer, EventID, Source=\"SecurityEvent\"),\n  (Event\n  | where TimeGenerated {TimeRange}\n  | where 1 == 0\n  | project TimeGenerated, Computer, EventID, Source=\"SecurityEvent\");\nunion fromEvent, fromSecurity\n| summarize Count=count() by bin(TimeGenerated, 1h), Source\n| order by TimeGenerated asc",
+              "query": "let focus = dynamic([4012,2213,5002,5008,4202,4204,4412,4414,1206,1202]);\nlet fromEvent = Event\n| where TimeGenerated {TimeRange}\n| where EventID in (4012,2213,5002,5008,4202,4204,4412,4414,1206,1202)\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| project TimeGenerated, Computer, EventID, Source=\"Event\";\nlet fromSecurity = union isfuzzy=true\n  (SecurityEvent\n  | where TimeGenerated {TimeRange}\n  | where EventID in (4012,2213,5002,5008,4202,4204,4412,4414,1206,1202)\n  | where \"value::all\" in ({Computers}) or Computer in ({Computers})\n  | project TimeGenerated, Computer, EventID, Source=\"SecurityEvent\"),\n  (datatable(TimeGenerated:datetime, Computer:string, EventID:int, Source:string)[]);\nunion fromEvent, fromSecurity\n| summarize Count=count() by bin(TimeGenerated, 1h), Source\n| order by TimeGenerated asc",
               "size": 0,
               "title": "Focus Event ID Volume Over Time (Event plus SecurityEvent)",
               "timeContextFromParameter": "TimeRange",
@@ -989,8 +1402,14 @@
               "chartSettings": {
                 "showLegend": true,
                 "seriesLabelSettings": [
-                  { "seriesName": "Event", "color": "orange" },
-                  { "seriesName": "SecurityEvent", "color": "red" }
+                  {
+                    "seriesName": "Event",
+                    "color": "orange"
+                  },
+                  {
+                    "seriesName": "SecurityEvent",
+                    "color": "red"
+                  }
                 ]
               }
             }
@@ -1000,8 +1419,8 @@
             "name": "socsecurity-focusid-by-dc",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let focus = dynamic([4012,2213,5002,5008,4202,4204,4412,4414,1206,1202]);\nlet evt = Event\n| where TimeGenerated {TimeRange}\n| where EventID in (4012,2213,5002,5008,4202,4204,4412,4414,1206,1202)\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| project TimeGenerated, Computer, EventID, SourceLog=EventLog;\nlet sec = union isfuzzy=true\n  (SecurityEvent\n  | where TimeGenerated {TimeRange}\n  | where EventID in (4012,2213,5002,5008,4202,4204,4412,4414,1206,1202)\n  | where \"value::all\" in ({Computers}) or Computer in ({Computers})\n  | project TimeGenerated, Computer, EventID, SourceLog=\"SecurityEvent\"),\n  (Event\n  | where TimeGenerated {TimeRange}\n  | where 1 == 0\n  | project TimeGenerated, Computer, EventID, SourceLog=\"SecurityEvent\");\nunion evt, sec\n| summarize Count=count(), FirstSeen=min(TimeGenerated), LastSeen=max(TimeGenerated), Sources=make_set(SourceLog) by Computer, EventID\n| extend SourceCount=array_length(Sources)\n| order by Count desc\n| project Computer, EventID, Count, SourceCount, FirstSeen, LastSeen, Sources",
-              "size": 1,
+              "query": "let focus = dynamic([4012,2213,5002,5008,4202,4204,4412,4414,1206,1202]);\nlet evt = Event\n| where TimeGenerated {TimeRange}\n| where EventID in (4012,2213,5002,5008,4202,4204,4412,4414,1206,1202)\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| project TimeGenerated, Computer, EventID, SourceLog=EventLog;\nlet sec = union isfuzzy=true\n  (SecurityEvent\n  | where TimeGenerated {TimeRange}\n  | where EventID in (4012,2213,5002,5008,4202,4204,4412,4414,1206,1202)\n  | where \"value::all\" in ({Computers}) or Computer in ({Computers})\n  | project TimeGenerated, Computer, EventID, SourceLog=\"SecurityEvent\"),\n  (datatable(TimeGenerated:datetime, Computer:string, EventID:int, SourceLog:string)[]);\nunion evt, sec\n| summarize Count=count(), FirstSeen=min(TimeGenerated), LastSeen=max(TimeGenerated), Sources=make_set(SourceLog) by Computer, EventID\n| extend SourceCount=array_length(Sources)\n| order by Count desc\n| project Computer, EventID, Count, SourceCount, FirstSeen, LastSeen, Sources",
+              "size": 0,
               "title": "Focus Event IDs by DC and Source",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
@@ -1009,8 +1428,22 @@
               "visualization": "table",
               "gridSettings": {
                 "formatters": [
-                  { "columnMatch": "Count", "formatter": 8, "formatOptions": { "min": 0, "palette": "redBright" } },
-                  { "columnMatch": "SourceCount", "formatter": 8, "formatOptions": { "min": 0, "palette": "orange" } }
+                  {
+                    "columnMatch": "Count",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "SourceCount",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "orange"
+                    }
+                  }
                 ]
               }
             },
@@ -1021,8 +1454,8 @@
             "name": "socsecurity-securityevent-logon",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "union isfuzzy=true\n  (SecurityEvent\n  | where TimeGenerated {TimeRange}\n  | where EventID in (4624,4625,4672,4768,4769,4771,4776)\n  | where \"value::all\" in ({Computers}) or Computer in ({Computers})\n  | summarize Count=count(), Accounts=dcount(Account), LastSeen=max(TimeGenerated) by Computer, EventID),\n  (Event\n  | where TimeGenerated {TimeRange}\n  | where 1 == 0\n  | project Computer, EventID=toint(0), Count=toint(0), Accounts=toint(0), LastSeen=TimeGenerated)\n| extend EventLabel=case(\n    EventID == 4624, \"Successful Logon (4624)\",\n    EventID == 4625, \"Failed Logon (4625)\",\n    EventID == 4672, \"Special Privileges Assigned (4672)\",\n    EventID == 4768, \"Kerberos TGT Request (4768)\",\n    EventID == 4769, \"Kerberos Service Ticket (4769)\",\n    EventID == 4771, \"Kerberos Pre-auth Failed (4771)\",\n    EventID == 4776, \"NTLM Authentication (4776)\",\n    tostring(EventID)\n  )\n| order by Count desc",
-              "size": 1,
+              "query": "union isfuzzy=true\n  (SecurityEvent\n  | where TimeGenerated {TimeRange}\n  | where EventID in (4624,4625,4672,4768,4769,4771,4776)\n  | where \"value::all\" in ({Computers}) or Computer in ({Computers})\n  | summarize Count=count(), Accounts=dcount(Account), LastSeen=max(TimeGenerated) by Computer, EventID),\n  (datatable(Computer:string, EventID:int, Count:int, Accounts:int, LastSeen:datetime)[])\n| extend EventLabel=case(\n    EventID == 4624, \"Successful Logon (4624)\",\n    EventID == 4625, \"Failed Logon (4625)\",\n    EventID == 4672, \"Special Privileges Assigned (4672)\",\n    EventID == 4768, \"Kerberos TGT Request (4768)\",\n    EventID == 4769, \"Kerberos Service Ticket (4769)\",\n    EventID == 4771, \"Kerberos Pre-auth Failed (4771)\",\n    EventID == 4776, \"NTLM Authentication (4776)\",\n    tostring(EventID)\n  )\n| order by Count desc",
+              "size": 0,
               "title": "SecurityEvent Authentication Activity by DC",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
@@ -1030,8 +1463,22 @@
               "visualization": "table",
               "gridSettings": {
                 "formatters": [
-                  { "columnMatch": "Count", "formatter": 8, "formatOptions": { "min": 0, "palette": "yellowRed" } },
-                  { "columnMatch": "Accounts", "formatter": 8, "formatOptions": { "min": 0, "palette": "blueGreen" } }
+                  {
+                    "columnMatch": "Count",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "yellowRed"
+                    }
+                  },
+                  {
+                    "columnMatch": "Accounts",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "blueGreen"
+                    }
+                  }
                 ]
               }
             },
@@ -1042,14 +1489,16 @@
             "name": "socsecurity-mde-network-trend",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "union isfuzzy=true\n  (DeviceNetworkEvents\n  | where Timestamp {TimeRange}\n  | where \"value::all\" in ({Computers}) or DeviceName in ({Computers})\n  | summarize Count=count() by bin(Timestamp, 1h), ActionType\n  | project TimeGenerated=Timestamp, Count, ActionType),\n  (Event\n  | where TimeGenerated {TimeRange}\n  | where 1 == 0\n  | project TimeGenerated, Count=toint(0), ActionType=\"NoData\")\n| order by TimeGenerated asc",
+              "query": "union isfuzzy=true\n  (DeviceNetworkEvents\n  | where Timestamp {TimeRange}\n  | where \"value::all\" in ({Computers}) or DeviceName in ({Computers})\n  | summarize Count=count() by bin(Timestamp, 1h), ActionType\n  | project TimeGenerated=Timestamp, Count, ActionType),\n  (datatable(TimeGenerated:datetime, Count:int, ActionType:string)[])\n| order by TimeGenerated asc",
               "size": 0,
               "title": "MDE Network Event Trend by Action Type",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "linechart",
-              "chartSettings": { "showLegend": true }
+              "chartSettings": {
+                "showLegend": true
+              }
             }
           },
           {
@@ -1057,8 +1506,8 @@
             "name": "socsecurity-mde-ops-summary",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let net = union isfuzzy=true\n  (DeviceNetworkEvents\n  | where Timestamp {TimeRange}\n  | where \"value::all\" in ({Computers}) or DeviceName in ({Computers})\n  | project TimeGenerated=Timestamp, Computer=DeviceName, Signal=\"Network\", Action=tostring(ActionType)),\n  (Event\n  | where TimeGenerated {TimeRange}\n  | where 1 == 0\n  | project TimeGenerated, Computer, Signal=\"Network\", Action=\"\");\nlet proc = union isfuzzy=true\n  (DeviceProcessEvents\n  | where Timestamp {TimeRange}\n  | where \"value::all\" in ({Computers}) or DeviceName in ({Computers})\n  | project TimeGenerated=Timestamp, Computer=DeviceName, Signal=\"Process\", Action=tostring(ActionType)),\n  (Event\n  | where TimeGenerated {TimeRange}\n  | where 1 == 0\n  | project TimeGenerated, Computer, Signal=\"Process\", Action=\"\");\nlet logon = union isfuzzy=true\n  (DeviceLogonEvents\n  | where Timestamp {TimeRange}\n  | where \"value::all\" in ({Computers}) or DeviceName in ({Computers})\n  | project TimeGenerated=Timestamp, Computer=DeviceName, Signal=\"Logon\", Action=tostring(ActionType)),\n  (Event\n  | where TimeGenerated {TimeRange}\n  | where 1 == 0\n  | project TimeGenerated, Computer, Signal=\"Logon\", Action=\"\");\nunion net, proc, logon\n| summarize Events=count(), UniqueActions=dcount(Action), LastSeen=max(TimeGenerated) by Computer, Signal\n| order by Events desc",
-              "size": 1,
+              "query": "let net = union isfuzzy=true\n  (DeviceNetworkEvents\n  | where Timestamp {TimeRange}\n  | where \"value::all\" in ({Computers}) or DeviceName in ({Computers})\n  | project TimeGenerated=Timestamp, Computer=DeviceName, Signal=\"Network\", Action=tostring(ActionType)),\n  (datatable(TimeGenerated:datetime, Computer:string, Signal:string, Action:string)[]);\nlet proc = union isfuzzy=true\n  (DeviceProcessEvents\n  | where Timestamp {TimeRange}\n  | where \"value::all\" in ({Computers}) or DeviceName in ({Computers})\n  | project TimeGenerated=Timestamp, Computer=DeviceName, Signal=\"Process\", Action=tostring(ActionType)),\n  (datatable(TimeGenerated:datetime, Computer:string, Signal:string, Action:string)[]);\nlet logon = union isfuzzy=true\n  (DeviceLogonEvents\n  | where Timestamp {TimeRange}\n  | where \"value::all\" in ({Computers}) or DeviceName in ({Computers})\n  | project TimeGenerated=Timestamp, Computer=DeviceName, Signal=\"Logon\", Action=tostring(ActionType)),\n  (datatable(TimeGenerated:datetime, Computer:string, Signal:string, Action:string)[]);\nunion net, proc, logon\n| summarize Events=count(), UniqueActions=dcount(Action), LastSeen=max(TimeGenerated) by Computer, Signal\n| order by Events desc",
+              "size": 0,
               "title": "MDE Operational Signals by DC (Network, Process, Logon)",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
@@ -1066,8 +1515,22 @@
               "visualization": "table",
               "gridSettings": {
                 "formatters": [
-                  { "columnMatch": "Events", "formatter": 8, "formatOptions": { "min": 0, "palette": "yellowRed" } },
-                  { "columnMatch": "UniqueActions", "formatter": 8, "formatOptions": { "min": 0, "palette": "blue" } }
+                  {
+                    "columnMatch": "Events",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "yellowRed"
+                    }
+                  },
+                  {
+                    "columnMatch": "UniqueActions",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "blue"
+                    }
+                  }
                 ]
               }
             },
@@ -1078,7 +1541,7 @@
             "name": "socsecurity-arc-heartbeat",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "union isfuzzy=true\n  (Heartbeat\n  | where TimeGenerated {TimeRange}\n  | where ResourceType has \"microsoft.hybridcompute/machines\"\n  | where \"value::all\" in ({Computers}) or Computer in ({Computers})\n  | summarize Heartbeats=count(), LastHeartbeat=max(TimeGenerated), FirstHeartbeat=min(TimeGenerated) by Computer, OSType, ResourceId),\n  (Event\n  | where TimeGenerated {TimeRange}\n  | where 1 == 0\n  | project Computer, Heartbeats=toint(0), LastHeartbeat=TimeGenerated, FirstHeartbeat=TimeGenerated, OSType=\"\", ResourceId=\"\")\n| extend ArcStatus=case(\n    Heartbeats == 0, \"No Arc Heartbeat\",\n    datetime_diff(\"minute\", now(), LastHeartbeat) > 60, \"Arc Stale\",\n    \"Arc Active\"\n  )\n| order by Heartbeats desc",
+              "query": "union isfuzzy=true\n  (Heartbeat\n  | where TimeGenerated {TimeRange}\n  | where ResourceType has \"microsoft.hybridcompute/machines\"\n  | where \"value::all\" in ({Computers}) or Computer in ({Computers})\n  | summarize Heartbeats=count(), LastHeartbeat=max(TimeGenerated), FirstHeartbeat=min(TimeGenerated) by Computer, OSType, ResourceId),\n  (datatable(Computer:string, Heartbeats:int, LastHeartbeat:datetime, FirstHeartbeat:datetime, OSType:string, ResourceId:string)[])\n| extend ArcStatus=case(\n    Heartbeats == 0, \"No Arc Heartbeat\",\n    datetime_diff(\"minute\", now(), LastHeartbeat) > 60, \"Arc Stale\",\n    \"Arc Active\"\n  )\n| order by Heartbeats desc",
               "size": 0,
               "title": "Arc Connected DC Heartbeat Coverage",
               "timeContextFromParameter": "TimeRange",
@@ -1093,13 +1556,35 @@
                     "formatOptions": {
                       "thresholdsOptions": "colors",
                       "thresholdsGrid": [
-                        { "operator": "contains", "thresholdValue": "No Arc", "representation": "redBright", "text": "{0}{1}" },
-                        { "operator": "contains", "thresholdValue": "Stale", "representation": "yellow", "text": "{0}{1}" },
-                        { "operator": "Default", "thresholdValue": null, "representation": "green", "text": "{0}{1}" }
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "No Arc",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Stale",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        }
                       ]
                     }
                   },
-                  { "columnMatch": "Heartbeats", "formatter": 8, "formatOptions": { "min": 0, "palette": "blue" } }
+                  {
+                    "columnMatch": "Heartbeats",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "blue"
+                    }
+                  }
                 ]
               }
             }
@@ -1107,7 +1592,6 @@
         ]
       }
     },
-
     {
       "type": 12,
       "name": "group-critical",
@@ -1143,9 +1627,18 @@
               "chartSettings": {
                 "showLegend": true,
                 "seriesLabelSettings": [
-                  { "seriesName": "DFS Replication", "color": "red" },
-                  { "seriesName": "File Replication Service", "color": "orange" },
-                  { "seriesName": "Directory Service", "color": "purple" }
+                  {
+                    "seriesName": "DFS Replication",
+                    "color": "red"
+                  },
+                  {
+                    "seriesName": "File Replication Service",
+                    "color": "orange"
+                  },
+                  {
+                    "seriesName": "Directory Service",
+                    "color": "purple"
+                  }
                 ]
               }
             }
@@ -1170,20 +1663,81 @@
                     "formatOptions": {
                       "thresholdsOptions": "colors",
                       "thresholdsGrid": [
-                        { "operator": "contains", "thresholdValue": "ALL 3", "representation": "redBright", "text": "{0}{1}" },
-                        { "operator": "contains", "thresholdValue": "2 Sources", "representation": "orange", "text": "{0}{1}" },
-                        { "operator": "contains", "thresholdValue": "1 Source", "representation": "yellow", "text": "{0}{1}" },
-                        { "operator": "Default", "thresholdValue": null, "representation": "green", "text": "{0}{1}" }
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "ALL 3",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "2 Sources",
+                          "representation": "orange",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "1 Source",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        }
                       ]
                     }
                   },
-                  { "columnMatch": "TotalErrors", "formatter": 8, "formatOptions": { "min": 0, "palette": "redBright" } },
-                  { "columnMatch": "DFSRErrors", "formatter": 8, "formatOptions": { "min": 0, "palette": "red" } },
-                  { "columnMatch": "NTFRSErrors", "formatter": 8, "formatOptions": { "min": 0, "palette": "orange" } },
-                  { "columnMatch": "DSErrors", "formatter": 8, "formatOptions": { "min": 0, "palette": "purple" } },
-                  { "columnMatch": "SourcesAffected", "formatter": 8, "formatOptions": { "min": 0, "max": 3, "palette": "redBright" } }
+                  {
+                    "columnMatch": "TotalErrors",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "DFSRErrors",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "red"
+                    }
+                  },
+                  {
+                    "columnMatch": "NTFRSErrors",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "orange"
+                    }
+                  },
+                  {
+                    "columnMatch": "DSErrors",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "purple"
+                    }
+                  },
+                  {
+                    "columnMatch": "SourcesAffected",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "max": 3,
+                      "palette": "redBright"
+                    }
+                  }
                 ],
-                "sortBy": [{ "itemKey": "TotalErrors", "sortOrder": 2 }]
+                "sortBy": [
+                  {
+                    "itemKey": "TotalErrors",
+                    "sortOrder": 2
+                  }
+                ]
               }
             }
           },
@@ -1193,7 +1747,7 @@
             "content": {
               "version": "KqlItem/1.0",
               "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"File Replication Service\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\")\n| summarize Sources=make_set(EventLog), ErrorCount=count() by Computer\n| where array_length(Sources) >= 2\n| extend SourceList=tostring(Sources)\n| order by array_length(Sources) desc, ErrorCount desc\n| project Computer, SourceList, ErrorCount",
-              "size": 1,
+              "size": 0,
               "title": "Multi-Source Impact - DCs with Errors in 2 or More Log Sources",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
@@ -1201,7 +1755,14 @@
               "visualization": "table",
               "gridSettings": {
                 "formatters": [
-                  { "columnMatch": "ErrorCount", "formatter": 8, "formatOptions": { "min": 0, "palette": "redBright" } }
+                  {
+                    "columnMatch": "ErrorCount",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "redBright"
+                    }
+                  }
                 ]
               }
             },
@@ -1213,7 +1774,7 @@
             "content": {
               "version": "KqlItem/1.0",
               "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"File Replication Service\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\")\n| summarize Count=count(), AffectedDCs=dcount(Computer) by EventID, EventLog\n| order by Count desc\n| take 25",
-              "size": 1,
+              "size": 0,
               "title": "Top 25 Critical Event IDs",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
@@ -1221,8 +1782,22 @@
               "visualization": "table",
               "gridSettings": {
                 "formatters": [
-                  { "columnMatch": "Count", "formatter": 8, "formatOptions": { "min": 0, "palette": "redBright" } },
-                  { "columnMatch": "AffectedDCs", "formatter": 8, "formatOptions": { "min": 0, "palette": "orange" } }
+                  {
+                    "columnMatch": "Count",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "AffectedDCs",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "orange"
+                    }
+                  }
                 ]
               }
             },
@@ -1243,9 +1818,21 @@
               "chartSettings": {
                 "showLegend": true,
                 "seriesLabelSettings": [
-                  { "seriesName": "DFSRErrors", "label": "DFSR", "color": "red" },
-                  { "seriesName": "NTFRSErrors", "label": "NTFRS", "color": "orange" },
-                  { "seriesName": "DSErrors", "label": "Directory Service", "color": "purple" }
+                  {
+                    "seriesName": "DFSRErrors",
+                    "label": "DFSR",
+                    "color": "red"
+                  },
+                  {
+                    "seriesName": "NTFRSErrors",
+                    "label": "NTFRS",
+                    "color": "orange"
+                  },
+                  {
+                    "seriesName": "DSErrors",
+                    "label": "Directory Service",
+                    "color": "purple"
+                  }
                 ]
               }
             }
@@ -1270,9 +1857,24 @@
                     "formatOptions": {
                       "thresholdsOptions": "colors",
                       "thresholdsGrid": [
-                        { "operator": "==", "thresholdValue": "Critical", "representation": "redBright", "text": "{0}{1}" },
-                        { "operator": "==", "thresholdValue": "Error", "representation": "red", "text": "{0}{1}" },
-                        { "operator": "Default", "thresholdValue": null, "representation": "blue", "text": "{0}{1}" }
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Critical",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Error",
+                          "representation": "red",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "blue",
+                          "text": "{0}{1}"
+                        }
                       ]
                     }
                   },
@@ -1282,22 +1884,46 @@
                     "formatOptions": {
                       "thresholdsOptions": "colors",
                       "thresholdsGrid": [
-                        { "operator": "==", "thresholdValue": "DFS Replication", "representation": "red", "text": "{0}{1}" },
-                        { "operator": "==", "thresholdValue": "File Replication Service", "representation": "orange", "text": "{0}{1}" },
-                        { "operator": "==", "thresholdValue": "Directory Service", "representation": "purple", "text": "{0}{1}" },
-                        { "operator": "Default", "thresholdValue": null, "representation": "blue", "text": "{0}{1}" }
+                        {
+                          "operator": "==",
+                          "thresholdValue": "DFS Replication",
+                          "representation": "red",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "File Replication Service",
+                          "representation": "orange",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Directory Service",
+                          "representation": "purple",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "blue",
+                          "text": "{0}{1}"
+                        }
                       ]
                     }
                   }
                 ],
-                "sortBy": [{ "itemKey": "TimeGenerated", "sortOrder": 2 }]
+                "sortBy": [
+                  {
+                    "itemKey": "TimeGenerated",
+                    "sortOrder": 2
+                  }
+                ]
               }
             }
           }
         ]
       }
     },
-
     {
       "type": 12,
       "name": "group-dcmatrix",
@@ -1338,10 +1964,30 @@
                     "formatOptions": {
                       "thresholdsOptions": "colors",
                       "thresholdsGrid": [
-                        { "operator": "contains", "thresholdValue": "Critical", "representation": "redBright", "text": "{0}{1}" },
-                        { "operator": "contains", "thresholdValue": "Degraded", "representation": "yellow", "text": "{0}{1}" },
-                        { "operator": "contains", "thresholdValue": "Active", "representation": "green", "text": "{0}{1}" },
-                        { "operator": "Default", "thresholdValue": null, "representation": "gray", "text": "{0}{1}" }
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Critical",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Degraded",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Active",
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "gray",
+                          "text": "{0}{1}"
+                        }
                       ]
                     }
                   },
@@ -1351,10 +1997,30 @@
                     "formatOptions": {
                       "thresholdsOptions": "colors",
                       "thresholdsGrid": [
-                        { "operator": "contains", "thresholdValue": "Critical", "representation": "redBright", "text": "{0}{1}" },
-                        { "operator": "contains", "thresholdValue": "Degraded", "representation": "yellow", "text": "{0}{1}" },
-                        { "operator": "contains", "thresholdValue": "Active", "representation": "green", "text": "{0}{1}" },
-                        { "operator": "Default", "thresholdValue": null, "representation": "gray", "text": "{0}{1}" }
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Critical",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Degraded",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Active",
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "gray",
+                          "text": "{0}{1}"
+                        }
                       ]
                     }
                   },
@@ -1364,10 +2030,30 @@
                     "formatOptions": {
                       "thresholdsOptions": "colors",
                       "thresholdsGrid": [
-                        { "operator": "contains", "thresholdValue": "Critical", "representation": "redBright", "text": "{0}{1}" },
-                        { "operator": "contains", "thresholdValue": "Degraded", "representation": "yellow", "text": "{0}{1}" },
-                        { "operator": "contains", "thresholdValue": "Active", "representation": "green", "text": "{0}{1}" },
-                        { "operator": "Default", "thresholdValue": null, "representation": "gray", "text": "{0}{1}" }
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Critical",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Degraded",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Active",
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "gray",
+                          "text": "{0}{1}"
+                        }
                       ]
                     }
                   },
@@ -1377,19 +2063,72 @@
                     "formatOptions": {
                       "thresholdsOptions": "colors",
                       "thresholdsGrid": [
-                        { "operator": "contains", "thresholdValue": "Critical", "representation": "redBright", "text": "{0}{1}" },
-                        { "operator": "contains", "thresholdValue": "Degraded", "representation": "yellow", "text": "{0}{1}" },
-                        { "operator": "contains", "thresholdValue": "Active", "representation": "green", "text": "{0}{1}" },
-                        { "operator": "Default", "thresholdValue": null, "representation": "gray", "text": "{0}{1}" }
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Critical",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Degraded",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Active",
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "gray",
+                          "text": "{0}{1}"
+                        }
                       ]
                     }
                   },
-                  { "columnMatch": "DFSRCritical", "formatter": 8, "formatOptions": { "min": 0, "palette": "redBright" } },
-                  { "columnMatch": "NTFRSCritical", "formatter": 8, "formatOptions": { "min": 0, "palette": "orange" } },
-                  { "columnMatch": "DSCritical", "formatter": 8, "formatOptions": { "min": 0, "palette": "purple" } },
-                  { "columnMatch": "TotalEvents", "formatter": 8, "formatOptions": { "min": 0, "palette": "blue" } }
+                  {
+                    "columnMatch": "DFSRCritical",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "NTFRSCritical",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "orange"
+                    }
+                  },
+                  {
+                    "columnMatch": "DSCritical",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "purple"
+                    }
+                  },
+                  {
+                    "columnMatch": "TotalEvents",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "blue"
+                    }
+                  }
                 ],
-                "sortBy": [{ "itemKey": "DFSRCritical", "sortOrder": 2 }]
+                "sortBy": [
+                  {
+                    "itemKey": "DFSRCritical",
+                    "sortOrder": 2
+                  }
+                ]
               }
             }
           },
@@ -1408,9 +2147,18 @@
               "chartSettings": {
                 "showLegend": true,
                 "seriesLabelSettings": [
-                  { "seriesName": "DFSR", "color": "red" },
-                  { "seriesName": "NTFRS", "color": "orange" },
-                  { "seriesName": "DS", "color": "purple" }
+                  {
+                    "seriesName": "DFSR",
+                    "color": "red"
+                  },
+                  {
+                    "seriesName": "NTFRS",
+                    "color": "orange"
+                  },
+                  {
+                    "seriesName": "DS",
+                    "color": "purple"
+                  }
                 ]
               }
             }
@@ -1429,9 +2177,30 @@
               "visualization": "table",
               "gridSettings": {
                 "formatters": [
-                  { "columnMatch": "AvgErrorsPerHour", "formatter": 8, "formatOptions": { "min": 0, "palette": "yellowRed" } },
-                  { "columnMatch": "MaxErrorsInHour", "formatter": 8, "formatOptions": { "min": 0, "palette": "redBright" } },
-                  { "columnMatch": "TotalErrors", "formatter": 8, "formatOptions": { "min": 0, "palette": "red" } }
+                  {
+                    "columnMatch": "AvgErrorsPerHour",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "yellowRed"
+                    }
+                  },
+                  {
+                    "columnMatch": "MaxErrorsInHour",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "TotalErrors",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "red"
+                    }
+                  }
                 ]
               }
             },
@@ -1457,14 +2226,43 @@
                     "formatOptions": {
                       "thresholdsOptions": "colors",
                       "thresholdsGrid": [
-                        { "operator": "contains", "thresholdValue": "Silent > 24h", "representation": "orange", "text": "{0}{1}" },
-                        { "operator": "contains", "thresholdValue": "Silent > 6h", "representation": "yellow", "text": "{0}{1}" },
-                        { "operator": "Default", "thresholdValue": null, "representation": "green", "text": "{0}{1}" }
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Silent > 24h",
+                          "representation": "orange",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "Silent > 6h",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        }
                       ]
                     }
                   },
-                  { "columnMatch": "TotalEvents", "formatter": 8, "formatOptions": { "min": 0, "palette": "blue" } },
-                  { "columnMatch": "HoursSinceLastEvent", "formatter": 8, "formatOptions": { "min": 0, "palette": "yellowRed" } }
+                  {
+                    "columnMatch": "TotalEvents",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "blue"
+                    }
+                  },
+                  {
+                    "columnMatch": "HoursSinceLastEvent",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "yellowRed"
+                    }
+                  }
                 ]
               }
             },
@@ -1482,13 +2280,14 @@
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "linechart",
-              "chartSettings": { "showLegend": true }
+              "chartSettings": {
+                "showLegend": true
+              }
             }
           }
         ]
       }
     },
-
     {
       "type": 12,
       "name": "group-logvolume",
@@ -1514,7 +2313,7 @@
             "name": "logvolume-kpis",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let pricePerGB = 2.76;\nlet base = Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"File Replication Service\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| extend BilledBytes=todouble(coalesce(_BilledSize, 0.0));\nlet totalBytes = toscalar(base | summarize sum(BilledBytes));\nlet totalEvents = toscalar(base | count);\nlet totalGB = totalBytes / 1024.0 / 1024.0 / 1024.0;\nlet activeDays = toscalar(base | summarize todouble(max(iff(isnull(startofday(TimeGenerated)), 1, 1))));\nlet daysObserved = toscalar(base | summarize dcount(startofday(TimeGenerated)));\nlet normalizedDays = iff(daysObserved < 1, 1.0, todouble(daysObserved));\nlet dailyAvgGB = totalGB / normalizedDays;\nlet projected30DayGB = dailyAvgGB * 30.0;\nlet estimatedCostUSD = totalGB * pricePerGB;\nlet projected30DayCostUSD = projected30DayGB * pricePerGB;\nlet avgKBPerEvent = iff(totalEvents == 0, 0.0, (totalBytes / 1024.0) / totalEvents);\nprint Metric=\"Total Billed GB\", Value=round(totalGB, 4)\n| union (print Metric=\"Estimated Cost USD\", Value=round(estimatedCostUSD, 2))\n| union (print Metric=\"Daily Average GB\", Value=round(dailyAvgGB, 4))\n| union (print Metric=\"Projected 30-Day GB\", Value=round(projected30DayGB, 4))\n| union (print Metric=\"Projected 30-Day Cost USD\", Value=round(projected30DayCostUSD, 2))\n| union (print Metric=\"Average KB per Event\", Value=round(avgKBPerEvent, 2))",
+              "query": "let pricePerGB = 2.76;\nlet base = Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"File Replication Service\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| extend BilledBytes=todouble(coalesce(_BilledSize, 0.0));\nlet totalBytes = toscalar(base | summarize sum(BilledBytes));\nlet totalEvents = toscalar(base | count);\nlet totalGB = totalBytes / 1024.0 / 1024.0 / 1024.0;\nlet daysObserved = toscalar(base | summarize dcount(startofday(TimeGenerated)));\nlet normalizedDays = iff(daysObserved < 1, 1.0, todouble(daysObserved));\nlet dailyAvgGB = totalGB / normalizedDays;\nlet projected30DayGB = dailyAvgGB * 30.0;\nlet estimatedCostUSD = totalGB * pricePerGB;\nlet projected30DayCostUSD = projected30DayGB * pricePerGB;\nlet avgKBPerEvent = iff(totalEvents == 0, 0.0, (totalBytes / 1024.0) / totalEvents);\nprint Metric=\"Total Billed GB\", Value=round(totalGB, 4)\n| union (print Metric=\"Estimated Cost USD\", Value=round(estimatedCostUSD, 2))\n| union (print Metric=\"Daily Average GB\", Value=round(dailyAvgGB, 4))\n| union (print Metric=\"Projected 30-Day GB\", Value=round(projected30DayGB, 4))\n| union (print Metric=\"Projected 30-Day Cost USD\", Value=round(projected30DayCostUSD, 2))\n| union (print Metric=\"Average KB per Event\", Value=round(avgKBPerEvent, 2))",
               "size": 4,
               "title": "Log Volume and Cost KPIs",
               "timeContextFromParameter": "TimeRange",
@@ -1523,12 +2322,23 @@
               "visualization": "tiles",
               "tileSettings": {
                 "showBorder": true,
-                "titleContent": { "columnMatch": "Metric", "formatter": 1 },
+                "titleContent": {
+                  "columnMatch": "Metric",
+                  "formatter": 1
+                },
                 "leftContent": {
                   "columnMatch": "Value",
                   "formatter": 12,
-                  "formatOptions": { "palette": "auto" },
-                  "numberFormat": { "unit": 17, "options": { "style": "decimal", "maximumFractionDigits": 4 } }
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 4
+                    }
+                  }
                 }
               }
             }
@@ -1545,7 +2355,9 @@
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "areachart",
-              "chartSettings": { "showLegend": true }
+              "chartSettings": {
+                "showLegend": true
+              }
             }
           },
           {
@@ -1554,7 +2366,7 @@
             "content": {
               "version": "KqlItem/1.0",
               "query": "let pricePerGB = 2.76;\nEvent\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"File Replication Service\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| extend BilledBytes=todouble(coalesce(_BilledSize, 0.0))\n| summarize Events=count(), TotalGB=round(sum(BilledBytes) / 1024.0 / 1024.0 / 1024.0, 4) by EventLog\n| extend EstimatedCostUSD=round(TotalGB * pricePerGB, 2)\n| order by TotalGB desc",
-              "size": 1,
+              "size": 0,
               "title": "Billed GB by Log Source",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
@@ -1562,9 +2374,30 @@
               "visualization": "table",
               "gridSettings": {
                 "formatters": [
-                  { "columnMatch": "TotalGB", "formatter": 8, "formatOptions": { "min": 0, "palette": "blue" } },
-                  { "columnMatch": "EstimatedCostUSD", "formatter": 8, "formatOptions": { "min": 0, "palette": "yellowRed" } },
-                  { "columnMatch": "Events", "formatter": 8, "formatOptions": { "min": 0, "palette": "green" } }
+                  {
+                    "columnMatch": "TotalGB",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "blue"
+                    }
+                  },
+                  {
+                    "columnMatch": "EstimatedCostUSD",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "yellowRed"
+                    }
+                  },
+                  {
+                    "columnMatch": "Events",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "green"
+                    }
+                  }
                 ]
               }
             },
@@ -1576,13 +2409,15 @@
             "content": {
               "version": "KqlItem/1.0",
               "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"File Replication Service\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| extend BilledGB=todouble(coalesce(_BilledSize, 0.0)) / 1024.0 / 1024.0 / 1024.0\n| summarize TotalGB=round(sum(BilledGB), 4) by Computer\n| top 20 by TotalGB desc",
-              "size": 1,
+              "size": 0,
               "title": "Top 20 DCs by Billed GB",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "barchart",
-              "chartSettings": { "showLegend": false }
+              "chartSettings": {
+                "showLegend": false
+              }
             },
             "customWidth": "50"
           },
@@ -1600,12 +2435,45 @@
               "visualization": "table",
               "gridSettings": {
                 "formatters": [
-                  { "columnMatch": "TotalGB", "formatter": 8, "formatOptions": { "min": 0, "palette": "blue" } },
-                  { "columnMatch": "Projected30DayGB", "formatter": 8, "formatOptions": { "min": 0, "palette": "blueGreen" } },
-                  { "columnMatch": "Estimated30DayCostUSD", "formatter": 8, "formatOptions": { "min": 0, "palette": "yellowRed" } },
-                  { "columnMatch": "EventCount", "formatter": 8, "formatOptions": { "min": 0, "palette": "green" } }
+                  {
+                    "columnMatch": "TotalGB",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "blue"
+                    }
+                  },
+                  {
+                    "columnMatch": "Projected30DayGB",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "blueGreen"
+                    }
+                  },
+                  {
+                    "columnMatch": "Estimated30DayCostUSD",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "yellowRed"
+                    }
+                  },
+                  {
+                    "columnMatch": "EventCount",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "green"
+                    }
+                  }
                 ],
-                "sortBy": [{ "itemKey": "TotalGB", "sortOrder": 2 }]
+                "sortBy": [
+                  {
+                    "itemKey": "TotalGB",
+                    "sortOrder": 2
+                  }
+                ]
               }
             }
           },
@@ -1623,9 +2491,30 @@
               "visualization": "table",
               "gridSettings": {
                 "formatters": [
-                  { "columnMatch": "TotalGB", "formatter": 8, "formatOptions": { "min": 0, "palette": "blue" } },
-                  { "columnMatch": "EstimatedCostUSD", "formatter": 8, "formatOptions": { "min": 0, "palette": "yellowRed" } },
-                  { "columnMatch": "Events", "formatter": 8, "formatOptions": { "min": 0, "palette": "green" } }
+                  {
+                    "columnMatch": "TotalGB",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "blue"
+                    }
+                  },
+                  {
+                    "columnMatch": "EstimatedCostUSD",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "yellowRed"
+                    }
+                  },
+                  {
+                    "columnMatch": "Events",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "green"
+                    }
+                  }
                 ]
               }
             }
@@ -1637,4 +2526,3 @@
   "styleSettings": {},
   "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
 }
-

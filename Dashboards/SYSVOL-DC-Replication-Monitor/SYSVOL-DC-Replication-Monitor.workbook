@@ -1562,6 +1562,33 @@
           },
           {
             "type": 3,
+            "name": "socsecurity-mde-network-destinations",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "union isfuzzy=true\n  (DeviceNetworkEvents\n  | where Timestamp {TimeRange}\n  | where \"value::all\" in ({Computers}) or DeviceName in~ ({Computers})\n  | where isnotempty(RemoteIP) or isnotempty(RemoteUrl) or isnotempty(RemotePort)\n  | extend RemoteIP=tostring(RemoteIP), RemoteUrl=tostring(RemoteUrl), RemotePort=tostring(RemotePort), Action=tostring(ActionType), Proto=tostring(Protocol)\n  | summarize Hits=count(), LastSeen=max(Timestamp), Actions=make_set_if(Action, isnotempty(Action), 4), Protocols=make_set_if(Proto, isnotempty(Proto), 6) by Computer=DeviceName, RemoteIP, RemotePort, RemoteUrl),\n  (datatable(Computer:string, RemoteIP:string, RemotePort:string, RemoteUrl:string, Hits:long, LastSeen:datetime, Actions:dynamic, Protocols:dynamic)[])\n| order by Hits desc\n| take 100",
+              "size": 0,
+              "title": "Top Remote Destinations by DC (MDE Network)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Hits",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "yellowRed"
+                    }
+                  }
+                ]
+              }
+            },
+            "customWidth": "100"
+          },
+          {
+            "type": 3,
             "name": "socsecurity-arc-heartbeat",
             "content": {
               "version": "KqlItem/1.0",

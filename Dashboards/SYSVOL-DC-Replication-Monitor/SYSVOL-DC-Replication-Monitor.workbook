@@ -181,7 +181,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## Environment-Wide Summary\nTop-level health across all three replication event sources. **Errors / Critical** and **DFSR/NTFRS Critical** KPIs are the most actionable — any value above zero requires investigation.",
+              "json": "## Environment-Wide Summary\nTop-level health across all three replication event sources. **Errors / Critical** and **DFSR/NTFRS Critical** KPIs are the most actionable.",
               "style": "info"
             },
             "name": "overview-header"

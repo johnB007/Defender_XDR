@@ -1,7 +1,138 @@
-# SysAdmin MDE Deployment Workbook
+# Sentinel Ingestion Monitoring Workbook
+### SysAdmin — MDE Deployment | Azure Monitor Workbook
 
-## Intro
-This package publishes a Microsoft Sentinel workbook focused on SysAdmin and MDE operational visibility.
+> **Audiences:** SOC Analysts · Cost Management Teams · Security Operations Leadership  
+> **Workspace:** `milz-operations-prod-log` (daf-sentinel-prod)  
+> **Last Updated:** March 2026
+
+---
+
+## Overview
+
+This Azure Monitor Workbook provides a centralized, interactive view of **Microsoft Sentinel log ingestion** across all billable data sources in the Log Analytics Workspace. It is designed to serve two primary audiences:
+
+- **Cost Teams** — Track daily ingestion volumes (TB/GB) per data source to identify cost drivers, unexpected growth, and billing anomalies before they impact budget.
+- **SOC / Security Operations** — Investigate vendor-specific ingestion spikes in real time, correlate volume increases with raw event data, and export findings for incident reports or vendor conversations.
+
+---
+
+## Screenshots
+
+### 1. Sentinel Ingestion — Total View
+> *Screenshot: Overall stacked column chart showing TBs per day by DataType across the selected time range.*
+
+![Sentinel Ingestion Total](screenshots/01-sentinel-ingestion-total.png)
+
+**What you're seeing:** Every billable data source in Sentinel plotted as a stacked bar per day. The legend shows the top contributors by volume. Larger bars on specific dates indicate ingestion spikes worth investigating.
+
+---
+
+### 2. Non-Device Ingestion Breakdown
+> *Screenshot: Filtered view showing only non-Device tables (SecurityEvent, BehaviorAnalytics, StorageFileLogs, etc.)*
+
+![Non Device Ingestion](screenshots/02-non-device-ingestion.png)
+
+**What you're seeing:** The same TB-per-day view scoped to non-device tables — typically SIEM/identity/cloud log sources. Useful for spotting anomalies in sources like `SecurityEvent` (high-value, high-cost) or `AzureDiagnostics`.
+
+---
+
+### 3. Device Tables Breakout (GB per day)
+> *Screenshot: Unstacked bar chart comparing DeviceFileEvents, DeviceNetworkEvents, DeviceProcessEvents, etc. side by side.*
+
+![Device Tables Breakout](screenshots/03-device-tables-breakout.png)
+
+**What you're seeing:** MDE device telemetry tables broken out individually in GB per day. This view shows which device table category (file, network, process, registry, image load) is driving the most volume, helping prioritize tuning efforts.
+
+---
+
+### 4. Drill-Down Detail Grid (Click-to-Investigate)
+> *Screenshot: After clicking Tenable's color segment — detail grid appears below showing raw DeviceFileEvents rows.*
+
+![Drilldown Detail Grid](screenshots/04-drilldown-detail-grid.png)
+
+**What you're seeing:** When you click any colored segment or vendor bar in a chart, a detail grid appears below the chart automatically. The grid shows the raw log records filtered to that vendor/data type with full field visibility and an Export (↓) button for CSV download.
+
+---
+
+## How to Use This Workbook
+
+### Investigating a Spike (e.g., Tenable)
+
+1. Open the workbook in Azure Monitor and select your time range (default: last 7 days).
+2. Navigate to the **Device File Events** tab (or whichever tab shows the spike).
+3. **Click the Tenable color bar** in the chart — the detail grid populates below automatically.
+4. Review the columns: `DeviceName`, `FileName`, `FolderPath`, `InitiatingProcessCommandLine`, `SHA256`, `AccountName`.
+5. Use the column **filter bar** to narrow down by device, file path, or time.
+6. Click the **Export (↓)** button on the grid to download the full result set as CSV.
+7. Share the CSV with the cost team or vendor for investigation.
+
+### Time Range
+Use the **Time Picker** pill at the top to adjust the analysis window:
+
+| Option | Use Case |
+|---|---|
+| 7 days | Spot short-term spikes, current week review |
+| 14 days | Compare this week vs last week |
+| 30 days | Monthly cost reporting |
+| 60 / 90 days | Trend analysis, capacity planning |
+| Custom | Targeted incident time windows |
+
+---
+
+## Tabs Reference
+
+| Tab | Data Source | Unit | Best For |
+|---|---|---|---|
+| Sentinel Ingestion-Total | `Usage` (all billable) | TB/day | Full cost picture |
+| Ingestion - Non Device Related | `Usage` (!Device tables) | TB/day | SIEM/identity cost drivers |
+| Device Tables (Breakout) | `Usage` (Device* tables) | GB/day | MDE table-level volume |
+| DeviceEvents | `DeviceEvents` | Event count | Vendor event volume |
+| Device File Events | `DeviceFileEvents` | Event count | File activity by vendor |
+| Device Process Events | `DeviceProcessEvents` | Event count | Process execution by vendor |
+| Device Network Events | `DeviceNetworkEvents` | Event count | Network connections by vendor |
+| Device Registry Events | `DeviceRegistryEvents` | Event count | Registry changes by vendor |
+| Device Image Load Events | `DeviceImageLoadEvents` | Event count | DLL/image loads by vendor |
+
+---
+
+## Importing the Workbook
+
+1. Go to **Azure Portal → Azure Monitor → Workbooks → + New**
+2. Click the **`</>`** (Advanced Editor) toolbar button
+3. Paste the full contents of `SentinelIngestionWorkbook.json`
+4. Click **Apply**, then **Save** to your resource group
+
+---
+
+## Files in This Folder
+
+```
+SysAdmin-MDE-Deployment-Workbook/
+├── README.md                        ← This file
+├── SentinelIngestionWorkbook.json   ← Import into Azure Monitor Workbooks
+└── screenshots/                     ← Add screenshots here after first deployment
+    ├── 01-sentinel-ingestion-total.png
+    ├── 02-non-device-ingestion.png
+    ├── 03-device-tables-breakout.png
+    └── 04-drilldown-detail-grid.png
+```
+
+---
+
+## Notes for Cost Team
+
+- All ingestion queries source from the **`Usage`** table which reflects **billable MB** (converted to GB/TB in the workbook).
+- The `Quantity` field in `Usage` is in **MB** — the workbook divides by 1,024 for GB and 1,048,576 for TB.
+- `SecurityEvent` is typically the #1 non-device cost driver. `DeviceFileEvents` and `DeviceNetworkEvents` dominate device-side cost.
+- Tenable, OPSWAT, ForeScout, and similar EDR/vulnerability tools tend to generate high `DeviceFileEvents` and `DeviceImageLoadEvents` volume.
+- Use the Export feature on the drill-down grids to pull raw records and share with vendors asking for justification on data reduction requests.
+
+## Notes for SOC Team
+
+- The **Device Events tabs exclude Microsoft, Google, and blank-vendor events** by design — these are filtered to focus on third-party agents generating anomalous volume.
+- Drill-down grids include `InitiatingProcessCommandLine` and `SHA256` hashes for triage.
+- Network event drill-downs surface `RemoteIP`, `RemotePort`, `RemoteUrl`, and `Protocol` for threat hunting on suspicious outbound patterns.
+- Image Load events include `IsSigned`, `Signer`, and `Issuer` columns — useful for identifying unsigned or suspicious DLL loads from a specific vendor process.
 
 It is designed for quick deployment and easy day-1 use with:
 - Compliance posture views

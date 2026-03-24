@@ -1,7 +1,7 @@
 # DC SYSVOL and AD Replication Health Monitor
 
 ## Intro
-This package publishes a Microsoft Sentinel / Azure Monitor workbook for Domain Controller replication health from a sysadmin and security operations perspective.
+This package publishes a Microsoft Sentinel / Azure Monitor workbook for Domain Controller replication health from a sysadmin and security operations perspective. Using the XPath: DFS Replication!* , File Replication Service!*, Directory Service!*
 
 It is built for day-1 operations with:
 - Environment-wide replication KPIs

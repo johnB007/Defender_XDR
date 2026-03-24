@@ -30,40 +30,24 @@ This workbook gives cost teams and SOC analysts a shared view of what is driving
 ## Workbook Overview Screenshots
 
 ### Sentinel Ingestion-Total Tab
-![Sentinel Ingestion Total Tab - Placeholder 1](https://placehold.co/1600x900?text=Sentinel+Ingestion+Total+Screenshot+1)
-![Sentinel Ingestion Total Tab - Placeholder 2](https://placehold.co/1600x900?text=Sentinel+Ingestion+Total+Screenshot+2)
+<img width="1899" height="876" alt="image" src="https://github.com/user-attachments/assets/9450f102-34b3-4d6e-b37b-b6d14ac33a83" />
+<img width="1883" height="848" alt="image" src="https://github.com/user-attachments/assets/4804758e-d410-427c-959c-74a6cbcfdcfc" />
 
 ### Ingestion - Non Device Related Tab
-![Non Device Ingestion Tab - Placeholder 1](https://placehold.co/1600x900?text=Non+Device+Ingestion+Screenshot+1)
-![Non Device Ingestion Tab - Placeholder 2](https://placehold.co/1600x900?text=Non+Device+Ingestion+Screenshot+2)
+<img width="1887" height="817" alt="image" src="https://github.com/user-attachments/assets/3ecdf568-5200-4fed-b09b-281bf84b0e64" />
+<img width="1857" height="841" alt="image" src="https://github.com/user-attachments/assets/20bfa072-594a-4af6-b444-69d991eb4682" />
+
 
 ### Device Tables Breakout Tab
-![Device Tables Breakout Tab - Placeholder 1](https://placehold.co/1600x900?text=Device+Tables+Breakout+Screenshot+1)
-![Device Tables Breakout Tab - Placeholder 2](https://placehold.co/1600x900?text=Device+Tables+Breakout+Screenshot+2)
+<img width="1883" height="762" alt="image" src="https://github.com/user-attachments/assets/d0ad4172-9eb9-4439-bdf0-15e65f0e6a58" />
+<img width="1876" height="839" alt="image" src="https://github.com/user-attachments/assets/9eda07f9-8732-42b3-91fd-7c9d23b71be6" />
+
 
 ### DeviceEvents Tab
-![DeviceEvents Tab - Placeholder 1](https://placehold.co/1600x900?text=DeviceEvents+Screenshot+1)
-![DeviceEvents Tab - Placeholder 2](https://placehold.co/1600x900?text=DeviceEvents+Screenshot+2)
+<img width="1890" height="819" alt="image" src="https://github.com/user-attachments/assets/e8c13d75-7214-4cd7-9e54-d8d04e363e03" />
+<img width="1878" height="804" alt="image" src="https://github.com/user-attachments/assets/13187a93-7f39-4111-9b53-5758c9b60a8a" />
+<img width="1876" height="836" alt="image" src="https://github.com/user-attachments/assets/be453b42-6b77-460a-9a1e-b9f61e672e86" />
 
-### Device File Events Tab
-![Device File Events Tab - Placeholder 1](https://placehold.co/1600x900?text=Device+File+Events+Screenshot+1)
-![Device File Events Tab - Placeholder 2](https://placehold.co/1600x900?text=Device+File+Events+Screenshot+2)
-
-### Device Process Events Tab
-![Device Process Events Tab - Placeholder 1](https://placehold.co/1600x900?text=Device+Process+Events+Screenshot+1)
-![Device Process Events Tab - Placeholder 2](https://placehold.co/1600x900?text=Device+Process+Events+Screenshot+2)
-
-### Device Network Events Tab
-![Device Network Events Tab - Placeholder 1](https://placehold.co/1600x900?text=Device+Network+Events+Screenshot+1)
-![Device Network Events Tab - Placeholder 2](https://placehold.co/1600x900?text=Device+Network+Events+Screenshot+2)
-
-### Device Registry Events Tab
-![Device Registry Events Tab - Placeholder 1](https://placehold.co/1600x900?text=Device+Registry+Events+Screenshot+1)
-![Device Registry Events Tab - Placeholder 2](https://placehold.co/1600x900?text=Device+Registry+Events+Screenshot+2)
-
-### Device Image Load Events Tab
-![Device Image Load Events Tab - Placeholder 1](https://placehold.co/1600x900?text=Device+Image+Load+Events+Screenshot+1)
-![Device Image Load Events Tab - Placeholder 2](https://placehold.co/1600x900?text=Device+Image+Load+Events+Screenshot+2)
 
 ## Section Details And What Each One Does
 

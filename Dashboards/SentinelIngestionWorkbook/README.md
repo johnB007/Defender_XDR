@@ -8,6 +8,7 @@ It is built for day-1 operations with:
 - Per-vendor event counts across all Device table categories
 - Click-to-drilldown on any chart segment to surface raw log records
 - Export support on all detail grids for cost review and vendor conversations
+- Export drill down vendor name and folder for copy/paste Transform rules in DCRs
 
 ## Summary For Sysadmin And Security
 This workbook gives cost teams and SOC analysts a shared view of what is driving ingestion spend and where spikes are coming from.

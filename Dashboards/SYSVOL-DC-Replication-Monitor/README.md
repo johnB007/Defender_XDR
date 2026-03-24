@@ -32,36 +32,36 @@ This workbook gives sysadmin and security teams fast triage coverage for replica
 ## Workbook Overview Screenshots
 
 ### Overview Tab
-![Overview Tab - Placeholder 1](https://placehold.co/1600x900?text=Overview+Tab+Screenshot+1)
-![Overview Tab - Placeholder 2](https://placehold.co/1600x900?text=Overview+Tab+Screenshot+2)
+<img width="1834" height="456" alt="image" src="https://github.com/user-attachments/assets/13484e32-76cd-48c3-b72b-007353873349" />
+<img width="1873" height="728" alt="image" src="https://github.com/user-attachments/assets/225a53c6-b6e1-4a68-a584-7e7f55d86887" />
+<img width="1862" height="561" alt="image" src="https://github.com/user-attachments/assets/782a1877-1bd7-4261-8e93-412156bca0a6" />
+
 
 ### DFS Replication Tab
-![DFSR Tab - Placeholder 1](https://placehold.co/1600x900?text=DFSR+Tab+Screenshot+1)
-![DFSR Tab - Placeholder 2](https://placehold.co/1600x900?text=DFSR+Tab+Screenshot+2)
+<img width="1859" height="717" alt="image" src="https://github.com/user-attachments/assets/59d95958-d088-4819-8c99-7192b96e9147" />
 
 ### File Replication (NTFRS) Tab
 ![NTFRS Tab - Placeholder 1](https://placehold.co/1600x900?text=NTFRS+Tab+Screenshot+1)
 ![NTFRS Tab - Placeholder 2](https://placehold.co/1600x900?text=NTFRS+Tab+Screenshot+2)
 
 ### Directory Service Tab
-![Directory Service Tab - Placeholder 1](https://placehold.co/1600x900?text=Directory+Service+Tab+Screenshot+1)
-![Directory Service Tab - Placeholder 2](https://placehold.co/1600x900?text=Directory+Service+Tab+Screenshot+2)
+<img width="1861" height="696" alt="image" src="https://github.com/user-attachments/assets/ffde1782-9da2-435e-a2d3-02c388a15da5" />
+
 
 ### Security and MDE Tab
-![Security and MDE Tab - Placeholder 1](https://placehold.co/1600x900?text=Security+and+MDE+Tab+Screenshot+1)
-![Security and MDE Tab - Placeholder 2](https://placehold.co/1600x900?text=Security+and+MDE+Tab+Screenshot+2)
+<img width="1868" height="723" alt="image" src="https://github.com/user-attachments/assets/8efe638d-8083-420f-be0b-c4f568258ac3" />
+
 
 ### Critical Events Tab
-![Critical Events Tab - Placeholder 1](https://placehold.co/1600x900?text=Critical+Events+Tab+Screenshot+1)
-![Critical Events Tab - Placeholder 2](https://placehold.co/1600x900?text=Critical+Events+Tab+Screenshot+2)
+
 
 ### DC Health Matrix Tab
-![DC Health Matrix Tab - Placeholder 1](https://placehold.co/1600x900?text=DC+Health+Matrix+Tab+Screenshot+1)
-![DC Health Matrix Tab - Placeholder 2](https://placehold.co/1600x900?text=DC+Health+Matrix+Tab+Screenshot+2)
+<img width="1872" height="743" alt="image" src="https://github.com/user-attachments/assets/511c9f79-1005-40f3-984b-487138c888ff" />
+
 
 ### Log Volume and Cost Tab
-![Log Volume and Cost Tab - Placeholder 1](https://placehold.co/1600x900?text=Log+Volume+and+Cost+Tab+Screenshot+1)
-![Log Volume and Cost Tab - Placeholder 2](https://placehold.co/1600x900?text=Log+Volume+and+Cost+Tab+Screenshot+2)
+<img width="1844" height="696" alt="image" src="https://github.com/user-attachments/assets/5be912f5-43a9-459b-ba30-404631a825e1" />
+
 
 ## Section Details And What Each One Does
 

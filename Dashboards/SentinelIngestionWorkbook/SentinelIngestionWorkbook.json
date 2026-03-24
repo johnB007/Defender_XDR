@@ -222,7 +222,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let TotalGB = toscalar(Usage\n| where IsBillable==true\n| summarize sum(Quantity)/1024);\nUsage\n| where IsBillable==true\n| summarize Total_GB=round(sum(Quantity)/1024,2), Daily_Avg_GB=round(avg(Quantity)/1024,2), Peak_Day_GB=round(max(Quantity)/1024,2), Days_Active=dcount(bin(TimeGenerated,1d)) by DataType\n| extend Pct_of_Total=round(Total_GB / TotalGB * 100, 1)\n| extend Monthly_Proj_GB=round(Daily_Avg_GB * 30, 2)\n| extend Last_Active=max_of(TimeGenerated)\n| project DataType, Total_GB, Pct_of_Total, Daily_Avg_GB, Monthly_Proj_GB, Peak_Day_GB, Days_Active\n| order by Total_GB desc",
+              "query": "let TotalGB = toscalar(Usage\n| where IsBillable==true\n| summarize sum(Quantity)/1024);\nUsage\n| where IsBillable==true\n| summarize Total_GB=round(sum(Quantity)/1024,2), Daily_Avg_GB=round(avg(Quantity)/1024,2), Peak_Day_GB=round(max(Quantity)/1024,2), Days_Active=dcount(bin(TimeGenerated,1d)) by DataType\n| extend Pct_of_Total=round(Total_GB / TotalGB * 100, 1)\n| extend Monthly_Proj_GB=round(Daily_Avg_GB * 30, 2)\n| project DataType, Total_GB, Pct_of_Total, Daily_Avg_GB, Monthly_Proj_GB, Peak_Day_GB, Days_Active\n| order by Total_GB desc",
               "size": 1,
               "title": "Data Types — Ranked by Total GB",
               "timeContextFromParameter": "TimePicker",

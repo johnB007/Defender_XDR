@@ -34,31 +34,40 @@ This workbook gives IT and security teams one place to review MDE device discove
 ## Workbook Overview Screenshots
 
 ### Overview Tab
-> _Screenshot placeholder. Add after first deployment._
+<img width="1882" height="671" alt="image" src="https://github.com/user-attachments/assets/8106a59b-bff6-4e01-80c4-b2b2ce4f76ab" />
+<img width="1871" height="803" alt="image" src="https://github.com/user-attachments/assets/70aaf7fb-c8d7-4305-84f8-e1700847879e" />
+<img width="1877" height="821" alt="image" src="https://github.com/user-attachments/assets/f6ce088a-55ee-451f-beb1-6bbaaff0ad93" />
+<img width="1881" height="396" alt="image" src="https://github.com/user-attachments/assets/3857d564-cf7d-4aa8-9918-b9fc1fbc9052" />
 
 ### All Devices Tab
-> _Screenshot placeholder. Add after first deployment._
+<img width="1876" height="802" alt="image" src="https://github.com/user-attachments/assets/a58cd8cb-e852-406b-a5a1-76fc5263bf25" />
+
 
 ### Cameras & Physical Sec Tab
 > _Screenshot placeholder. Add after first deployment._
 
 ### Network Infrastructure Tab
-> _Screenshot placeholder. Add after first deployment._
+<img width="1883" height="812" alt="image" src="https://github.com/user-attachments/assets/475a2be3-6b3d-4c84-85af-3a3d425ab0e5" />
+
 
 ### Printers & MFDs Tab
 > _Screenshot placeholder. Add after first deployment._
 
 ### IoT & OT Devices Tab
-> _Screenshot placeholder. Add after first deployment._
+<img width="1890" height="813" alt="image" src="https://github.com/user-attachments/assets/7e42e482-664b-4fe9-b75f-6c2d2bcfd777" />
+
 
 ### Computers & Servers Tab
-> _Screenshot placeholder. Add after first deployment._
+<img width="1881" height="820" alt="image" src="https://github.com/user-attachments/assets/805af6d7-3d27-4011-9d9a-7c56164306ef" />
+
 
 ### Mobile & Tablets Tab
-> _Screenshot placeholder. Add after first deployment._
+<img width="1890" height="812" alt="image" src="https://github.com/user-attachments/assets/008539a1-cb71-4a83-b080-566c24462103" />
+
 
 ### Network Context Tab
-> _Screenshot placeholder. Add after first deployment._
+<img width="1864" height="713" alt="image" src="https://github.com/user-attachments/assets/8e9262c8-6b4e-4837-b7b7-f3137ec9aed2" />
+
 
 ## Section Details And What Each One Does
 

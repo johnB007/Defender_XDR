@@ -1,0 +1,79 @@
+// ============================================================
+// OWA File Download Detection - COMBINED (Managed + Unmanaged)
+// Unified view across DeviceFileEvents + CloudAppEvents
+// ============================================================
+// This query gives coverage across BOTH managed and unmanaged devices.
+//
+// COVERAGE MAP:
+//   DeviceFileEvents  = Managed (MDE-enrolled) devices — file-level detail
+//   CloudAppEvents    = Unmanaged/personal devices via MDCA CAAC proxy
+//
+// PREREQUISITE for CloudAppEvents coverage:
+//   - MDCA Exchange Online App Connector enabled
+//   - Entra ID Conditional Access App Control session policy for OWA
+//     (unmanaged devices route through MDCA proxy)
+// ============================================================
+
+// Managed devices: OWA downloads via browser (DeviceFileEvents)
+let managedDeviceDownloads = DeviceFileEvents
+    | where Timestamp > ago(7d)
+    | where ActionType == "FileCreated"
+    | where FileOriginUrl has_any (
+        "outlook.office.com",
+        "outlook.office365.com",
+        "attachment.outlook.live.net",
+        "attachment.outlook.office.net"
+        )
+    | project Timestamp,
+              Source = "MDE - Managed Device",
+              UserUpn = InitiatingProcessAccountUpn,
+              DeviceName,
+              DeviceId,
+              IPAddress = tostring(""),
+              CountryCode = tostring(""),
+              FileName,
+              FilePath = FolderPath,
+              FileOriginUrl,
+              SHA256,
+              IsUnmanagedDevice = false;
+
+// Unmanaged devices: OWA downloads through MDCA CAAC proxy (CloudAppEvents)
+let unmanagedDeviceDownloads = CloudAppEvents
+    | where Timestamp > ago(7d)
+    | where Application == "Microsoft Exchange Online"
+    | where ActionType has_any ("MailItemsAccessed", "AttachmentDownloaded", "FileDownloaded")
+    | extend ClientInfoString = tostring(RawEventData.ClientInfoString)
+    | where ClientInfoString has_any ("OWA", "OutlookWebApp")
+    | where isempty(DeviceId)  // no DeviceId = unmanaged
+    | project Timestamp,
+              Source = "MDCA - Unmanaged Device",
+              UserUpn = tostring(RawEventData.UserId),
+              DeviceName = tostring(""),
+              DeviceId,
+              IPAddress,
+              CountryCode,
+              FileName = tostring(RawEventData.AttachmentFileName),
+              FilePath = tostring(""),
+              FileOriginUrl = tostring(""),
+              SHA256 = tostring(""),
+              IsUnmanagedDevice = true;
+
+// Union both sources
+managedDeviceDownloads
+| union unmanagedDeviceDownloads
+| order by Timestamp desc
+
+// ============================================================
+// --- Summary by user across both sources ---
+// (uncomment this block and comment the union above)
+// managedDeviceDownloads
+// | union unmanagedDeviceDownloads
+// | summarize TotalDownloads = count(),
+//             ManagedDeviceDownloads = countif(IsUnmanagedDevice == false),
+//             UnmanagedDeviceDownloads = countif(IsUnmanagedDevice == true),
+//             DistinctDevices = dcount(DeviceName),
+//             Countries = make_set(CountryCode),
+//             FirstActivity = min(Timestamp),
+//             LastActivity = max(Timestamp)
+//   by UserUpn
+// | order by UnmanagedDeviceDownloads desc

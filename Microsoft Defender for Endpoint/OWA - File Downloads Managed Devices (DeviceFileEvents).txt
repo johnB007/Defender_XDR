@@ -1,0 +1,91 @@
+// ============================================================
+// OWA File Downloads on Managed/Corporate Devices (MDE Coverage)
+// Source: DeviceFileEvents
+// ============================================================
+// This covers MANAGED devices only (MDE enrolled).
+// For unmanaged/personal device coverage, see:
+//   "OWA - File Downloads Unmanaged Devices (CloudAppEvents).txt"
+// ============================================================
+
+// --- Query 1: Files downloaded from OWA via browser on managed devices ---
+// OWA downloads are initiated by the browser process with FileOriginUrl pointing to outlook.office.com
+DeviceFileEvents
+| where Timestamp > ago(7d)
+| where ActionType == "FileCreated"
+| where FileOriginUrl has_any (
+    "outlook.office.com",
+    "outlook.office365.com",
+    "outlook.live.com",
+    "attachment.outlook.live.net",
+    "attachment.outlook.office.net",
+    "attachment.outlook.officeppe.net"
+    )
+| project Timestamp, DeviceName, DeviceId,
+          InitiatingProcessAccountUpn, InitiatingProcessAccountDomain,
+          InitiatingProcessFileName, FileName, FolderPath,
+          FileOriginUrl, FileOriginReferrerUrl, SHA256
+| order by Timestamp desc
+
+// ============================================================
+// --- Query 2: OWA downloads to non-standard locations (potential exfil staging) ---
+// Flags files saved outside typical Downloads/Documents folders
+DeviceFileEvents
+| where Timestamp > ago(7d)
+| where ActionType == "FileCreated"
+| where FileOriginUrl has_any (
+    "outlook.office.com",
+    "outlook.office365.com",
+    "attachment.outlook.live.net",
+    "attachment.outlook.office.net"
+    )
+| where FolderPath !has @"\Downloads\"
+      and FolderPath !has @"\Documents\"
+      and FolderPath !has @"\Desktop\"
+      and FolderPath !has @"\Temp\"
+| project Timestamp, DeviceName, InitiatingProcessAccountUpn,
+          FileName, FolderPath, FileOriginUrl, SHA256
+| order by Timestamp desc
+
+// ============================================================
+// --- Query 3: OWA download followed by USB/removable media copy (exfil chain) ---
+// Joins OWA download with subsequent copy to removable media
+let owaDownloads = DeviceFileEvents
+    | where Timestamp > ago(7d)
+    | where ActionType == "FileCreated"
+    | where FileOriginUrl has_any (
+        "outlook.office.com",
+        "outlook.office365.com",
+        "attachment.outlook.office.net"
+        )
+    | project DownloadTime = Timestamp, DeviceName, DeviceId,
+              AccountUpn = InitiatingProcessAccountUpn,
+              DownloadedFile = FileName, DownloadFolder = FolderPath, SHA256;
+let usbCopies = DeviceFileEvents
+    | where Timestamp > ago(7d)
+    | where ActionType == "FileCreated"
+    | where FolderPath matches regex @"^[D-Z]:\\"  // non-C: drives = likely removable
+    | where FolderPath !has @"C:\"
+    | project CopyTime = Timestamp, DeviceName, DeviceId,
+              CopiedFile = FileName, CopyPath = FolderPath, SHA256;
+owaDownloads
+| join kind=inner usbCopies on DeviceId, SHA256
+| where CopyTime > DownloadTime and CopyTime < DownloadTime + 1h  // within 1 hour
+| project DownloadTime, CopyTime, DeviceName, AccountUpn,
+          DownloadedFile, DownloadFolder, CopiedFile, CopyPath, SHA256
+| order by DownloadTime desc
+
+// ============================================================
+// --- Query 4: Summary - Top users downloading from OWA on managed devices ---
+DeviceFileEvents
+| where Timestamp > ago(30d)
+| where ActionType == "FileCreated"
+| where FileOriginUrl has_any (
+    "outlook.office.com",
+    "outlook.office365.com",
+    "attachment.outlook.live.net",
+    "attachment.outlook.office.net"
+    )
+| summarize DownloadCount = count(), DistinctFiles = dcount(FileName),
+            DeviceCount = dcount(DeviceName), FirstSeen = min(Timestamp), LastSeen = max(Timestamp)
+            by InitiatingProcessAccountUpn
+| order by DownloadCount desc

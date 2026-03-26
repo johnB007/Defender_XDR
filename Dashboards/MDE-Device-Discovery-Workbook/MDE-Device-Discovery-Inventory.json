@@ -1,0 +1,2201 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "This workbook provides a **full-spectrum asset inventory** of all devices discovered by MDE Device Discovery: Cameras, Network Infrastructure, Printers, IoT/OT, Computers, Servers, and Mobile devices. The **Network Context** tab classifies every discovered device as **Corporate (Domain Authenticated)**, **Likely Home Network**, or **Public / Internet-Facing**, enabling immediate identification of shadow assets, off-network endpoints, and surveillance gaps. Use the **Time Range** selector and tabs below to explore each security domain.",
+        "style": "0"
+      },
+      "name": "banner-header"
+    },
+    {
+      "type": 11,
+      "content": {
+        "version": "LinkItem/1.0",
+        "style": "tabs",
+        "links": [
+          {
+            "id": "tab-overview",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "Oveerview",
+            "subTarget": "Overview",
+            "style": "button"
+          },
+          {
+            "id": "tab-all",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "All Devices",
+            "subTarget": "AllDevices",
+            "style": "button"
+          },
+          {
+            "id": "tab-cameras",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "Cameras & Physical Sec",
+            "subTarget": "Cameras",
+            "style": "button"
+          },
+          {
+            "id": "tab-netinfra",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "Network Infrastructure",
+            "subTarget": "NetworkInfra",
+            "style": "button"
+          },
+          {
+            "id": "tab-printers",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "Printers & MFDs",
+            "subTarget": "Printers",
+            "style": "button"
+          },
+          {
+            "id": "tab-iot",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "IoT & OT Devices",
+            "subTarget": "IoT",
+            "style": "button"
+          },
+          {
+            "id": "tab-computers",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "Computers & Servers",
+            "subTarget": "Computers",
+            "style": "button"
+          },
+          {
+            "id": "tab-mobile",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "Mobile & Tablets",
+            "subTarget": "Mobile",
+            "style": "button"
+          },
+          {
+            "id": "tab-netctx",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "Network Context",
+            "subTarget": "NetworkContext",
+            "style": "button"
+          }
+        ]
+      },
+      "name": "tabs"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "a1000001-0001-0001-0001-000000000001",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "label": "Time Range",
+            "type": 4,
+            "isRequired": true,
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 1209600000
+                },
+                {
+                  "durationMs": 2592000000
+                },
+                {
+                  "durationMs": 7776000000
+                }
+              ],
+              "allowCustom": true
+            },
+            "value": {
+              "durationMs": 2592000000
+            }
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "global-parameters"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "**Device Discovery** &nbsp;·&nbsp; Full inventory from `DeviceInfo` · Network context from `DeviceNetworkInfo` &nbsp;·&nbsp; KPI tiles use the selected Time Range &nbsp;·&nbsp; _Top summary tiles are mutually exclusive inventory categories and add up to Total Discovered. Onboarding counts remain available in the detailed tabs._",
+              "style": "info"
+            },
+            "name": "overview-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform) by DeviceId\n| summarize TotalDiscovered=count(), EndpointsOther=countif(DeviceType !in~ ('NetworkDevice','Printer','Camera','Webcam','AudioVideoEquipment','VideoSurveillance','IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer','MobilePhone','Smartphone','Tablet')), NetworkDevices=countif(DeviceType=~'NetworkDevice'), Cameras=countif(DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance')), Printers=countif(DeviceType=~'Printer'), IoT=countif(DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer')), Mobile=countif(DeviceType in~ ('MobilePhone','Smartphone','Tablet'))\n| mv-expand kv=pack_array(pack('label','Total Discovered','value',TotalDiscovered), pack('label','Endpoints / Other','value',EndpointsOther), pack('label','Network Devices','value',NetworkDevices), pack('label','Cameras','value',Cameras), pack('label','Printers','value',Printers), pack('label','IoT & OT','value',IoT), pack('label','Mobile / Tablet','value',Mobile))\n| project label=tostring(kv.label), value=toreal(kv.value)",
+              "size": 4,
+              "title": "Inventory Breakdown",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "showBorder": true,
+                "titleContent": { "columnMatch": "label" },
+                "leftContent": {
+                  "columnMatch": "value",
+                  "formatter": 12,
+                  "formatOptions": { "palette": "auto" },
+                  "numberFormat": { "unit": 17, "options": { "style": "decimal", "maximumFractionDigits": 1 } }
+                }
+              }
+            },
+            "customWidth": "100",
+            "name": "overview-kpi-tiles"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "**Network / SSID Inventory** All distinct network names (SSIDs or wired network identifiers) reported in `DeviceNetworkInfo.ConnectedNetworks`, broken down by device category — use this view to understand which networks have unmanaged or IoT assets on them.",
+              "style": "info"
+            },
+            "customWidth": "100",
+            "name": "overview-network-section-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let LastNet = DeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, ConnectedNetworks) by DeviceId;\nlet DevTypes = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType) by DeviceId\n| project DeviceId, DeviceType;\nlet Rows = LastNet\n| join kind=leftouter DevTypes on DeviceId\n| mv-expand Net = parse_json(ConnectedNetworks)\n| extend NetworkName = tostring(Net.Name)\n| where isnotempty(NetworkName)\n| extend Category=case(\n    DeviceType in~ ('Workstation','Desktop','Laptop'),'Workstation',\n    DeviceType=~'Server','Server',\n    DeviceType=~'NetworkDevice','Network Device',\n    DeviceType=~'Printer','Printer',\n    DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance'),'Camera / Video',\n    DeviceType in~ ('MobilePhone','Smartphone','Tablet'),'Mobile',\n    DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer'),'IoT / Smart Device',\n    'Unknown')\n| summarize DeviceCount=dcount(DeviceId) by NetworkName, Category;\nlet Totals = Rows | summarize TotalDevices=sum(DeviceCount) by NetworkName;\nRows\n| join kind=leftouter Totals on NetworkName\n| order by TotalDevices desc, Category asc\n| project NetworkName, Category, DeviceCount",
+              "size": 3,
+              "title": "Device Categories per Network / SSID",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "categoricalbar",
+              "chartSettings": {
+                "showLegend": true,
+                "xAxis": "NetworkName",
+                "group": "Category",
+                "createOtherGroup": 10,
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "Workstation",
+                    "color": "green"
+                  },
+                  {
+                    "seriesName": "Server",
+                    "color": "teal"
+                  },
+                  {
+                    "seriesName": "Unknown",
+                    "color": "gray"
+                  },
+                  {
+                    "seriesName": "Network Device",
+                    "color": "blue"
+                  },
+                  {
+                    "seriesName": "IoT / Smart Device",
+                    "color": "purple"
+                  },
+                  {
+                    "seriesName": "Printer",
+                    "color": "orange"
+                  },
+                  {
+                    "seriesName": "Mobile",
+                    "color": "yellow"
+                  },
+                  {
+                    "seriesName": "Camera / Video",
+                    "color": "redBright"
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "name": "overview-network-bar"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let LastNet = DeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, ConnectedNetworks) by DeviceId;\nlet DevTypes = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType) by DeviceId\n| project DeviceId, DeviceType;\nLastNet\n| join kind=leftouter DevTypes on DeviceId\n| mv-expand Net = parse_json(ConnectedNetworks)\n| extend NetworkName = tostring(Net.Name)\n| where isnotempty(NetworkName)\n| summarize\n    TotalDevices   = dcount(DeviceId),\n    Workstations   = dcountif(DeviceId, DeviceType in~ ('Workstation','Desktop','Laptop')),\n    Servers        = dcountif(DeviceId, DeviceType=~'Server'),\n    NetworkDevices = dcountif(DeviceId, DeviceType=~'NetworkDevice'),\n    Cameras        = dcountif(DeviceId, DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance')),\n    Printers       = dcountif(DeviceId, DeviceType=~'Printer'),\n    IoT            = dcountif(DeviceId, DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer')),\n    Mobile         = dcountif(DeviceId, DeviceType in~ ('MobilePhone','Smartphone','Tablet')),\n    Unknown        = dcountif(DeviceId, isempty(DeviceType) or DeviceType=~'Unknown')\n    by NetworkName\n| order by TotalDevices desc",
+              "size": 1,
+              "title": "Network / SSID Breakdown by Device Type",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "showExportToExcel": true,
+              "exportToExcelOptions": "visible",
+              "gridSettings": {
+                "filter": true,
+                "rowLimit": 1000000,
+                "formatters": [
+                  {
+                    "columnMatch": "TotalDevices",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "blue",
+                      "min": 0
+                    }
+                  },
+                  {
+                    "columnMatch": "IoT",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "purple",
+                      "min": 0
+                    }
+                  },
+                  {
+                    "columnMatch": "Cameras",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "red",
+                      "min": 0
+                    }
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "name": "overview-network-grid"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType) by DeviceId\n| extend Category=case(DeviceType in~ ('Workstation','Desktop','Laptop'),'Workstation', DeviceType=~'Server','Server', DeviceType=~'NetworkDevice','Network Device', DeviceType=~'Printer','Printer', DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance'),'Camera / Video', DeviceType in~ ('MobilePhone','Smartphone'),'Mobile Phone', DeviceType=~'Tablet','Tablet', DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer'),'IoT / Smart Device', isempty(DeviceType) or DeviceType=~'Unknown','Unknown', DeviceType)\n| summarize Count=count() by Category\n| order by Count desc",
+              "size": 3,
+              "title": "Device Type Distribution",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "name": "overview-type-donut"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType) by DeviceId\n| extend Category=case(DeviceType in~ ('Workstation','Desktop','Laptop'),'Workstation', DeviceType=~'Server','Server', DeviceType=~'NetworkDevice','Network Device', DeviceType=~'Printer','Printer', DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance'),'Camera / Video', DeviceType in~ ('MobilePhone','Smartphone'),'Mobile Phone', DeviceType=~'Tablet','Tablet', DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer'),'IoT / Smart Device', isempty(DeviceType) or DeviceType=~'Unknown','Unknown', DeviceType)\n| summarize Count=count() by Category\n| order by Count asc",
+              "size": 3,
+              "title": "Asset Count by Category",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart"
+            },
+            "customWidth": "50",
+            "name": "overview-category-bar"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform) by DeviceId\n| extend Category=case(DeviceType in~ ('Workstation','Desktop','Laptop'),'Workstation', DeviceType=~'Server','Server', DeviceType=~'NetworkDevice','Network Device', DeviceType=~'Printer','Printer', DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance'),'Camera', DeviceType in~ ('MobilePhone','Smartphone','Tablet'),'Mobile', DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer'),'IoT', isempty(DeviceType) or DeviceType=~'Unknown','Unknown', DeviceType)\n| summarize Devices=dcount(DeviceId) by Day=bin(Timestamp,1d), Category\n| order by Day asc",
+              "size": 1,
+              "title": "Active Device Trend by Category (over Time Range)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "linechart",
+              "chartSettings": {
+                "showLegend": true
+              }
+            },
+            "customWidth": "100",
+            "name": "overview-trend-linechart"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "Overview"
+      },
+      "name": "group-overview"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "**All Discovered Devices** Complete inventory from `DeviceInfo` including all device types, onboarding status, OS, last seen IP, and exposure level &nbsp;·&nbsp; Use the column filter to drill into specific types, OS platforms, or onboarding status &nbsp;·&nbsp; Follows Time Range selector",
+              "style": "info"
+            },
+            "name": "alldevices-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus) by DeviceId\n| extend Category=case(DeviceType in~ ('Workstation','Desktop','Laptop'),'Workstation', DeviceType=~'Server','Server', DeviceType=~'NetworkDevice','Network Device', DeviceType=~'Printer','Printer', DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance'),'Camera / Video', DeviceType in~ ('MobilePhone','Smartphone'),'Mobile Phone', DeviceType=~'Tablet','Tablet', DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer'),'IoT / Smart Device', isempty(DeviceType) or DeviceType=~'Unknown','Unknown', DeviceType)\n| summarize Devices=count() by Category, OnboardingStatus\n| order by Devices desc",
+              "size": 2,
+              "title": "Devices by Category and Onboarding Status",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "categoricalbar",
+              "chartSettings": {
+                "showLegend": true,
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "Onboarded",
+                    "color": "green"
+                  },
+                  {
+                    "seriesName": "NotOnboarded",
+                    "color": "red"
+                  },
+                  {
+                    "seriesName": "CanBeOnboarded",
+                    "color": "blue"
+                  },
+                  {
+                    "seriesName": "Unsupported",
+                    "color": "gray"
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "name": "alldevices-stacked-bar"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform, OSVersion, OnboardingStatus, SensorHealthState, JoinType, IsAzureADJoined, PublicIP, MachineGroup, ExposureLevel) by DeviceId, DeviceName\n| join kind=leftouter (DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP) by DeviceId) on DeviceId\n| extend Category=case(DeviceType in~ ('Workstation','Desktop','Laptop'),'Workstation', DeviceType=~'Server','Server', DeviceType=~'NetworkDevice','Network Device', DeviceType=~'Printer','Printer', DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance'),'Camera / Video', DeviceType in~ ('MobilePhone','Smartphone'),'Mobile Phone', DeviceType=~'Tablet','Tablet', DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer'),'IoT / Smart Device', isempty(DeviceType) or DeviceType=~'Unknown','Unknown', DeviceType)\n| extend DomainJoined=case(JoinType=~'AAD Joined' or IsAzureADJoined==1,'AAD Joined', isnotempty(JoinType),JoinType,'Not Joined')\n| project DeviceName, Category, DeviceType, OSPlatform, OSVersion, OnboardingStatus, SensorHealthState, DomainJoined, LastIPAddress, PublicIP, MachineGroup, ExposureLevel, LastSeen=Timestamp\n| order by LastSeen desc",
+              "size": 1,
+              "title": "Full Device Inventory (All Discovered)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "showExportToExcel": true,
+              "exportToExcelOptions": "visible",
+              "gridSettings": {
+                "filter": true,
+                "rowLimit": 1000000,
+                "formatters": [
+                  {
+                    "columnMatch": "OnboardingStatus",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Onboarded",
+                          "representation": "success",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "CanBeOnboarded",
+                          "representation": "3",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "NotOnboarded",
+                          "representation": "2",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "unknown",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "ExposureLevel",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "High",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Medium",
+                          "representation": "orange",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Low",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "SensorHealthState",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Active",
+                          "representation": "success",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "3",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "name": "alldevices-grid"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "AllDevices"
+      },
+      "name": "group-alldevices"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "**Cameras & Physical Security Devices** Scope: `DeviceType` in Camera / Webcam / AudioVideoEquipment / VideoSurveillance, plus devices with camera-related names (cam, cctv, nvr, dvr, ipcam) &nbsp;·&nbsp; Most cameras will show `Unsupported` onboarding status, this is expected. Focus on IP addresses, exposure level, and subnet classification &nbsp;·&nbsp; Follows Time Range selector",
+              "style": "info"
+            },
+            "name": "cameras-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus) by DeviceId, DeviceName\n| where DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance') or DeviceName has_any ('cam','cctv','nvr','dvr','ipcam','hikvision','dahua','axis','vivotek','pelco','bosch-cam','arlo','reolink','amcrest')\n| summarize TotalCameras=count(), Onboarded=countif(OnboardingStatus=~'Onboarded'), CanBeOnboarded=countif(OnboardingStatus=~'CanBeOnboarded'), NotOnboarded=countif(OnboardingStatus=~'NotOnboarded'), Unsupported=countif(OnboardingStatus=~'Unsupported')\n| mv-expand kv=pack_array(pack('label','Total Cameras','value',TotalCameras), pack('label','Onboarded','value',Onboarded), pack('label','Can Be Onboarded','value',CanBeOnboarded), pack('label','Not Onboarded','value',NotOnboarded), pack('label','Unsupported (Expected)','value',Unsupported))\n| project label=tostring(kv.label), value=toint(kv.value)",
+              "size": 4,
+              "title": "Camera Inventory KPI",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "showBorder": true,
+                "titleContent": {
+                  "columnMatch": "label"
+                },
+                "leftContent": {
+                  "columnMatch": "value",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 0
+                    }
+                  }
+                }
+              }
+            },
+            "customWidth": "100",
+            "name": "cameras-kpi"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus) by DeviceId, DeviceName\n| where DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance') or DeviceName has_any ('cam','cctv','nvr','dvr','ipcam','hikvision','dahua','axis','vivotek','pelco','bosch-cam','arlo','reolink','amcrest')\n| extend StatusLabel=case(OnboardingStatus=~'Onboarded','Onboarded', OnboardingStatus=~'CanBeOnboarded','Can Be Onboarded', OnboardingStatus=~'NotOnboarded','Not Onboarded', OnboardingStatus=~'Unsupported','Unsupported', 'Unknown')\n| summarize Count=count() by StatusLabel",
+              "size": 3,
+              "title": "Camera Onboarding Status",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "33",
+            "name": "cameras-onboarding-pie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, ExposureLevel) by DeviceId, DeviceName\n| where DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance') or DeviceName has_any ('cam','cctv','nvr','dvr','ipcam','hikvision','dahua','axis','vivotek','pelco','bosch-cam','arlo','reolink','amcrest')\n| extend ExpLevel=coalesce(ExposureLevel,'None')\n| summarize Count=count() by ExpLevel",
+              "size": 3,
+              "title": "Camera Exposure Level",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart",
+              "chartSettings": {
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "High",
+                    "color": "red"
+                  },
+                  {
+                    "seriesName": "Medium",
+                    "color": "orange"
+                  },
+                  {
+                    "seriesName": "Low",
+                    "color": "yellow"
+                  },
+                  {
+                    "seriesName": "None",
+                    "color": "green"
+                  }
+                ]
+              }
+            },
+            "customWidth": "33",
+            "name": "cameras-exposure-pie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState, OSPlatform, PublicIP, MachineGroup, ExposureLevel) by DeviceId, DeviceName\n| join kind=leftouter (DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP) by DeviceId) on DeviceId\n| where DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance') or DeviceName has_any ('cam','cctv','nvr','dvr','ipcam','hikvision','dahua','axis','vivotek','pelco','bosch-cam','arlo','reolink','amcrest')\n| extend DaysSinceLastSeen=datetime_diff('day',now(),Timestamp)\n| extend HealthStatus=iff(DaysSinceLastSeen <= 7, 'Active (<=7d)', iff(DaysSinceLastSeen <= 30, 'Stale (8-30d)', 'Offline (>30d)'))\n| project DeviceName, DeviceType, LastIPAddress, PublicIP, OnboardingStatus, OSPlatform, ExposureLevel, HealthStatus, DaysSinceLastSeen, MachineGroup, LastSeen=Timestamp\n| order by DaysSinceLastSeen asc",
+              "size": 1,
+              "title": "Camera Detail Inventory",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "showExportToExcel": true,
+              "exportToExcelOptions": "visible",
+              "gridSettings": {
+                "filter": true,
+                "rowLimit": 1000000,
+                "formatters": [
+                  {
+                    "columnMatch": "ExposureLevel",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "High",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Medium",
+                          "representation": "orange",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "HealthStatus",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Active (<=7d)",
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Stale (8-30d)",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "red",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "DaysSinceLastSeen",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "<=",
+                          "thresholdValue": "7",
+                          "representation": "green",
+                          "text": "{0}d{1}"
+                        },
+                        {
+                          "operator": "<=",
+                          "thresholdValue": "30",
+                          "representation": "yellow",
+                          "text": "{0}d{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "red",
+                          "text": "{0}d{1}"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "name": "cameras-grid"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "Cameras"
+      },
+      "name": "group-cameras"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "**Network Infrastructure Devices** Scope: `DeviceType == NetworkDevice` plus name-matched routers, switches, firewalls, access points, and load balancers &nbsp;·&nbsp; Sub-type is inferred from device names &nbsp;·&nbsp; Follows Time Range selector",
+              "style": "info"
+            },
+            "name": "netinfra-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus) by DeviceId, DeviceName\n| where DeviceType=~'NetworkDevice' or DeviceName has_any ('router','rtr-','switch','sw-','firewall','fw-','checkpoint','palo','fortinet','juniper','cisco','aruba','ubiquiti','meraki','ruckus','sonicwall','watchguard','netgear','zyxel','mikrotik','access-point','ap-','wap-','wifi-','wireless','gateway','gw-','load-balancer','lb-','f5-')\n| summarize TotalNet=count(), Onboarded=countif(OnboardingStatus=~'Onboarded'), CanBeOnboarded=countif(OnboardingStatus=~'CanBeOnboarded'), NotOnboarded=countif(OnboardingStatus=~'NotOnboarded'), Unsupported=countif(OnboardingStatus=~'Unsupported')\n| mv-expand kv=pack_array(pack('label','Total Network Devices','value',TotalNet), pack('label','Onboarded','value',Onboarded), pack('label','Can Be Onboarded','value',CanBeOnboarded), pack('label','Not Onboarded','value',NotOnboarded), pack('label','Unsupported','value',Unsupported))\n| project label=tostring(kv.label), value=toint(kv.value)",
+              "size": 4,
+              "title": "Network Infrastructure KPI",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "showBorder": true,
+                "titleContent": {
+                  "columnMatch": "label"
+                },
+                "leftContent": {
+                  "columnMatch": "value",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 0
+                    }
+                  }
+                }
+              }
+            },
+            "customWidth": "100",
+            "name": "netinfra-kpi"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus) by DeviceId, DeviceName\n| where DeviceType=~'NetworkDevice' or DeviceName has_any ('router','rtr-','switch','sw-','firewall','fw-','checkpoint','palo','fortinet','juniper','cisco','aruba','ubiquiti','meraki','ruckus','sonicwall','watchguard','netgear','zyxel','mikrotik','access-point','ap-','wap-','wifi-','wireless','gateway','gw-','load-balancer','lb-','f5-')\n| extend SubType=case(DeviceName has_any ('firewall','fw-','checkpoint','palo','fortinet','sonicwall','watchguard','asa'),'Firewall', DeviceName has_any ('router','rtr-','gateway','gw-'),'Router / Gateway', DeviceName has_any ('switch','sw-','core-sw','dist-sw','access-sw'),'Switch', DeviceName has_any ('access-point','ap-','wap-','wifi-','wireless','aruba','ubiquiti','ruckus','meraki'),'Wireless / Access Point', DeviceName has_any ('load-balancer','lb-','f5-'),'Load Balancer', 'Other Network Device')\n| summarize Count=count() by SubType\n| order by Count desc",
+              "size": 3,
+              "title": "Network Device Sub-Type Breakdown",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "name": "netinfra-subtype-pie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus) by DeviceId, DeviceName\n| where DeviceType=~'NetworkDevice' or DeviceName has_any ('router','rtr-','switch','sw-','firewall','fw-','checkpoint','palo','fortinet','juniper','cisco','aruba','ubiquiti','meraki','ruckus','sonicwall','watchguard','netgear','zyxel','mikrotik','access-point','ap-','wap-','wifi-','wireless','gateway','gw-','load-balancer','lb-','f5-')\n| extend StatusLabel=case(OnboardingStatus=~'Onboarded','Onboarded', OnboardingStatus=~'CanBeOnboarded','Can Be Onboarded', OnboardingStatus=~'NotOnboarded','Not Onboarded', OnboardingStatus=~'Unsupported','Unsupported', 'Unknown')\n| summarize Count=count() by StatusLabel",
+              "size": 3,
+              "title": "Network Device Onboarding Status",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "name": "netinfra-onboarding-pie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState, OSPlatform, PublicIP, MachineGroup, ExposureLevel) by DeviceId, DeviceName\n| join kind=leftouter (DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP) by DeviceId) on DeviceId\n| where DeviceType=~'NetworkDevice' or DeviceName has_any ('router','rtr-','switch','sw-','firewall','fw-','checkpoint','palo','fortinet','juniper','cisco','aruba','ubiquiti','meraki','ruckus','sonicwall','watchguard','netgear','zyxel','mikrotik','access-point','ap-','wap-','wifi-','wireless','gateway','gw-','load-balancer','lb-','f5-')\n| extend SubType=case(DeviceName has_any ('firewall','fw-','checkpoint','palo','fortinet','sonicwall','watchguard','asa'),'Firewall', DeviceName has_any ('router','rtr-','gateway','gw-'),'Router / Gateway', DeviceName has_any ('switch','sw-','core-sw','dist-sw'),'Switch', DeviceName has_any ('access-point','ap-','wap-','wifi-','aruba','ubiquiti','ruckus','meraki'),'Wireless AP', DeviceName has_any ('load-balancer','lb-','f5-'),'Load Balancer', 'Other')\n| extend DaysSinceLastSeen=datetime_diff('day',now(),Timestamp)\n| project DeviceName, SubType, DeviceType, LastIPAddress, PublicIP, OnboardingStatus, SensorHealthState, OSPlatform, ExposureLevel, DaysSinceLastSeen, MachineGroup, LastSeen=Timestamp\n| order by DaysSinceLastSeen asc",
+              "size": 1,
+              "title": "Network Infrastructure Detail",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "showExportToExcel": true,
+              "exportToExcelOptions": "visible",
+              "gridSettings": {
+                "filter": true,
+                "rowLimit": 1000000,
+                "formatters": [
+                  {
+                    "columnMatch": "OnboardingStatus",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Onboarded",
+                          "representation": "success",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "CanBeOnboarded",
+                          "representation": "3",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "NotOnboarded",
+                          "representation": "2",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "unknown",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "ExposureLevel",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "High",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Medium",
+                          "representation": "orange",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "DaysSinceLastSeen",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "<=",
+                          "thresholdValue": "7",
+                          "representation": "green",
+                          "text": "{0}d{1}"
+                        },
+                        {
+                          "operator": "<=",
+                          "thresholdValue": "30",
+                          "representation": "yellow",
+                          "text": "{0}d{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "red",
+                          "text": "{0}d{1}"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "name": "netinfra-grid"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "NetworkInfra"
+      },
+      "name": "group-netinfra"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "**Printers & Multi-Function Devices (MFDs)** Scope: `DeviceType == Printer` plus name-matched printers, copiers, MFPs, and scan stations &nbsp;·&nbsp; Printers are a common lateral-movement target, each unpatched or unmonitored print device is a foothold risk &nbsp;·&nbsp; Follows Time Range selector",
+              "style": "info"
+            },
+            "name": "printers-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus) by DeviceId, DeviceName\n| where DeviceType=~'Printer' or DeviceName has_any ('printer','prn-','hp-','canon','xerox','epson','brother','ricoh','konica','kyocera','mfp','copier','mfpd','laserjet','officejet','toshiba-mfp','sharp-mfp')\n| summarize TotalPrinters=count(), Onboarded=countif(OnboardingStatus=~'Onboarded'), CanBeOnboarded=countif(OnboardingStatus=~'CanBeOnboarded'), NotOnboarded=countif(OnboardingStatus=~'NotOnboarded'), Unsupported=countif(OnboardingStatus=~'Unsupported')\n| mv-expand kv=pack_array(pack('label','Total Printers / MFDs','value',TotalPrinters), pack('label','Onboarded','value',Onboarded), pack('label','Can Be Onboarded','value',CanBeOnboarded), pack('label','Not Onboarded','value',NotOnboarded), pack('label','Unsupported','value',Unsupported))\n| project label=tostring(kv.label), value=toint(kv.value)",
+              "size": 4,
+              "title": "Printers & MFDs KPI",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "showBorder": true,
+                "titleContent": {
+                  "columnMatch": "label"
+                },
+                "leftContent": {
+                  "columnMatch": "value",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 0
+                    }
+                  }
+                }
+              }
+            },
+            "customWidth": "100",
+            "name": "printers-kpi"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus) by DeviceId, DeviceName\n| where DeviceType=~'Printer' or DeviceName has_any ('printer','prn-','hp-','canon','xerox','epson','brother','ricoh','konica','kyocera','mfp','copier','mfpd','laserjet','officejet','toshiba-mfp','sharp-mfp')\n| extend StatusLabel=case(OnboardingStatus=~'Onboarded','Onboarded', OnboardingStatus=~'CanBeOnboarded','Can Be Onboarded', OnboardingStatus=~'NotOnboarded','Not Onboarded', OnboardingStatus=~'Unsupported','Unsupported', 'Unknown')\n| summarize Count=count() by StatusLabel",
+              "size": 3,
+              "title": "Printer Onboarding Status",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "name": "printers-onboarding-pie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, ExposureLevel) by DeviceId, DeviceName\n| where DeviceType=~'Printer' or DeviceName has_any ('printer','prn-','hp-','canon','xerox','epson','brother','ricoh','konica','kyocera','mfp','copier','mfpd','laserjet','officejet')\n| extend ExpLevel=coalesce(ExposureLevel,'None')\n| summarize Count=count() by ExpLevel",
+              "size": 3,
+              "title": "Printer Exposure Level",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart",
+              "chartSettings": {
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "High",
+                    "color": "red"
+                  },
+                  {
+                    "seriesName": "Medium",
+                    "color": "orange"
+                  },
+                  {
+                    "seriesName": "Low",
+                    "color": "yellow"
+                  },
+                  {
+                    "seriesName": "None",
+                    "color": "green"
+                  }
+                ]
+              }
+            },
+            "customWidth": "50",
+            "name": "printers-exposure-pie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState, OSPlatform, PublicIP, MachineGroup, ExposureLevel) by DeviceId, DeviceName\n| join kind=leftouter (DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP) by DeviceId) on DeviceId\n| where DeviceType=~'Printer' or DeviceName has_any ('printer','prn-','hp-','canon','xerox','epson','brother','ricoh','konica','kyocera','mfp','copier','mfpd','laserjet','officejet','toshiba-mfp','sharp-mfp')\n| extend DaysSinceLastSeen=datetime_diff('day',now(),Timestamp)\n| project DeviceName, DeviceType, LastIPAddress, PublicIP, OSPlatform, OnboardingStatus, ExposureLevel, DaysSinceLastSeen, MachineGroup, LastSeen=Timestamp\n| order by DaysSinceLastSeen asc",
+              "size": 1,
+              "title": "Printer & MFD Detail Inventory",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "showExportToExcel": true,
+              "exportToExcelOptions": "visible",
+              "gridSettings": {
+                "filter": true,
+                "rowLimit": 1000000,
+                "formatters": [
+                  {
+                    "columnMatch": "OnboardingStatus",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Onboarded",
+                          "representation": "success",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "CanBeOnboarded",
+                          "representation": "3",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "NotOnboarded",
+                          "representation": "2",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "unknown",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "ExposureLevel",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "High",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Medium",
+                          "representation": "orange",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "DaysSinceLastSeen",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "<=",
+                          "thresholdValue": "7",
+                          "representation": "green",
+                          "text": "{0}d{1}"
+                        },
+                        {
+                          "operator": "<=",
+                          "thresholdValue": "30",
+                          "representation": "yellow",
+                          "text": "{0}d{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "red",
+                          "text": "{0}d{1}"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "name": "printers-grid"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "Printers"
+      },
+      "name": "group-printers"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "**IoT & OT Devices** Scope: `DeviceType` in IoTDevice / SmartAppliance / CommunicationsDevice / VoIPPhone / GameConsole / MediaPlayer, plus `OSPlatform == IoT` or `Embedded`, plus name-matched industrial and building automation devices &nbsp;·&nbsp; IoT/OT devices represent the highest risk surface area, these devices rarely receive patches and are prime targets for persistence and lateral movement &nbsp;·&nbsp; Follows Time Range selector",
+              "style": "warning"
+            },
+            "name": "iot-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded') or DeviceName has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-','vending','access-ctrl','badge-reader','intercom')\n| summarize TotalIoT=count(), Onboarded=countif(OnboardingStatus=~'Onboarded'), CanBeOnboarded=countif(OnboardingStatus=~'CanBeOnboarded'), NotOnboarded=countif(OnboardingStatus=~'NotOnboarded'), Unsupported=countif(OnboardingStatus=~'Unsupported')\n| mv-expand kv=pack_array(pack('label','Total IoT / OT Devices','value',TotalIoT), pack('label','Onboarded','value',Onboarded), pack('label','Can Be Onboarded','value',CanBeOnboarded), pack('label','Not Onboarded','value',NotOnboarded), pack('label','Unsupported','value',Unsupported))\n| project label=tostring(kv.label), value=toint(kv.value)",
+              "size": 4,
+              "title": "IoT & OT KPI",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "showBorder": true,
+                "titleContent": {
+                  "columnMatch": "label"
+                },
+                "leftContent": {
+                  "columnMatch": "value",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 0
+                    }
+                  }
+                }
+              }
+            },
+            "customWidth": "100",
+            "name": "iot-kpi"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform) by DeviceId, DeviceName\n| where DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded') or DeviceName has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-','vending','access-ctrl','badge-reader','intercom')\n| extend TypeLabel=case(DeviceType=~'VoIPPhone','VoIP Phone', DeviceType=~'CommunicationsDevice','Communications Device', DeviceType in~ ('IoTDevice','SmartAppliance'),'IoT / Smart Appliance', DeviceType=~'GameConsole','Game Console', DeviceType=~'MediaPlayer','Media Player', isnotempty(OSPlatform) and OSPlatform in~ ('IoT','Embedded'),'Embedded / OT', 'Other IoT')\n| summarize Count=count() by TypeLabel\n| order by Count desc",
+              "size": 3,
+              "title": "IoT Sub-Type Breakdown",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "33",
+            "name": "iot-subtype-pie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform, ExposureLevel) by DeviceId, DeviceName\n| where DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded') or DeviceName has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-')\n| extend ExpLevel=coalesce(ExposureLevel,'None')\n| summarize Count=count() by ExpLevel",
+              "size": 3,
+              "title": "IoT Exposure Level",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart",
+              "chartSettings": {
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "High",
+                    "color": "red"
+                  },
+                  {
+                    "seriesName": "Medium",
+                    "color": "orange"
+                  },
+                  {
+                    "seriesName": "Low",
+                    "color": "yellow"
+                  },
+                  {
+                    "seriesName": "None",
+                    "color": "green"
+                  }
+                ]
+              }
+            },
+            "customWidth": "33",
+            "name": "iot-exposure-pie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded') or DeviceName has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-')\n| extend StatusLabel=case(OnboardingStatus=~'Onboarded','Onboarded', OnboardingStatus=~'CanBeOnboarded','Can Be Onboarded', OnboardingStatus=~'NotOnboarded','Not Onboarded', OnboardingStatus=~'Unsupported','Unsupported', 'Unknown')\n| summarize Count=count() by StatusLabel",
+              "size": 3,
+              "title": "IoT Onboarding Status",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "34",
+            "name": "iot-onboarding-pie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState, OSPlatform, PublicIP, MachineGroup, ExposureLevel) by DeviceId, DeviceName\n| join kind=leftouter (DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP) by DeviceId) on DeviceId\n| where DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded') or DeviceName has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-','vending','access-ctrl','badge-reader','intercom')\n| extend DaysSinceLastSeen=datetime_diff('day',now(),Timestamp)\n| project DeviceName, DeviceType, OSPlatform, LastIPAddress, PublicIP, OnboardingStatus, ExposureLevel, DaysSinceLastSeen, MachineGroup, LastSeen=Timestamp\n| order by ExposureLevel asc, DaysSinceLastSeen asc",
+              "size": 1,
+              "title": "IoT & OT Detail Inventory",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "showExportToExcel": true,
+              "exportToExcelOptions": "visible",
+              "gridSettings": {
+                "filter": true,
+                "rowLimit": 1000000,
+                "formatters": [
+                  {
+                    "columnMatch": "OnboardingStatus",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Onboarded",
+                          "representation": "success",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "CanBeOnboarded",
+                          "representation": "3",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "NotOnboarded",
+                          "representation": "2",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "unknown",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "ExposureLevel",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "High",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Medium",
+                          "representation": "orange",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "DaysSinceLastSeen",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "<=",
+                          "thresholdValue": "7",
+                          "representation": "green",
+                          "text": "{0}d{1}"
+                        },
+                        {
+                          "operator": "<=",
+                          "thresholdValue": "30",
+                          "representation": "yellow",
+                          "text": "{0}d{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "red",
+                          "text": "{0}d{1}"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "name": "iot-grid"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "IoT"
+      },
+      "name": "group-iot"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "**Computers & Servers** Scope: `DeviceType` in Workstation / Desktop / Laptop / Server, plus Windows / Linux / macOS endpoints where DeviceType is unset &nbsp;·&nbsp; These are primary MDE managed endpoints &nbsp;·&nbsp; Follows Time Range selector",
+              "style": "info"
+            },
+            "name": "computers-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where DeviceType in~ ('Workstation','Desktop','Laptop','Server') or (OSPlatform has_any ('Windows','Linux','macOS') and DeviceType !in~ ('NetworkDevice','Printer','Camera','Webcam','AudioVideoEquipment','IoTDevice','SmartAppliance','MobilePhone','Smartphone','Tablet'))\n| summarize Workstations=countif(DeviceType in~ ('Workstation','Desktop','Laptop') or (OSPlatform has_any ('Windows10','Windows11','macOS') and DeviceType!='Server')), Servers=countif(DeviceType=~'Server' or OSPlatform has 'WindowsServer' or OSPlatform has 'Server'), Total=count(), Onboarded=countif(OnboardingStatus=~'Onboarded'), CanBeOnboarded=countif(OnboardingStatus=~'CanBeOnboarded'), NotOnboarded=countif(OnboardingStatus=~'NotOnboarded')\n| mv-expand kv=pack_array(pack('label','Total Computers / Servers','value',Total), pack('label','Workstations','value',Workstations), pack('label','Servers','value',Servers), pack('label','Onboarded','value',Onboarded), pack('label','Can Be Onboarded','value',CanBeOnboarded), pack('label','Not Onboarded','value',NotOnboarded))\n| project label=tostring(kv.label), value=toint(kv.value)",
+              "size": 4,
+              "title": "Computers & Servers KPI",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "showBorder": true,
+                "titleContent": {
+                  "columnMatch": "label"
+                },
+                "leftContent": {
+                  "columnMatch": "value",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 0
+                    }
+                  }
+                }
+              }
+            },
+            "customWidth": "100",
+            "name": "computers-kpi"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform) by DeviceId\n| where DeviceType in~ ('Workstation','Desktop','Laptop','Server') or (OSPlatform has_any ('Windows','Linux','macOS') and DeviceType !in~ ('NetworkDevice','Printer','Camera','Webcam','AudioVideoEquipment','IoTDevice','SmartAppliance','MobilePhone','Smartphone','Tablet'))\n| extend OSGroup=case(OSPlatform has 'WindowsServer' or DeviceType=~'Server','Windows Server', OSPlatform has 'Windows','Windows', OSPlatform has 'Linux','Linux', OSPlatform has 'macOS','macOS', 'Other')\n| summarize Count=count() by OSGroup\n| order by Count desc",
+              "size": 3,
+              "title": "Operating System Distribution",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "33",
+            "name": "computers-os-pie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState) by DeviceId\n| where DeviceType in~ ('Workstation','Desktop','Laptop','Server') or (DeviceType !in~ ('NetworkDevice','Printer','Camera','Webcam','AudioVideoEquipment','IoTDevice','SmartAppliance','MobilePhone','Smartphone','Tablet') and isnotempty(DeviceType))\n| extend CombinedStatus=case(OnboardingStatus=~'Onboarded' and SensorHealthState=~'Active','Onboarded + Active', OnboardingStatus=~'Onboarded' and SensorHealthState!='Active','Onboarded (Impaired)', OnboardingStatus=~'CanBeOnboarded','Can Be Onboarded', OnboardingStatus=~'NotOnboarded','Not Onboarded', 'Other')\n| summarize Count=count() by CombinedStatus",
+              "size": 3,
+              "title": "Endpoint Health Status",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart",
+              "chartSettings": {
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "Onboarded + Active",
+                    "color": "green"
+                  },
+                  {
+                    "seriesName": "Onboarded (Impaired)",
+                    "color": "orange"
+                  },
+                  {
+                    "seriesName": "Can Be Onboarded",
+                    "color": "blue"
+                  },
+                  {
+                    "seriesName": "Not Onboarded",
+                    "color": "red"
+                  }
+                ]
+              }
+            },
+            "customWidth": "33",
+            "name": "computers-health-pie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform, ExposureLevel) by DeviceId\n| where DeviceType in~ ('Workstation','Desktop','Laptop','Server') or (OSPlatform has_any ('Windows','Linux','macOS') and DeviceType !in~ ('NetworkDevice','Printer','Camera','Webcam','AudioVideoEquipment','IoTDevice','SmartAppliance','MobilePhone','Smartphone','Tablet'))\n| extend ExpLevel=coalesce(ExposureLevel,'None')\n| summarize Count=count() by ExpLevel",
+              "size": 3,
+              "title": "Exposure Level Distribution",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart",
+              "chartSettings": {
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "High",
+                    "color": "red"
+                  },
+                  {
+                    "seriesName": "Medium",
+                    "color": "orange"
+                  },
+                  {
+                    "seriesName": "Low",
+                    "color": "yellow"
+                  },
+                  {
+                    "seriesName": "None",
+                    "color": "green"
+                  }
+                ]
+              }
+            },
+            "customWidth": "34",
+            "name": "computers-exposure-pie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform, OSVersion, OnboardingStatus, SensorHealthState, JoinType, IsAzureADJoined, PublicIP, MachineGroup, ExposureLevel) by DeviceId, DeviceName\n| join kind=leftouter (DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP) by DeviceId) on DeviceId\n| where DeviceType in~ ('Workstation','Desktop','Laptop','Server') or (OSPlatform has_any ('Windows','Linux','macOS') and DeviceType !in~ ('NetworkDevice','Printer','Camera','Webcam','AudioVideoEquipment','IoTDevice','SmartAppliance','MobilePhone','Smartphone','Tablet'))\n| extend OSGroup=case(OSPlatform has 'WindowsServer' or DeviceType=~'Server','Server', OSPlatform has 'Windows','Workstation', OSPlatform has 'Linux','Linux', OSPlatform has 'macOS','macOS', DeviceType)\n| extend DomainJoined=case(JoinType=~'AAD Joined' or IsAzureADJoined==1,'AAD Joined', isnotempty(JoinType),JoinType,'Not Joined')\n| extend DaysSinceLastSeen=datetime_diff('day',now(),Timestamp)\n| project DeviceName, OSGroup, OSPlatform, OSVersion, DomainJoined, OnboardingStatus, SensorHealthState, LastIPAddress, ExposureLevel, DaysSinceLastSeen, MachineGroup, LastSeen=Timestamp\n| order by ExposureLevel asc, DaysSinceLastSeen asc",
+              "size": 1,
+              "title": "Computer & Server Detail Inventory",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "showExportToExcel": true,
+              "exportToExcelOptions": "visible",
+              "gridSettings": {
+                "filter": true,
+                "rowLimit": 1000000,
+                "formatters": [
+                  {
+                    "columnMatch": "OnboardingStatus",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Onboarded",
+                          "representation": "success",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "CanBeOnboarded",
+                          "representation": "3",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "NotOnboarded",
+                          "representation": "2",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "unknown",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "SensorHealthState",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Active",
+                          "representation": "success",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "3",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "ExposureLevel",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "High",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Medium",
+                          "representation": "orange",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "DaysSinceLastSeen",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "<=",
+                          "thresholdValue": "7",
+                          "representation": "green",
+                          "text": "{0}d{1}"
+                        },
+                        {
+                          "operator": "<=",
+                          "thresholdValue": "30",
+                          "representation": "yellow",
+                          "text": "{0}d{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "red",
+                          "text": "{0}d{1}"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "name": "computers-grid"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "Computers"
+      },
+      "name": "group-computers"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "**Mobile Devices & Tablets** Scope: `DeviceType` in MobilePhone / Smartphone / Tablet, plus `OSPlatform` in iOS / Android / iPadOS &nbsp;·&nbsp; Follows Time Range selector",
+              "style": "info"
+            },
+            "name": "mobile-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where DeviceType in~ ('MobilePhone','Smartphone','Tablet') or OSPlatform in~ ('iOS','Android','iPadOS','AndroidEnterprise')\n| summarize TotalMobile=count(), iOS=countif(OSPlatform in~ ('iOS','iPadOS')), Android=countif(OSPlatform in~ ('Android','AndroidEnterprise')), Tablets=countif(DeviceType=~'Tablet'), Onboarded=countif(OnboardingStatus=~'Onboarded'), NotOnboarded=countif(OnboardingStatus!='Onboarded')\n| mv-expand kv=pack_array(pack('label','Total Mobile / Tablet','value',TotalMobile), pack('label','iOS / iPadOS','value',iOS), pack('label','Android','value',Android), pack('label','Tablets','value',Tablets), pack('label','Onboarded','value',Onboarded), pack('label','Not Onboarded','value',NotOnboarded))\n| project label=tostring(kv.label), value=toint(kv.value)",
+              "size": 4,
+              "title": "Mobile & Tablets KPI",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "showBorder": true,
+                "titleContent": {
+                  "columnMatch": "label"
+                },
+                "leftContent": {
+                  "columnMatch": "value",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 0
+                    }
+                  }
+                }
+              }
+            },
+            "customWidth": "100",
+            "name": "mobile-kpi"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform) by DeviceId\n| where DeviceType in~ ('MobilePhone','Smartphone','Tablet') or OSPlatform in~ ('iOS','Android','iPadOS','AndroidEnterprise')\n| extend PlatformLabel=case(OSPlatform in~ ('iOS','iPadOS'),'iOS / iPadOS', OSPlatform in~ ('Android','AndroidEnterprise'),'Android', isnotempty(OSPlatform),OSPlatform,'Unknown')\n| summarize Count=count() by PlatformLabel",
+              "size": 3,
+              "title": "Mobile Platform Distribution",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "name": "mobile-platform-pie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId\n| where DeviceType in~ ('MobilePhone','Smartphone','Tablet') or OSPlatform in~ ('iOS','Android','iPadOS','AndroidEnterprise')\n| extend StatusLabel=case(OnboardingStatus=~'Onboarded','Onboarded', OnboardingStatus=~'CanBeOnboarded','Can Be Onboarded', OnboardingStatus=~'NotOnboarded','Not Onboarded', OnboardingStatus=~'Unsupported','Unsupported', 'Unknown')\n| summarize Count=count() by StatusLabel",
+              "size": 3,
+              "title": "Mobile Onboarding Status",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "name": "mobile-onboarding-pie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState, OSPlatform, OSVersion, PublicIP, MachineGroup) by DeviceId, DeviceName\n| join kind=leftouter (DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP) by DeviceId) on DeviceId\n| where DeviceType in~ ('MobilePhone','Smartphone','Tablet') or OSPlatform in~ ('iOS','Android','iPadOS','AndroidEnterprise')\n| extend DaysSinceLastSeen=datetime_diff('day',now(),Timestamp)\n| project DeviceName, DeviceType, OSPlatform, OSVersion, LastIPAddress, PublicIP, OnboardingStatus, SensorHealthState, DaysSinceLastSeen, MachineGroup, LastSeen=Timestamp\n| order by DaysSinceLastSeen asc",
+              "size": 1,
+              "title": "Mobile & Tablet Detail Inventory",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "showExportToExcel": true,
+              "exportToExcelOptions": "visible",
+              "gridSettings": {
+                "filter": true,
+                "rowLimit": 1000000,
+                "formatters": [
+                  {
+                    "columnMatch": "OnboardingStatus",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Onboarded",
+                          "representation": "success",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "CanBeOnboarded",
+                          "representation": "3",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "NotOnboarded",
+                          "representation": "2",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "unknown",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "DaysSinceLastSeen",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "<=",
+                          "thresholdValue": "7",
+                          "representation": "green",
+                          "text": "{0}d{1}"
+                        },
+                        {
+                          "operator": "<=",
+                          "thresholdValue": "30",
+                          "representation": "yellow",
+                          "text": "{0}d{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "red",
+                          "text": "{0}d{1}"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "name": "mobile-grid"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "Mobile"
+      },
+      "name": "group-mobile"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "**Network Context** Classifies devices as **Corporate** (domain-auth or enterprise RFC1918), **Home** (192.168.0/1.x), **Public** (routable IP), or **Unknown Private**. Risk Signals grid below flags non-mobile corporate assets on Home/Public networks.",
+              "style": "info"
+            },
+            "name": "netctx-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let LastNet = DeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, ConnectedNetworks, IPAddresses) by DeviceId, DeviceName;\nLastNet\n| extend HasDomainAuth = tostring(parse_json(ConnectedNetworks)) has 'DomainAuthenticated'\n| extend IPs = parse_json(IPAddresses)\n| mv-expand IPE = IPs\n| extend IP = tostring(IPE.IPAddress)\n| where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.'\n| extend Is10 = IP startswith '10.'\n| extend Is172 = IP startswith '172.'\n| extend Is192_home = IP startswith '192.168.0.' or IP startswith '192.168.1.'\n| extend Is192 = IP startswith '192.168.'\n| extend IsPrivate = Is10 or Is172 or Is192\n| summarize HasDomainAuth=any(HasDomainAuth), HasPublicIP=any(not(IsPrivate)), LikelyHome=any(Is192_home and not(HasDomainAuth)), Has10Range=any(Is10), Has172Range=any(Is172), SampleIP=take_any(IP) by DeviceId, DeviceName\n| extend NetworkClass=case(HasDomainAuth,'Corporate (Domain Authenticated)', HasPublicIP and not(HasDomainAuth),'Public / Internet-Facing', LikelyHome,'Likely Home Network', Has10Range or Has172Range,'Corporate (Private — Enterprise)', 'Unknown Private')\n| summarize DeviceCount=count() by NetworkClass\n| mv-expand kv=pack_array(pack('label',NetworkClass,'value',DeviceCount))\n| project label=tostring(kv.label), value=toint(kv.value)",
+              "size": 4,
+              "title": "Network Classification KPI",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "showBorder": true,
+                "titleContent": {
+                  "columnMatch": "label"
+                },
+                "leftContent": {
+                  "columnMatch": "value",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 0
+                    }
+                  }
+                }
+              }
+            },
+            "customWidth": "50",
+            "name": "netctx-kpi"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let LastNet = DeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, ConnectedNetworks, IPAddresses) by DeviceId, DeviceName;\nLastNet\n| extend HasDomainAuth = tostring(parse_json(ConnectedNetworks)) has 'DomainAuthenticated'\n| extend IPs = parse_json(IPAddresses)\n| mv-expand IPE = IPs\n| extend IP = tostring(IPE.IPAddress)\n| where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.'\n| extend Is10 = IP startswith '10.'\n| extend Is172 = IP startswith '172.'\n| extend Is192_home = IP startswith '192.168.0.' or IP startswith '192.168.1.'\n| extend Is192 = IP startswith '192.168.'\n| extend IsPrivate = Is10 or Is172 or Is192\n| summarize HasDomainAuth=any(HasDomainAuth), HasPublicIP=any(not(IsPrivate)), LikelyHome=any(Is192_home), Has10Range=any(Is10), Has172Range=any(Is172) by DeviceId, DeviceName\n| extend NetworkClass=case(HasDomainAuth,'Corporate (Domain Authenticated)', HasPublicIP and not(HasDomainAuth),'Public / Internet-Facing', LikelyHome,'Likely Home Network', Has10Range or Has172Range,'Corporate (Private — Enterprise)', 'Unknown Private')\n| summarize DeviceCount=count() by NetworkClass\n| order by DeviceCount desc",
+              "size": 3,
+              "title": "Network Classification Breakdown",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart",
+              "chartSettings": {
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "Corporate (Domain Authenticated)",
+                    "color": "green"
+                  },
+                  {
+                    "seriesName": "Corporate (Private — Enterprise)",
+                    "color": "blue"
+                  },
+                  {
+                    "seriesName": "Likely Home Network",
+                    "color": "orange"
+                  },
+                  {
+                    "seriesName": "Public / Internet-Facing",
+                    "color": "red"
+                  },
+                  {
+                    "seriesName": "Unknown Private",
+                    "color": "gray"
+                  }
+                ]
+              }
+            },
+            "customWidth": "25",
+            "name": "netctx-class-pie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, IPAddresses) by DeviceId, DeviceName\n| extend IPs = parse_json(IPAddresses)\n| mv-expand IPE = IPs\n| extend IP = tostring(IPE.IPAddress)\n| extend Subnet = tostring(IPE.SubnetAddress)\n| where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.'\n| extend SubnetClass=case(IP startswith '10.','10.0.0.0/8 (RFC1918)', IP startswith '172.','172.16.0.0/12 (RFC1918)', IP startswith '192.168.','192.168.0.0/16 (RFC1918)', 'Public / Routable')\n| summarize DeviceCount=dcount(DeviceId) by SubnetClass\n| order by DeviceCount desc",
+              "size": 3,
+              "title": "IP Address Class Distribution",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart",
+              "chartSettings": {
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "10.0.0.0/8 (RFC1918)",
+                    "color": "green"
+                  },
+                  {
+                    "seriesName": "172.16.0.0/12 (RFC1918)",
+                    "color": "blue"
+                  },
+                  {
+                    "seriesName": "192.168.0.0/16 (RFC1918)",
+                    "color": "yellow"
+                  },
+                  {
+                    "seriesName": "Public / Routable",
+                    "color": "red"
+                  }
+                ]
+              }
+            },
+            "customWidth": "25",
+            "name": "netctx-ipclass-pie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "DeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, IPAddresses) by DeviceId, DeviceName\n| extend IPs = parse_json(IPAddresses)\n| mv-expand IPE = IPs\n| extend IP = tostring(IPE.IPAddress)\n| where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.'\n| extend OctetParts = split(IP,'.')\n| extend Subnet24 = strcat(tostring(OctetParts[0]),'.',tostring(OctetParts[1]),'.',tostring(OctetParts[2]),'.0/24')\n| summarize DeviceCount=dcount(DeviceId) by Subnet24\n| order by DeviceCount desc\n| take 20",
+              "size": 1,
+              "title": "Top 20 Subnets by Device Count",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "categoricalbar",
+              "chartSettings": {
+                "showLegend": false
+              }
+            },
+            "customWidth": "100",
+            "name": "netctx-subnet-bar"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let LastNet = DeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, ConnectedNetworks, IPAddresses, DefaultGateways) by DeviceId, DeviceName;\nlet DevTypes = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState) by DeviceId\n| project DeviceId, DType=DeviceType, OnboardingStatus, SensorHealthState;\nLastNet\n| join kind=leftouter DevTypes on DeviceId\n| extend HasDomainAuth = tostring(parse_json(ConnectedNetworks)) has 'DomainAuthenticated'\n| extend IPs = parse_json(IPAddresses)\n| mv-expand IPE = IPs\n| extend IP = tostring(IPE.IPAddress)\n| where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.'\n| extend Is10 = IP startswith '10.'\n| extend Is172 = IP startswith '172.'\n| extend Is192_home = IP startswith '192.168.0.' or IP startswith '192.168.1.'\n| extend Is192 = IP startswith '192.168.'\n| extend IsPrivate = Is10 or Is172 or Is192\n| summarize HasDomainAuth=any(HasDomainAuth), HasPublicIP=any(not(IsPrivate)), LikelyHome=any(Is192_home), Has10Range=any(Is10), Has172Range=any(Is172), SampleIP=take_any(IP), DType=any(DType), OnboardingStatus=any(OnboardingStatus), SensorHealthState=any(SensorHealthState), GW=take_any(tostring(parse_json(DefaultGateways)[0])), NetworkName=take_any(tostring(parse_json(ConnectedNetworks)[0].Name)) by DeviceId, DeviceName\n| extend NetworkClass=case(HasDomainAuth,'Corporate (Domain Authenticated)', HasPublicIP and not(HasDomainAuth),'Public / Internet-Facing', LikelyHome,'Likely Home Network', Has10Range or Has172Range,'Corporate (Private — Enterprise)', 'Unknown Private')\n| project DeviceName, DeviceType=DType, NetworkName, LastIP=SampleIP, DefaultGateway=GW, NetworkClassification=NetworkClass, DomainAuthenticated=HasDomainAuth, OnboardingStatus, SensorHealthState\n| order by NetworkClassification asc, DeviceName asc",
+              "size": 1,
+              "title": "All Devices Network Classification Detail",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "showExportToExcel": true,
+              "exportToExcelOptions": "visible",
+              "gridSettings": {
+                "filter": true,
+                "rowLimit": 1000000,
+                "formatters": [
+                  {
+                    "columnMatch": "NetworkClassification",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Corporate (Domain Authenticated)",
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Corporate (Private — Enterprise)",
+                          "representation": "blue",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Likely Home Network",
+                          "representation": "orange",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Public / Internet-Facing",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "gray",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "DomainAuthenticated",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "true",
+                          "representation": "success",
+                          "text": "Domain Auth{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "unknown",
+                          "text": "No Domain Auth{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "OnboardingStatus",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Onboarded",
+                          "representation": "success",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "CanBeOnboarded",
+                          "representation": "3",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "NotOnboarded",
+                          "representation": "2",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "unknown",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "name": "netctx-all-grid"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "**Risk Signals** Non-mobile corporate devices last seen on Home or Public networks. Immediate investigation priority.",
+              "style": "error"
+            },
+            "name": "netctx-risk-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let LastNet = DeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, ConnectedNetworks, IPAddresses) by DeviceId, DeviceName;\nlet DevTypes = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState, MachineGroup) by DeviceId\n| project DeviceId, DType=DeviceType, OnboardingStatus, SensorHealthState, MachineGroup;\nLastNet\n| join kind=leftouter DevTypes on DeviceId\n| extend HasDomainAuth = tostring(parse_json(ConnectedNetworks)) has 'DomainAuthenticated'\n| extend IPs = parse_json(IPAddresses)\n| mv-expand IPE = IPs\n| extend IP = tostring(IPE.IPAddress)\n| where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.'\n| extend Is192_home = IP startswith '192.168.0.' or IP startswith '192.168.1.'\n| extend Is192 = IP startswith '192.168.'\n| extend Is10 = IP startswith '10.'\n| extend Is172 = IP startswith '172.'\n| extend IsPrivate = Is10 or Is172 or Is192\n| summarize HasDomainAuth=any(HasDomainAuth), HasPublicIP=any(not(IsPrivate)), LikelyHome=any(Is192_home), SampleIP=take_any(IP), DType=any(DType), OnboardingStatus=any(OnboardingStatus), SensorHealthState=any(SensorHealthState), MachineGroup=any(MachineGroup), NetworkName=take_any(tostring(parse_json(ConnectedNetworks)[0].Name)) by DeviceId, DeviceName\n| extend NetworkClass=case(HasDomainAuth,'Corporate', HasPublicIP and not(HasDomainAuth),'Public', LikelyHome,'Home', 'Other')\n| where NetworkClass in ('Public','Home')\n| where DType !in~ ('MobilePhone','Smartphone','Tablet')\n| extend RiskLevel=iff(NetworkClass=='Public','HIGH — Device on Public / Internet-Facing Network','MEDIUM — Corporate Asset Detected on Home Network')\n| project DeviceName, DeviceType=DType, NetworkName, LastIP=SampleIP, NetworkType=NetworkClass, RiskLevel, OnboardingStatus, SensorHealthState, MachineGroup\n| order by RiskLevel asc",
+              "size": 0,
+              "title": "Risk Signals: Non-Mobile Assets on Home or Public Networks",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "showExportToExcel": true,
+              "exportToExcelOptions": "visible",
+              "noDataMessage": "No risk signals detected, all non-mobile corporate assets appear to be on corporate or expected private networks.",
+              "noDataMessageStyle": 3,
+              "gridSettings": {
+                "filter": true,
+                "rowLimit": 10000,
+                "formatters": [
+                  {
+                    "columnMatch": "RiskLevel",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "HIGH",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "contains",
+                          "thresholdValue": "MEDIUM",
+                          "representation": "orange",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "NetworkType",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Public",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Home",
+                          "representation": "orange",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "OnboardingStatus",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Onboarded",
+                          "representation": "success",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "CanBeOnboarded",
+                          "representation": "3",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "NotOnboarded",
+                          "representation": "2",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "unknown",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "name": "netctx-risk-grid"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "NetworkContext"
+      },
+      "name": "group-netctx"
+    }
+  ],
+  "fallbackResourceIds": [
+    "/subscriptions/882d9ca8-f61e-4cc8-a081-dc01aab06b8a/resourcegroups/soc-central/providers/microsoft.operationalinsights/workspaces/soc-central"
+  ],
+  "fromTemplateId": "sentinel-UserWorkbook",
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

@@ -1,0 +1,69 @@
+// ============================================================
+// OWA File Downloads from Unmanaged/Personal Devices
+// Source: Microsoft Defender for Cloud Apps (CloudAppEvents)
+// ============================================================
+// PREREQUISITE: Requires MDCA with Exchange Online app connector AND
+// Conditional Access App Control (CAAC) session policy enabled for OWA.
+// Without CAAC, unmanaged device downloads are NOT captured here.
+// Steps to enable: XDR Portal > Settings > Cloud Apps > App Connectors > Microsoft 365
+//                  Entra ID > Conditional Access > Session Control > Use Conditional Access App Control
+// ============================================================
+
+// --- Query 1: All OWA attachment/file downloads (last 7 days) ---
+CloudAppEvents
+| where Timestamp > ago(7d)
+| where Application == "Microsoft Exchange Online"
+| where ActionType has_any ("MailItemsAccessed", "AttachmentDownloaded", "FileDownloaded", "FolderBind")
+| extend UserId = tostring(RawEventData.UserId)
+| extend ClientInfoString = tostring(RawEventData.ClientInfoString)
+| extend AttachmentFileName = tostring(RawEventData.AttachmentFileName)
+| extend MailboxItemSubject = tostring(RawEventData.Item.Subject)
+| project Timestamp, UserId, IPAddress, ISP, CountryCode, City,
+          DeviceType, OSPlatform, UserAgent,
+          ActionType, AttachmentFileName, MailboxItemSubject,
+          ClientInfoString, RawEventData
+| where ClientInfoString has_any ("OWA", "OutlookWebApp", "REST") // OWA-specific access
+| order by Timestamp desc
+
+// ============================================================
+// --- Query 2: Downloads from suspicious/foreign IP geolocations ---
+CloudAppEvents
+| where Timestamp > ago(7d)
+| where Application == "Microsoft Exchange Online"
+| where ActionType has_any ("MailItemsAccessed", "AttachmentDownloaded", "FileDownloaded")
+| extend UserId = tostring(RawEventData.UserId)
+| extend ClientInfoString = tostring(RawEventData.ClientInfoString)
+| where ClientInfoString has_any ("OWA", "OutlookWebApp")
+// Flag non-domestic countries — update "US" to match your org's expected countries
+| where CountryCode !in ("US", "CA", "GB")  // adjust to your org
+| project Timestamp, UserId, IPAddress, ISP, CountryCode, City, DeviceType, ActionType, RawEventData
+| order by Timestamp desc
+
+// ============================================================
+// --- Query 3: High-volume OWA downloads per user (potential data theft) ---
+CloudAppEvents
+| where Timestamp > ago(7d)
+| where Application == "Microsoft Exchange Online"
+| where ActionType has_any ("MailItemsAccessed", "AttachmentDownloaded", "FileDownloaded")
+| extend UserId = tostring(RawEventData.UserId)
+| extend ClientInfoString = tostring(RawEventData.ClientInfoString)
+| where ClientInfoString has_any ("OWA", "OutlookWebApp")
+| summarize DownloadCount = count(), DistinctIPs = dcount(IPAddress),
+            Countries = make_set(CountryCode), FirstSeen = min(Timestamp), LastSeen = max(Timestamp)
+            by UserId
+| where DownloadCount > 50  // tune this threshold for your org
+| order by DownloadCount desc
+
+// ============================================================
+// --- Query 4: OWA access from non-compliant/unmanaged devices (no DeviceId) ---
+CloudAppEvents
+| where Timestamp > ago(7d)
+| where Application == "Microsoft Exchange Online"
+| where ActionType has_any ("MailItemsAccessed", "AttachmentDownloaded", "FileDownloaded")
+| extend UserId = tostring(RawEventData.UserId)
+| extend ClientInfoString = tostring(RawEventData.ClientInfoString)
+| where ClientInfoString has_any ("OWA", "OutlookWebApp")
+| where isempty(DeviceId)  // no MDE device ID = unmanaged/personal device
+| project Timestamp, UserId, IPAddress, ISP, CountryCode, DeviceType,
+          OSPlatform, UserAgent, ActionType, RawEventData
+| order by Timestamp desc

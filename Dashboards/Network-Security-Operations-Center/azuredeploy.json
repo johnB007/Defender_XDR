@@ -4,7 +4,7 @@
   "parameters": {
     "workbookDisplayName": {
       "type": "string",
-      "defaultValue": "Network Security Operations Center - ENHANCED",
+      "defaultValue": "Network Security Operations Center",
       "metadata": {
         "description": "Display name for the workbook in Azure Monitor / Sentinel."
       }

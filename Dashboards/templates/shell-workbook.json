@@ -1,0 +1,192 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "## WORKBOOK_TITLE\nWorkbook description goes here.",
+        "style": "0"
+      },
+      "name": "banner-header"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "time-range",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "type": 4,
+            "isRequired": true,
+            "typeSettings": {
+              "selectableValues": [
+                { "durationMs": 3600000 },
+                { "durationMs": 14400000 },
+                { "durationMs": 43200000 },
+                { "durationMs": 86400000 },
+                { "durationMs": 259200000 },
+                { "durationMs": 604800000 },
+                { "durationMs": 2592000000 }
+              ],
+              "allowCustom": true
+            },
+            "value": { "durationMs": 604800000 },
+            "label": "Time Range"
+          }
+        ],
+        "style": "pills"
+      },
+      "name": "parameters-timerange"
+    },
+    {
+      "type": 11,
+      "content": {
+        "version": "LinkItem/1.0",
+        "style": "tabs",
+        "links": [
+          {
+            "id": "tab-1",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "Tab 1",
+            "subTarget": "Tab1",
+            "style": "link"
+          },
+          {
+            "id": "tab-2",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "Tab 2",
+            "subTarget": "Tab2",
+            "style": "link"
+          },
+          {
+            "id": "tab-map",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "Map",
+            "subTarget": "Map",
+            "style": "link"
+          }
+        ]
+      },
+      "name": "tab-navigation"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "### Tab 1 Content\nAdd queries and visualizations here."
+            },
+            "name": "tab1-placeholder"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "Tab1"
+      },
+      "name": "group-tab1"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "### Tab 2 Content\nAdd queries and visualizations here."
+            },
+            "name": "tab2-placeholder"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "Tab2"
+      },
+      "name": "group-tab2"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "## Global Threat Map\nGeographic visualization of external threat sources. Replace the placeholder query below with your KQL."
+            },
+            "name": "text-map-header"
+          },
+          {
+            "type": 3,
+            "name": "map-visualization",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// Replace with your KQL query\n// Must project: Country, HeatScore, SizeScore, TotalActivity\nprint Country='placeholder', HeatScore=0, SizeScore=0, TotalActivity=0",
+              "size": 3,
+              "title": "Global Threat Distribution by Country",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "map",
+              "mapSettings": {
+                "locInfo": "CountryRegion",
+                "locInfoColumn": "Country",
+                "sizeSettings": "SizeScore",
+                "sizeAggregation": "Sum",
+                "minSize": 10,
+                "maxSize": 60,
+                "opacity": 0.85,
+                "defaultZoom": 1,
+                "autoZoom": false,
+                "centerLat": 20,
+                "centerLong": 0,
+                "labelSettings": "Country",
+                "legendMetric": "TotalActivity",
+                "legendAggregation": "Sum",
+                "numberFormatSettings": {
+                  "unit": 0,
+                  "options": {
+                    "style": "decimal",
+                    "useGrouping": true,
+                    "maximumFractionDigits": 2,
+                    "maximumSignificantDigits": 4
+                  }
+                },
+                "itemColorSettings": {
+                  "nodeColorField": "HeatScore",
+                  "colorAggregation": "Sum",
+                  "type": "heatmap",
+                  "heatmapPalette": "yellowOrangeRed"
+                }
+              }
+            },
+            "customWidth": "100",
+            "customHeight": "900"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "Map"
+      },
+      "name": "group-map"
+    }
+  ],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

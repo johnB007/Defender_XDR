@@ -19,7 +19,7 @@
             "id": "tab-overview",
             "cellValue": "Tab",
             "linkTarget": "parameter",
-              "linkLabel": "Overview",
+            "linkLabel": "Overview",
             "subTarget": "Overview",
             "style": "button"
           },
@@ -126,6 +126,33 @@
             "value": {
               "durationMs": 2592000000
             }
+          },
+          {
+            "id": "a1000001-0001-0001-0001-000000000002",
+            "version": "KqlParameterItem/1.0",
+            "name": "DeviceFilter",
+            "label": "Device Name",
+            "type": 1,
+            "description": "Optional - substring match on Device Name (leave blank for all)",
+            "value": ""
+          },
+          {
+            "id": "a1000001-0001-0001-0001-000000000003",
+            "version": "KqlParameterItem/1.0",
+            "name": "IPFilter",
+            "label": "IP Address",
+            "type": 1,
+            "description": "Optional - substring match on any IP (e.g. 10.20. or full IP)",
+            "value": ""
+          },
+          {
+            "id": "a1000001-0001-0001-0001-000000000004",
+            "version": "KqlParameterItem/1.0",
+            "name": "MACFilter",
+            "label": "MAC Address",
+            "type": 1,
+            "description": "Optional - substring match on MAC Address (e.g. 00-1A or full MAC)",
+            "value": ""
           }
         ],
         "style": "pills",
@@ -143,7 +170,7 @@
           {
             "type": 1,
             "content": {
-              "json": "**Device Discovery** &nbsp;·&nbsp; Inventory summary from `DeviceInfo` with network context from `DeviceNetworkInfo` &nbsp;·&nbsp; KPI tiles follow the selected Time Range &nbsp;·&nbsp; _Top summary tiles are mutually exclusive categories and add up to Total Discovered. Onboarding counts remain in the detailed tabs._",
+              "json": "**Device Discovery** &nbsp;·&nbsp; Inventory summary from `DeviceInfo` with network context from `DeviceNetworkInfo` &nbsp;·&nbsp; KPI tiles follow Time Range and the Device / IP / MAC filters &nbsp;·&nbsp; _Top summary tiles use the same broadened classification (DeviceType + hostname patterns + OSPlatform) as the detail tabs, so totals reconcile across tabs._",
               "style": "info"
             },
             "name": "overview-header"
@@ -152,7 +179,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform) by DeviceId\n| summarize TotalDiscovered=count(), EndpointsOther=countif(DeviceType !in~ ('NetworkDevice','Printer','Camera','Webcam','AudioVideoEquipment','VideoSurveillance','IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer','MobilePhone','Smartphone','Tablet')), NetworkDevices=countif(DeviceType=~'NetworkDevice'), Cameras=countif(DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance')), Printers=countif(DeviceType=~'Printer'), IoT=countif(DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer')), Mobile=countif(DeviceType in~ ('MobilePhone','Smartphone','Tablet'))\n| mv-expand kv=pack_array(pack('label','Total Discovered','value',TotalDiscovered), pack('label','Endpoints / Other','value',EndpointsOther), pack('label','Network Devices','value',NetworkDevices), pack('label','Cameras','value',Cameras), pack('label','Printers','value',Printers), pack('label','IoT & OT','value',IoT), pack('label','Mobile / Tablet','value',Mobile))\n| project label=tostring(kv.label), value=toreal(kv.value)",
+              "query": "let _df = '{DeviceFilter}';\nlet _ip = '{IPFilter}';\nlet _mac = '{MACFilter}';\nlet Net = DeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, IPAddresses, MacAddress) by DeviceId\n| extend IPs = parse_json(IPAddresses)\n| mv-expand IPE = IPs\n| extend IP = tostring(IPE.IPAddress)\n| summarize IPList = make_set(IP), Mac = take_any(MacAddress) by DeviceId;\nlet Base = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform) by DeviceId, DeviceName\n| join kind=leftouter Net on DeviceId\n| where _df == '' or DeviceName has _df\n| where _mac == '' or Mac has _mac\n| where _ip == '' or tostring(IPList) has _ip\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsCamera = DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo','AudioAndVideo') or NameLc has_any ('cctv','nvr','dvr','ipcam','hikvision','dahua','axis','vivotek','pelco','arlo','reolink','amcrest')\n| extend IsPrinter = DeviceType =~ 'Printer' or NameLc has_any ('printer','prn-','laserjet','officejet','copier','mfp','mfd','xerox','ricoh','konica','kyocera')\n| extend IsNetInfra = DeviceType =~ 'NetworkDevice' or NameLc has_any ('router','rtr-','switch','sw-','firewall','fw-','checkpoint','palo','fortinet','juniper','cisco','aruba','ubiquiti','meraki','ruckus','sonicwall','watchguard','netgear','zyxel','mikrotik','access-point','ap-','wap-','wireless','gateway','gw-','load-balancer','lb-','f5-')\n| extend IsIoT = DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded') or NameLc has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-','vending','badge-reader','intercom')\n| extend IsMobile = DeviceType in~ ('MobilePhone','Smartphone','Mobile','Mobile','Tablet','Mobile') or OSPlatform in~ ('iOS','iPadOS','Android','AndroidEnterprise')\n| extend IsComputerType = DeviceType in~ ('Workstation','Desktop','Laptop','Server')\n| extend IsWindowsLikeEndpoint = OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n// Only count as Camera/Printer/NetInfra/IoT when not a regular endpoint\n| extend IsCameraFinal = IsCamera and not(IsComputerType) and not(IsWindowsLikeEndpoint and not(DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo','AudioAndVideo')))\n| extend IsPrinterFinal = IsPrinter and not(IsComputerType)\n| extend IsNetInfraFinal = IsNetInfra and not(IsComputerType)\n| extend IsIoTFinal = IsIoT and not(IsComputerType)\n| extend IsMobileFinal = IsMobile and not(IsComputerType)\n| extend IsComputer = IsComputerType or (IsWindowsLikeEndpoint and not(IsCameraFinal or IsPrinterFinal or IsNetInfraFinal or IsIoTFinal or IsMobileFinal));\nBase\n| where IsComputer or IsNetInfraFinal or IsCameraFinal or IsPrinterFinal or IsIoTFinal or IsMobileFinal\n| summarize TotalDiscovered = count(),\n            Computers = countif(IsComputer),\n            NetworkDevices = countif(IsNetInfraFinal),\n            Cameras = countif(IsCameraFinal),\n            Printers = countif(IsPrinterFinal),\n            IoT = countif(IsIoTFinal),\n            Mobile = countif(IsMobileFinal)\n| mv-expand kv = pack_array(\n    pack('label','Total Discovered','value',TotalDiscovered),\n    pack('label','Computers / Servers','value',Computers),\n    pack('label','Network Devices','value',NetworkDevices),\n    pack('label','Cameras','value',Cameras),\n    pack('label','Printers','value',Printers),\n    pack('label','IoT & OT','value',IoT),\n    pack('label','Mobile / Tablet','value',Mobile))\n| project label = tostring(kv.label), value = toreal(kv.value)",
               "size": 4,
               "title": "Inventory Breakdown",
               "timeContextFromParameter": "TimeRange",
@@ -161,12 +188,22 @@
               "visualization": "tiles",
               "tileSettings": {
                 "showBorder": true,
-                "titleContent": { "columnMatch": "label" },
+                "titleContent": {
+                  "columnMatch": "label"
+                },
                 "leftContent": {
                   "columnMatch": "value",
                   "formatter": 12,
-                  "formatOptions": { "palette": "auto" },
-                  "numberFormat": { "unit": 17, "options": { "style": "decimal", "maximumFractionDigits": 1 } }
+                  "formatOptions": {
+                    "palette": "auto"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 1
+                    }
+                  }
                 }
               }
             },
@@ -186,7 +223,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let LastNet = DeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, ConnectedNetworks) by DeviceId;\nlet DevTypes = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType) by DeviceId\n| project DeviceId, DeviceType;\nlet Rows = LastNet\n| join kind=leftouter DevTypes on DeviceId\n| mv-expand Net = parse_json(ConnectedNetworks)\n| extend NetworkName = tostring(Net.Name)\n| where isnotempty(NetworkName)\n| extend Category=case(\n    DeviceType in~ ('Workstation','Desktop','Laptop'),'Workstation',\n    DeviceType=~'Server','Server',\n    DeviceType=~'NetworkDevice','Network Device',\n    DeviceType=~'Printer','Printer',\n    DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance'),'Camera / Video',\n    DeviceType in~ ('MobilePhone','Smartphone','Tablet'),'Mobile',\n    DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer'),'IoT / Smart Device',\n    'Unknown')\n| summarize DeviceCount=dcount(DeviceId) by NetworkName, Category;\nlet Totals = Rows | summarize TotalDevices=sum(DeviceCount) by NetworkName;\nRows\n| join kind=leftouter Totals on NetworkName\n| order by TotalDevices desc, Category asc\n| project NetworkName, Category, DeviceCount",
+              "query": "let LastNet = DeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, ConnectedNetworks) by DeviceId;\nlet DevTypes = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType) by DeviceId\n| project DeviceId, DeviceType;\nlet Rows = LastNet\n| join kind=leftouter DevTypes on DeviceId\n| mv-expand Net = parse_json(ConnectedNetworks)\n| extend NetworkName = tostring(Net.Name)\n| where isnotempty(NetworkName)\n| extend Category=case(\n    DeviceType in~ ('Workstation','Desktop','Laptop'),'Workstation',\n    DeviceType=~'Server','Server',\n    DeviceType=~'NetworkDevice','Network Device',\n    DeviceType=~'Printer','Printer',\n    DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo','AudioAndVideo'),'Camera / Video',\n    DeviceType in~ ('MobilePhone','Smartphone','Mobile','Mobile','Tablet','Mobile'),'Mobile',\n    DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer'),'IoT / Smart Device',\n    'Unknown')\n| summarize DeviceCount=dcount(DeviceId) by NetworkName, Category;\nlet Totals = Rows | summarize TotalDevices=sum(DeviceCount) by NetworkName;\nRows\n| join kind=leftouter Totals on NetworkName\n| order by TotalDevices desc, Category asc\n| project NetworkName, Category, DeviceCount",
               "size": 3,
               "title": "Device Categories per Network / SSID",
               "timeContextFromParameter": "TimeRange",
@@ -241,7 +278,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let LastNet = DeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, ConnectedNetworks) by DeviceId;\nlet DevTypes = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType) by DeviceId\n| project DeviceId, DeviceType;\nLastNet\n| join kind=leftouter DevTypes on DeviceId\n| mv-expand Net = parse_json(ConnectedNetworks)\n| extend NetworkName = tostring(Net.Name)\n| where isnotempty(NetworkName)\n| summarize\n    TotalDevices   = dcount(DeviceId),\n    Workstations   = dcountif(DeviceId, DeviceType in~ ('Workstation','Desktop','Laptop')),\n    Servers        = dcountif(DeviceId, DeviceType=~'Server'),\n    NetworkDevices = dcountif(DeviceId, DeviceType=~'NetworkDevice'),\n    Cameras        = dcountif(DeviceId, DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance')),\n    Printers       = dcountif(DeviceId, DeviceType=~'Printer'),\n    IoT            = dcountif(DeviceId, DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer')),\n    Mobile         = dcountif(DeviceId, DeviceType in~ ('MobilePhone','Smartphone','Tablet')),\n    Unknown        = dcountif(DeviceId, isempty(DeviceType) or DeviceType=~'Unknown')\n    by NetworkName\n| order by TotalDevices desc",
+              "query": "let LastNet = DeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, ConnectedNetworks) by DeviceId;\nlet DevTypes = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType) by DeviceId\n| project DeviceId, DeviceType;\nLastNet\n| join kind=leftouter DevTypes on DeviceId\n| mv-expand Net = parse_json(ConnectedNetworks)\n| extend NetworkName = tostring(Net.Name)\n| where isnotempty(NetworkName)\n| summarize\n    TotalDevices   = dcount(DeviceId),\n    Workstations   = dcountif(DeviceId, DeviceType in~ ('Workstation','Desktop','Laptop')),\n    Servers        = dcountif(DeviceId, DeviceType=~'Server'),\n    NetworkDevices = dcountif(DeviceId, DeviceType=~'NetworkDevice'),\n    Cameras        = dcountif(DeviceId, DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo','AudioAndVideo')),\n    Printers       = dcountif(DeviceId, DeviceType=~'Printer'),\n    IoT            = dcountif(DeviceId, DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer')),\n    Mobile         = dcountif(DeviceId, DeviceType in~ ('MobilePhone','Smartphone','Mobile','Mobile','Tablet','Mobile')),\n    Unknown        = dcountif(DeviceId, isempty(DeviceType) or DeviceType=~'Unknown')\n    by NetworkName\n| order by TotalDevices desc",
               "size": 1,
               "title": "Network / SSID Breakdown by Device Type",
               "timeContextFromParameter": "TimeRange",
@@ -287,7 +324,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType) by DeviceId\n| extend Category=case(DeviceType in~ ('Workstation','Desktop','Laptop'),'Workstation', DeviceType=~'Server','Server', DeviceType=~'NetworkDevice','Network Device', DeviceType=~'Printer','Printer', DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance'),'Camera / Video', DeviceType in~ ('MobilePhone','Smartphone'),'Mobile Phone', DeviceType=~'Tablet','Tablet', DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer'),'IoT / Smart Device', isempty(DeviceType) or DeviceType=~'Unknown','Unknown', DeviceType)\n| summarize Count=count() by Category\n| order by Count desc",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType) by DeviceId\n| extend Category=case(DeviceType in~ ('Workstation','Desktop','Laptop'),'Workstation', DeviceType=~'Server','Server', DeviceType=~'NetworkDevice','Network Device', DeviceType=~'Printer','Printer', DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo','AudioAndVideo'),'Camera / Video', DeviceType in~ ('MobilePhone','Smartphone','Mobile','Mobile'),'Mobile Phone', DeviceType=~'Tablet','Tablet', DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer'),'IoT / Smart Device', isempty(DeviceType) or DeviceType=~'Unknown','__DROP__', DeviceType)\n| where Category != '__DROP__'\n| summarize Count=count() by Category\n| order by Count desc",
               "size": 3,
               "title": "Device Type Distribution",
               "timeContextFromParameter": "TimeRange",
@@ -302,7 +339,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType) by DeviceId\n| extend Category=case(DeviceType in~ ('Workstation','Desktop','Laptop'),'Workstation', DeviceType=~'Server','Server', DeviceType=~'NetworkDevice','Network Device', DeviceType=~'Printer','Printer', DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance'),'Camera / Video', DeviceType in~ ('MobilePhone','Smartphone'),'Mobile Phone', DeviceType=~'Tablet','Tablet', DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer'),'IoT / Smart Device', isempty(DeviceType) or DeviceType=~'Unknown','Unknown', DeviceType)\n| summarize Count=count() by Category\n| order by Count asc",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType) by DeviceId\n| extend Category=case(DeviceType in~ ('Workstation','Desktop','Laptop'),'Workstation', DeviceType=~'Server','Server', DeviceType=~'NetworkDevice','Network Device', DeviceType=~'Printer','Printer', DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo','AudioAndVideo'),'Camera / Video', DeviceType in~ ('MobilePhone','Smartphone','Mobile','Mobile'),'Mobile Phone', DeviceType=~'Tablet','Tablet', DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer'),'IoT / Smart Device', isempty(DeviceType) or DeviceType=~'Unknown','__DROP__', DeviceType)\n| where Category != '__DROP__'\n| summarize Count=count() by Category\n| order by Count asc",
               "size": 3,
               "title": "Asset Count by Category",
               "timeContextFromParameter": "TimeRange",
@@ -317,7 +354,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform) by DeviceId\n| extend Category=case(DeviceType in~ ('Workstation','Desktop','Laptop'),'Workstation', DeviceType=~'Server','Server', DeviceType=~'NetworkDevice','Network Device', DeviceType=~'Printer','Printer', DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance'),'Camera', DeviceType in~ ('MobilePhone','Smartphone','Tablet'),'Mobile', DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer'),'IoT', isempty(DeviceType) or DeviceType=~'Unknown','Unknown', DeviceType)\n| summarize Devices=dcount(DeviceId) by Day=bin(Timestamp,1d), Category\n| order by Day asc",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform) by DeviceId\n| extend Category=case(DeviceType in~ ('Workstation','Desktop','Laptop'),'Workstation', DeviceType=~'Server','Server', DeviceType=~'NetworkDevice','Network Device', DeviceType=~'Printer','Printer', DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo','AudioAndVideo'),'Camera', DeviceType in~ ('MobilePhone','Smartphone','Mobile','Mobile','Tablet','Mobile'),'Mobile', DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer'),'IoT', isempty(DeviceType) or DeviceType=~'Unknown','__DROP__', DeviceType)\n| where Category != '__DROP__'\n| summarize Devices=dcount(DeviceId) by Day=bin(Timestamp,1d), Category\n| order by Day asc",
               "size": 1,
               "title": "Active Device Trend by Category (over Time Range)",
               "timeContextFromParameter": "TimeRange",
@@ -358,13 +395,13 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus) by DeviceId\n| extend Category=case(DeviceType in~ ('Workstation','Desktop','Laptop'),'Workstation', DeviceType=~'Server','Server', DeviceType=~'NetworkDevice','Network Device', DeviceType=~'Printer','Printer', DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance'),'Camera / Video', DeviceType in~ ('MobilePhone','Smartphone'),'Mobile Phone', DeviceType=~'Tablet','Tablet', DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer'),'IoT / Smart Device', isempty(DeviceType) or DeviceType=~'Unknown','Unknown', DeviceType)\n| summarize Devices=count() by Category, OnboardingStatus\n| order by Devices desc",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| where OnboardingStatus =~ 'Onboarded'\n| extend Category = case(DeviceType in~ ('Workstation','Desktop','Laptop','Server'), 'Computer / Server', DeviceType =~ 'NetworkDevice', 'Network Device', DeviceType =~ 'Printer', 'Printer', DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo'), 'Camera / Video', DeviceType in~ ('MobilePhone','Smartphone','Tablet','Mobile'), 'Mobile / Tablet', DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer'), 'IoT / Smart Device', OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux'), 'Computer / Server', 'Other Network Device')\n| summarize Devices = count() by Category\n| order by Devices desc",
               "size": 2,
-              "title": "Devices by Category and Onboarding Status",
+              "title": "Onboarded Devices Only - by Category",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "categoricalbar",
+              "visualization": "barchart",
               "chartSettings": {
                 "showLegend": true,
                 "seriesLabelSettings": [
@@ -373,11 +410,11 @@
                     "color": "green"
                   },
                   {
-                    "seriesName": "NotOnboarded",
+                    "seriesName": "Insufficient info",
                     "color": "red"
                   },
                   {
-                    "seriesName": "CanBeOnboarded",
+                    "seriesName": "Can be onboarded",
                     "color": "blue"
                   },
                   {
@@ -387,14 +424,29 @@
                 ]
               }
             },
-            "customWidth": "100",
+            "customWidth": "50",
             "name": "alldevices-stacked-bar"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform, OSVersion, OnboardingStatus, SensorHealthState, JoinType, IsAzureADJoined, PublicIP, MachineGroup, ExposureLevel) by DeviceId, DeviceName\n| join kind=leftouter (DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP) by DeviceId) on DeviceId\n| extend Category=case(DeviceType in~ ('Workstation','Desktop','Laptop'),'Workstation', DeviceType=~'Server','Server', DeviceType=~'NetworkDevice','Network Device', DeviceType=~'Printer','Printer', DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance'),'Camera / Video', DeviceType in~ ('MobilePhone','Smartphone'),'Mobile Phone', DeviceType=~'Tablet','Tablet', DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer'),'IoT / Smart Device', isempty(DeviceType) or DeviceType=~'Unknown','Unknown', DeviceType)\n| extend DomainJoined=case(JoinType=~'AAD Joined' or IsAzureADJoined==1,'AAD Joined', isnotempty(JoinType),JoinType,'Not Joined')\n| project DeviceName, Category, DeviceType, OSPlatform, OSVersion, OnboardingStatus, SensorHealthState, DomainJoined, LastIPAddress, PublicIP, MachineGroup, ExposureLevel, LastSeen=Timestamp\n| order by LastSeen desc",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| where OnboardingStatus =~ 'Can be onboarded'\n| extend Category = case(DeviceType in~ ('Workstation','Desktop','Laptop','Server'), 'Computer / Server', DeviceType =~ 'NetworkDevice', 'Network Device', DeviceType =~ 'Printer', 'Printer', DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo'), 'Camera / Video', DeviceType in~ ('MobilePhone','Smartphone','Tablet','Mobile'), 'Mobile / Tablet', DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer'), 'IoT / Smart Device', OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux'), 'Computer / Server', 'Other Network Device')\n| summarize Devices = count() by Category\n| order by Devices desc",
+              "size": 2,
+              "title": "Devices That Can Be Onboarded - by Category",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart"
+            },
+            "customWidth": "50",
+            "name": "alldevices-canbe-bar"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let _df = '{DeviceFilter}';\nlet _ip = '{IPFilter}';\nlet _mac = '{MACFilter}';\nlet _Net = DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses, MacAddress) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP), IPList=make_set(IP), Mac=take_any(MacAddress) by DeviceId;\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform, OSVersion, OnboardingStatus, SensorHealthState, JoinType, IsAzureADJoined, PublicIP, MachineGroup, ExposureLevel) by DeviceId, DeviceName\n| join kind=leftouter _Net on DeviceId\n| where _df == '' or DeviceName has _df\n| where _ip == '' or tostring(IPList) has _ip\n| where _mac == '' or Mac has _mac\n| extend Category = case(DeviceType in~ ('Workstation','Desktop','Laptop','Server'), 'Computer / Server', DeviceType =~ 'NetworkDevice', 'Network Device', DeviceType =~ 'Printer', 'Printer', DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo'), 'Camera / Video', DeviceType in~ ('MobilePhone','Smartphone','Tablet','Mobile'), 'Mobile / Tablet', DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer'), 'IoT / Smart Device', OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux'), 'Computer / Server', 'Other Network Device')\n| extend DomainJoined = case(JoinType =~ 'AAD Joined' or IsAzureADJoined == 1, 'AAD Joined', isnotempty(JoinType), JoinType, 'Not Joined')\n| project DeviceName, DeviceId, Category, DeviceType, OSPlatform, OSVersion, OnboardingStatus, SensorHealthState, DomainJoined, LastIPAddress, MAC=Mac, PublicIP, MachineGroup, ExposureLevel, LastSeen=Timestamp\n| order by LastSeen desc, DeviceName asc\n| top 1000 by LastSeen desc",
               "size": 1,
               "title": "Full Device Inventory (All Discovered)",
               "timeContextFromParameter": "TimeRange",
@@ -404,8 +456,18 @@
               "exportToExcelOptions": "visible",
               "gridSettings": {
                 "filter": true,
-                "rowLimit": 1000000,
+                "rowLimit": 1000,
                 "formatters": [
+                  {
+                    "columnMatch": "DeviceName",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "Url",
+                      "linkLabel": "",
+                      "customColumnWidthSetting": "24ch",
+                      "linkUrlTemplate": "https://security.microsoft.com/machines/{DeviceId}/overview"
+                    }
+                  },
                   {
                     "columnMatch": "OnboardingStatus",
                     "formatter": 18,
@@ -420,13 +482,13 @@
                         },
                         {
                           "operator": "==",
-                          "thresholdValue": "CanBeOnboarded",
+                          "thresholdValue": "Can be onboarded",
                           "representation": "3",
                           "text": "{0}{1}"
                         },
                         {
                           "operator": "==",
-                          "thresholdValue": "NotOnboarded",
+                          "thresholdValue": "Insufficient info",
                           "representation": "2",
                           "text": "{0}{1}"
                         },
@@ -492,6 +554,10 @@
                         }
                       ]
                     }
+                  },
+                  {
+                    "columnMatch": "DeviceId",
+                    "formatter": 5
                   }
                 ]
               }
@@ -526,7 +592,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus) by DeviceId, DeviceName\n| where DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance') or DeviceName has_any ('cam','cctv','nvr','dvr','ipcam','hikvision','dahua','axis','vivotek','pelco','bosch-cam','arlo','reolink','amcrest')\n| summarize TotalCameras=count(), Onboarded=countif(OnboardingStatus=~'Onboarded'), CanBeOnboarded=countif(OnboardingStatus=~'CanBeOnboarded'), NotOnboarded=countif(OnboardingStatus=~'NotOnboarded'), Unsupported=countif(OnboardingStatus=~'Unsupported'), Unknown=countif(isempty(OnboardingStatus) or OnboardingStatus !in~ ('Onboarded','CanBeOnboarded','NotOnboarded','Unsupported'))\n| mv-expand kv=pack_array(pack('label','Total Cameras','value',TotalCameras), pack('label','Onboarded','value',Onboarded), pack('label','Can Be Onboarded','value',CanBeOnboarded), pack('label','Not Onboarded','value',NotOnboarded), pack('label','Unsupported (Expected)','value',Unsupported), pack('label','Unknown','value',Unknown))\n| project label=tostring(kv.label), value=toint(kv.value)",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo')\n| extend IsByName = NameLc has_any ('cctv','nvr','dvr','ipcam','hikvision','dahua','axis','vivotek','pelco','bosch-cam','arlo','reolink','amcrest','-cam-','cam-')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| summarize TotalCameras=count(), Onboarded=countif(OnboardingStatus=~'Onboarded'), CanBeOnboarded=countif(OnboardingStatus=~'Can be onboarded'), Insufficient=countif(OnboardingStatus=~'Insufficient info'), Unsupported=countif(OnboardingStatus=~'Unsupported')\n| mv-expand kv=pack_array(pack('label','Total Cameras','value',TotalCameras), pack('label','Onboarded','value',Onboarded), pack('label','Can Be Onboarded','value',CanBeOnboarded), pack('label','Insufficient Info','value',Insufficient), pack('label','Unsupported (Expected)','value',Unsupported))\n| project label=tostring(kv.label), value=toint(kv.value)",
               "size": 4,
               "title": "Camera Inventory KPI",
               "timeContextFromParameter": "TimeRange",
@@ -561,7 +627,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus) by DeviceId, DeviceName\n| where DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance') or DeviceName has_any ('cam','cctv','nvr','dvr','ipcam','hikvision','dahua','axis','vivotek','pelco','bosch-cam','arlo','reolink','amcrest')\n| extend StatusLabel=case(OnboardingStatus=~'Onboarded','Onboarded', OnboardingStatus=~'CanBeOnboarded','Can Be Onboarded', OnboardingStatus=~'NotOnboarded','Not Onboarded', OnboardingStatus=~'Unsupported','Unsupported', 'Unknown')\n| summarize Count=count() by StatusLabel",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo')\n| extend IsByName = NameLc has_any ('cctv','nvr','dvr','ipcam','hikvision','dahua','axis','vivotek','pelco','bosch-cam','arlo','reolink','amcrest','-cam-','cam-')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| extend StatusLabel=case(OnboardingStatus=~'Onboarded','Onboarded', OnboardingStatus=~'Can be onboarded','Can Be Onboarded', OnboardingStatus=~'Insufficient info','Insufficient Info', OnboardingStatus=~'Unsupported','Unsupported', 'Other')\n| where StatusLabel != 'Other'\n| summarize Count=count() by StatusLabel",
               "size": 3,
               "title": "Camera Onboarding Status",
               "timeContextFromParameter": "TimeRange",
@@ -576,7 +642,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, ExposureLevel) by DeviceId, DeviceName\n| where DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance') or DeviceName has_any ('cam','cctv','nvr','dvr','ipcam','hikvision','dahua','axis','vivotek','pelco','bosch-cam','arlo','reolink','amcrest')\n| extend ExpLevel=coalesce(ExposureLevel,'None')\n| summarize Count=count() by ExpLevel",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform, ExposureLevel) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo')\n| extend IsByName = NameLc has_any ('cctv','nvr','dvr','ipcam','hikvision','dahua','axis','vivotek','pelco','bosch-cam','arlo','reolink','amcrest','-cam-','cam-')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| extend ExpLevel=coalesce(ExposureLevel,'None')\n| summarize Count=count() by ExpLevel",
               "size": 3,
               "title": "Camera Exposure Level",
               "timeContextFromParameter": "TimeRange",
@@ -611,7 +677,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState, OSPlatform, PublicIP, MachineGroup, ExposureLevel) by DeviceId, DeviceName\n| join kind=leftouter (DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP) by DeviceId) on DeviceId\n| where DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance') or DeviceName has_any ('cam','cctv','nvr','dvr','ipcam','hikvision','dahua','axis','vivotek','pelco','bosch-cam','arlo','reolink','amcrest')\n| extend DaysSinceLastSeen=datetime_diff('day',now(),Timestamp)\n| extend HealthStatus=iff(DaysSinceLastSeen <= 7, 'Active (<=7d)', iff(DaysSinceLastSeen <= 30, 'Stale (8-30d)', 'Offline (>30d)'))\n| project DeviceName, DeviceType, LastIPAddress, PublicIP, OnboardingStatus, OSPlatform, ExposureLevel, HealthStatus, DaysSinceLastSeen, MachineGroup, LastSeen=Timestamp\n| order by DaysSinceLastSeen asc",
+              "query": "let _df = '{DeviceFilter}';\nlet _ip = '{IPFilter}';\nlet _mac = '{MACFilter}';\nlet _Net = DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses, MacAddress) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP), IPList=make_set(IP), Mac=take_any(MacAddress) by DeviceId;\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState, OSPlatform, PublicIP, MachineGroup, ExposureLevel) by DeviceId, DeviceName\n| join kind=leftouter _Net on DeviceId\n| where _df == '' or DeviceName has _df\n| where _ip == '' or tostring(IPList) has _ip\n| where _mac == '' or Mac has _mac\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo')\n| extend IsByName = NameLc has_any ('cctv','nvr','dvr','ipcam','hikvision','dahua','axis','vivotek','pelco','bosch-cam','arlo','reolink','amcrest','-cam-','cam-')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| extend DaysSinceLastSeen=datetime_diff('day',now(),Timestamp)\n| extend HealthStatus=iff(DaysSinceLastSeen <= 7, 'Active (<=7d)', iff(DaysSinceLastSeen <= 30, 'Stale (8-30d)', 'Offline (>30d)'))\n| project DeviceName, DeviceId, DeviceType, LastIPAddress, MAC=Mac, PublicIP, OnboardingStatus, OSPlatform, ExposureLevel, HealthStatus, DaysSinceLastSeen, MachineGroup, LastSeen=Timestamp\n| order by DaysSinceLastSeen asc, DeviceName asc\n| top 1000 by LastSeen desc",
               "size": 1,
               "title": "Camera Detail Inventory",
               "timeContextFromParameter": "TimeRange",
@@ -621,8 +687,18 @@
               "exportToExcelOptions": "visible",
               "gridSettings": {
                 "filter": true,
-                "rowLimit": 1000000,
+                "rowLimit": 1000,
                 "formatters": [
+                  {
+                    "columnMatch": "DeviceName",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "Url",
+                      "linkLabel": "",
+                      "customColumnWidthSetting": "24ch",
+                      "linkUrlTemplate": "https://security.microsoft.com/machines/{DeviceId}/overview"
+                    }
+                  },
                   {
                     "columnMatch": "ExposureLevel",
                     "formatter": 18,
@@ -703,6 +779,10 @@
                         }
                       ]
                     }
+                  },
+                  {
+                    "columnMatch": "DeviceId",
+                    "formatter": 5
                   }
                 ]
               }
@@ -737,7 +817,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus) by DeviceId, DeviceName\n| where DeviceType=~'NetworkDevice' or DeviceName has_any ('router','rtr-','switch','sw-','firewall','fw-','checkpoint','palo','fortinet','juniper','cisco','aruba','ubiquiti','meraki','ruckus','sonicwall','watchguard','netgear','zyxel','mikrotik','access-point','ap-','wap-','wifi-','wireless','gateway','gw-','load-balancer','lb-','f5-')\n| summarize TotalNet=count(), Onboarded=countif(OnboardingStatus=~'Onboarded'), CanBeOnboarded=countif(OnboardingStatus=~'CanBeOnboarded'), NotOnboarded=countif(OnboardingStatus=~'NotOnboarded'), Unsupported=countif(OnboardingStatus=~'Unsupported')\n| mv-expand kv=pack_array(pack('label','Total Network Devices','value',TotalNet), pack('label','Onboarded','value',Onboarded), pack('label','Can Be Onboarded','value',CanBeOnboarded), pack('label','Not Onboarded','value',NotOnboarded), pack('label','Unsupported','value',Unsupported))\n| project label=tostring(kv.label), value=toint(kv.value)",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('NetworkDevice')\n| extend IsByName = NameLc has_any ('router','rtr-','switch','sw-','firewall','fw-','checkpoint','palo','fortinet','juniper','cisco','aruba','ubiquiti','meraki','ruckus','sonicwall','watchguard','netgear','zyxel','mikrotik','access-point','ap-','wap-','wifi-','wireless','gateway','gw-','load-balancer','lb-','f5-')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| summarize TotalNet=count(), Onboarded=countif(OnboardingStatus=~'Onboarded'), CanBeOnboarded=countif(OnboardingStatus=~'Can be onboarded'), Insufficient=countif(OnboardingStatus=~'Insufficient info'), Unsupported=countif(OnboardingStatus=~'Unsupported')\n| mv-expand kv=pack_array(pack('label','Total Network Devices','value',TotalNet), pack('label','Onboarded','value',Onboarded), pack('label','Can Be Onboarded','value',CanBeOnboarded), pack('label','Insufficient Info','value',Insufficient), pack('label','Unsupported','value',Unsupported))\n| project label=tostring(kv.label), value=toint(kv.value)",
               "size": 4,
               "title": "Network Infrastructure KPI",
               "timeContextFromParameter": "TimeRange",
@@ -772,7 +852,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus) by DeviceId, DeviceName\n| where DeviceType=~'NetworkDevice' or DeviceName has_any ('router','rtr-','switch','sw-','firewall','fw-','checkpoint','palo','fortinet','juniper','cisco','aruba','ubiquiti','meraki','ruckus','sonicwall','watchguard','netgear','zyxel','mikrotik','access-point','ap-','wap-','wifi-','wireless','gateway','gw-','load-balancer','lb-','f5-')\n| extend SubType=case(DeviceName has_any ('firewall','fw-','checkpoint','palo','fortinet','sonicwall','watchguard','asa'),'Firewall', DeviceName has_any ('router','rtr-','gateway','gw-'),'Router / Gateway', DeviceName has_any ('switch','sw-','core-sw','dist-sw','access-sw'),'Switch', DeviceName has_any ('access-point','ap-','wap-','wifi-','wireless','aruba','ubiquiti','ruckus','meraki'),'Wireless / Access Point', DeviceName has_any ('load-balancer','lb-','f5-'),'Load Balancer', 'Other Network Device')\n| summarize Count=count() by SubType\n| order by Count desc",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('NetworkDevice')\n| extend IsByName = NameLc has_any ('router','rtr-','switch','sw-','firewall','fw-','checkpoint','palo','fortinet','juniper','cisco','aruba','ubiquiti','meraki','ruckus','sonicwall','watchguard','netgear','zyxel','mikrotik','access-point','ap-','wap-','wifi-','wireless','gateway','gw-','load-balancer','lb-','f5-')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| extend SubType = case(NameLc has_any ('firewall','fw-','checkpoint','palo','fortinet','sonicwall','watchguard','asa'),'Firewall', NameLc has_any ('router','rtr-','gateway','gw-'),'Router / Gateway', NameLc has_any ('switch','sw-','core-sw','dist-sw','access-sw'),'Switch', NameLc has_any ('access-point','ap-','wap-','wifi-','wireless','aruba','ubiquiti','ruckus','meraki'),'Wireless / Access Point', NameLc has_any ('load-balancer','lb-','f5-'),'Load Balancer', 'Other Network Device')\n| summarize Count=count() by SubType\n| order by Count desc",
               "size": 3,
               "title": "Network Device Sub-Type Breakdown",
               "timeContextFromParameter": "TimeRange",
@@ -780,14 +860,14 @@
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "piechart"
             },
-            "customWidth": "50",
+            "customWidth": "33",
             "name": "netinfra-subtype-pie"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus) by DeviceId, DeviceName\n| where DeviceType=~'NetworkDevice' or DeviceName has_any ('router','rtr-','switch','sw-','firewall','fw-','checkpoint','palo','fortinet','juniper','cisco','aruba','ubiquiti','meraki','ruckus','sonicwall','watchguard','netgear','zyxel','mikrotik','access-point','ap-','wap-','wifi-','wireless','gateway','gw-','load-balancer','lb-','f5-')\n| extend StatusLabel=case(OnboardingStatus=~'Onboarded','Onboarded', OnboardingStatus=~'CanBeOnboarded','Can Be Onboarded', OnboardingStatus=~'NotOnboarded','Not Onboarded', OnboardingStatus=~'Unsupported','Unsupported', 'Unknown')\n| summarize Count=count() by StatusLabel",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('NetworkDevice')\n| extend IsByName = NameLc has_any ('router','rtr-','switch','sw-','firewall','fw-','checkpoint','palo','fortinet','juniper','cisco','aruba','ubiquiti','meraki','ruckus','sonicwall','watchguard','netgear','zyxel','mikrotik','access-point','ap-','wap-','wifi-','wireless','gateway','gw-','load-balancer','lb-','f5-')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| extend StatusLabel=case(OnboardingStatus=~'Onboarded','Onboarded', OnboardingStatus=~'Can be onboarded','Can Be Onboarded', OnboardingStatus=~'Insufficient info','Insufficient Info', OnboardingStatus=~'Unsupported','Unsupported', 'Other')\n| where StatusLabel != 'Other'\n| summarize Count=count() by StatusLabel",
               "size": 3,
               "title": "Network Device Onboarding Status",
               "timeContextFromParameter": "TimeRange",
@@ -795,14 +875,49 @@
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "piechart"
             },
-            "customWidth": "50",
+            "customWidth": "33",
             "name": "netinfra-onboarding-pie"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState, OSPlatform, PublicIP, MachineGroup, ExposureLevel) by DeviceId, DeviceName\n| join kind=leftouter (DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP) by DeviceId) on DeviceId\n| where DeviceType=~'NetworkDevice' or DeviceName has_any ('router','rtr-','switch','sw-','firewall','fw-','checkpoint','palo','fortinet','juniper','cisco','aruba','ubiquiti','meraki','ruckus','sonicwall','watchguard','netgear','zyxel','mikrotik','access-point','ap-','wap-','wifi-','wireless','gateway','gw-','load-balancer','lb-','f5-')\n| extend SubType=case(DeviceName has_any ('firewall','fw-','checkpoint','palo','fortinet','sonicwall','watchguard','asa'),'Firewall', DeviceName has_any ('router','rtr-','gateway','gw-'),'Router / Gateway', DeviceName has_any ('switch','sw-','core-sw','dist-sw'),'Switch', DeviceName has_any ('access-point','ap-','wap-','wifi-','aruba','ubiquiti','ruckus','meraki'),'Wireless AP', DeviceName has_any ('load-balancer','lb-','f5-'),'Load Balancer', 'Other')\n| extend DaysSinceLastSeen=datetime_diff('day',now(),Timestamp)\n| project DeviceName, SubType, DeviceType, LastIPAddress, PublicIP, OnboardingStatus, SensorHealthState, OSPlatform, ExposureLevel, DaysSinceLastSeen, MachineGroup, LastSeen=Timestamp\n| order by DaysSinceLastSeen asc",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform, ExposureLevel) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('NetworkDevice')\n| extend IsByName = NameLc has_any ('router','rtr-','switch','sw-','firewall','fw-','checkpoint','palo','fortinet','juniper','cisco','aruba','ubiquiti','meraki','ruckus','sonicwall','watchguard','netgear','zyxel','mikrotik','access-point','ap-','wap-','wifi-','wireless','gateway','gw-','load-balancer','lb-','f5-')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| extend ExpLevel=coalesce(ExposureLevel,'None')\n| summarize Count=count() by ExpLevel",
+              "size": 3,
+              "title": "Network Device Exposure Level",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart",
+              "chartSettings": {
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "High",
+                    "color": "red"
+                  },
+                  {
+                    "seriesName": "Medium",
+                    "color": "orange"
+                  },
+                  {
+                    "seriesName": "Low",
+                    "color": "yellow"
+                  },
+                  {
+                    "seriesName": "None",
+                    "color": "green"
+                  }
+                ]
+              }
+            },
+            "customWidth": "34",
+            "name": "netinfra-exposure-pie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let _df = '{DeviceFilter}';\nlet _ip = '{IPFilter}';\nlet _mac = '{MACFilter}';\nlet _Net = DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses, MacAddress) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP), IPList=make_set(IP), Mac=take_any(MacAddress) by DeviceId;\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState, OSPlatform, PublicIP, MachineGroup, ExposureLevel) by DeviceId, DeviceName\n| join kind=leftouter _Net on DeviceId\n| where _df == '' or DeviceName has _df\n| where _ip == '' or tostring(IPList) has _ip\n| where _mac == '' or Mac has _mac\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('NetworkDevice')\n| extend IsByName = NameLc has_any ('router','rtr-','switch','sw-','firewall','fw-','checkpoint','palo','fortinet','juniper','cisco','aruba','ubiquiti','meraki','ruckus','sonicwall','watchguard','netgear','zyxel','mikrotik','access-point','ap-','wap-','wifi-','wireless','gateway','gw-','load-balancer','lb-','f5-')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| extend SubType = case(NameLc has_any ('firewall','fw-','checkpoint','palo','fortinet','sonicwall','watchguard','asa'),'Firewall', NameLc has_any ('router','rtr-','gateway','gw-'),'Router / Gateway', NameLc has_any ('switch','sw-','core-sw','dist-sw','access-sw'),'Switch', NameLc has_any ('access-point','ap-','wap-','wifi-','wireless','aruba','ubiquiti','ruckus','meraki'),'Wireless / Access Point', NameLc has_any ('load-balancer','lb-','f5-'),'Load Balancer', 'Other Network Device')\n| extend DaysSinceLastSeen=datetime_diff('day',now(),Timestamp)\n| project DeviceName, DeviceId, SubType, DeviceType, LastIPAddress, MAC=Mac, PublicIP, OnboardingStatus, SensorHealthState, OSPlatform, ExposureLevel, DaysSinceLastSeen, MachineGroup, LastSeen=Timestamp\n| order by DaysSinceLastSeen asc, DeviceName asc\n| top 1000 by LastSeen desc",
               "size": 1,
               "title": "Network Infrastructure Detail",
               "timeContextFromParameter": "TimeRange",
@@ -812,8 +927,18 @@
               "exportToExcelOptions": "visible",
               "gridSettings": {
                 "filter": true,
-                "rowLimit": 1000000,
+                "rowLimit": 1000,
                 "formatters": [
+                  {
+                    "columnMatch": "DeviceName",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "Url",
+                      "linkLabel": "",
+                      "customColumnWidthSetting": "24ch",
+                      "linkUrlTemplate": "https://security.microsoft.com/machines/{DeviceId}/overview"
+                    }
+                  },
                   {
                     "columnMatch": "OnboardingStatus",
                     "formatter": 18,
@@ -828,13 +953,13 @@
                         },
                         {
                           "operator": "==",
-                          "thresholdValue": "CanBeOnboarded",
+                          "thresholdValue": "Can be onboarded",
                           "representation": "3",
                           "text": "{0}{1}"
                         },
                         {
                           "operator": "==",
-                          "thresholdValue": "NotOnboarded",
+                          "thresholdValue": "Insufficient info",
                           "representation": "2",
                           "text": "{0}{1}"
                         },
@@ -900,12 +1025,46 @@
                         }
                       ]
                     }
+                  },
+                  {
+                    "columnMatch": "DeviceId",
+                    "formatter": 5
                   }
                 ]
               }
             },
             "customWidth": "100",
             "name": "netinfra-grid"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let _df = '{DeviceFilter}';\nlet LastNet = DeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, ConnectedNetworks) by DeviceId;\nlet DevTypes = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform) by DeviceId, DeviceName\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('NetworkDevice')\n| extend IsByName = NameLc has_any ('router','rtr-','switch','sw-','firewall','fw-','checkpoint','palo','fortinet','juniper','cisco','aruba','ubiquiti','meraki','ruckus','sonicwall','watchguard','netgear','zyxel','mikrotik','access-point','ap-','wap-','wifi-','wireless','gateway','gw-','load-balancer','lb-','f5-')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| extend SubType = case(NameLc has_any ('firewall','fw-','checkpoint','palo','fortinet','sonicwall','watchguard','asa'),'Firewall', NameLc has_any ('router','rtr-','gateway','gw-'),'Router / Gateway', NameLc has_any ('switch','sw-','core-sw','dist-sw','access-sw'),'Switch', NameLc has_any ('access-point','ap-','wap-','wifi-','wireless','aruba','ubiquiti','ruckus','meraki'),'Wireless / Access Point', NameLc has_any ('load-balancer','lb-','f5-'),'Load Balancer', 'Other Network Device')\n| project DeviceId, DeviceName, DeviceType, SubType;\nLastNet\n| join kind=inner DevTypes on DeviceId\n| where _df == '' or DeviceName has _df\n| mv-expand Net = parse_json(ConnectedNetworks)\n| extend NetworkName = tostring(Net.Name)\n| where isnotempty(NetworkName)\n| summarize TotalDevices=dcount(DeviceId), Firewall=dcountif(DeviceId, SubType=='Firewall'), Router=dcountif(DeviceId, SubType=='Router / Gateway'), Switch=dcountif(DeviceId, SubType=='Switch'), Wireless=dcountif(DeviceId, SubType=='Wireless / Access Point'), LoadBalancer=dcountif(DeviceId, SubType=='Load Balancer'), Other=dcountif(DeviceId, SubType=='Other Network Device') by NetworkName\n| order by TotalDevices desc\n| top 1000 by TotalDevices desc",
+              "size": 1,
+              "title": "Network Infrastructure - SSID Breakdown by Sub-Type",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "showExportToExcel": true,
+              "exportToExcelOptions": "visible",
+              "gridSettings": {
+                "filter": true,
+                "rowLimit": 1000,
+                "formatters": [
+                  {
+                    "columnMatch": "TotalDevices",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "blue",
+                      "min": 0
+                    }
+                  }
+                ]
+              }
+            },
+            "customWidth": "100",
+            "name": "netinfra-ssid-grid"
           }
         ]
       },
@@ -934,7 +1093,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus) by DeviceId, DeviceName\n| where DeviceType=~'Printer' or DeviceName has_any ('printer','prn-','hp-','canon','xerox','epson','brother','ricoh','konica','kyocera','mfp','copier','mfpd','laserjet','officejet','toshiba-mfp','sharp-mfp')\n| summarize TotalPrinters=count(), Onboarded=countif(OnboardingStatus=~'Onboarded'), CanBeOnboarded=countif(OnboardingStatus=~'CanBeOnboarded'), NotOnboarded=countif(OnboardingStatus=~'NotOnboarded'), Unsupported=countif(OnboardingStatus=~'Unsupported')\n| mv-expand kv=pack_array(pack('label','Total Printers / MFDs','value',TotalPrinters), pack('label','Onboarded','value',Onboarded), pack('label','Can Be Onboarded','value',CanBeOnboarded), pack('label','Not Onboarded','value',NotOnboarded), pack('label','Unsupported','value',Unsupported))\n| project label=tostring(kv.label), value=toint(kv.value)",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('Printer')\n| extend IsByName = NameLc has_any ('printer','prn-','laserjet','officejet','copier','xerox','epson','brother','ricoh','konica','kyocera','toshiba-mfp','sharp-mfp','-mfp','-mfd')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| summarize TotalPrinters=count(), Unsupported=countif(OnboardingStatus=~'Unsupported'), CanBeOnboarded=countif(OnboardingStatus=~'Can be onboarded'), Insufficient=countif(OnboardingStatus=~'Insufficient info')\n| mv-expand kv=pack_array(pack('label','Total Printers / MFDs','value',TotalPrinters), pack('label','Unsupported (Expected)','value',Unsupported), pack('label','Can Be Onboarded','value',CanBeOnboarded), pack('label','Insufficient Info','value',Insufficient))\n| project label=tostring(kv.label), value=toint(kv.value)",
               "size": 4,
               "title": "Printers & MFDs KPI",
               "timeContextFromParameter": "TimeRange",
@@ -969,7 +1128,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus) by DeviceId, DeviceName\n| where DeviceType=~'Printer' or DeviceName has_any ('printer','prn-','hp-','canon','xerox','epson','brother','ricoh','konica','kyocera','mfp','copier','mfpd','laserjet','officejet','toshiba-mfp','sharp-mfp')\n| extend StatusLabel=case(OnboardingStatus=~'Onboarded','Onboarded', OnboardingStatus=~'CanBeOnboarded','Can Be Onboarded', OnboardingStatus=~'NotOnboarded','Not Onboarded', OnboardingStatus=~'Unsupported','Unsupported', 'Unknown')\n| summarize Count=count() by StatusLabel",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('Printer')\n| extend IsByName = NameLc has_any ('printer','prn-','laserjet','officejet','copier','xerox','epson','brother','ricoh','konica','kyocera','toshiba-mfp','sharp-mfp','-mfp','-mfd')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| extend StatusLabel=case(OnboardingStatus=~'Onboarded','Onboarded', OnboardingStatus=~'Can be onboarded','Can Be Onboarded', OnboardingStatus=~'Insufficient info','Insufficient Info', OnboardingStatus=~'Unsupported','Unsupported', 'Other')\n| where StatusLabel != 'Other'\n| summarize Count=count() by StatusLabel",
               "size": 3,
               "title": "Printer Onboarding Status",
               "timeContextFromParameter": "TimeRange",
@@ -984,7 +1143,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, ExposureLevel) by DeviceId, DeviceName\n| where DeviceType=~'Printer' or DeviceName has_any ('printer','prn-','hp-','canon','xerox','epson','brother','ricoh','konica','kyocera','mfp','copier','mfpd','laserjet','officejet')\n| extend ExpLevel=coalesce(ExposureLevel,'None')\n| summarize Count=count() by ExpLevel",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform, ExposureLevel) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('Printer')\n| extend IsByName = NameLc has_any ('printer','prn-','laserjet','officejet','copier','xerox','epson','brother','ricoh','konica','kyocera','toshiba-mfp','sharp-mfp','-mfp','-mfd')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| extend ExpLevel=coalesce(ExposureLevel,'None')\n| summarize Count=count() by ExpLevel",
               "size": 3,
               "title": "Printer Exposure Level",
               "timeContextFromParameter": "TimeRange",
@@ -1019,7 +1178,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState, OSPlatform, PublicIP, MachineGroup, ExposureLevel) by DeviceId, DeviceName\n| join kind=leftouter (DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP) by DeviceId) on DeviceId\n| where DeviceType=~'Printer' or DeviceName has_any ('printer','prn-','hp-','canon','xerox','epson','brother','ricoh','konica','kyocera','mfp','copier','mfpd','laserjet','officejet','toshiba-mfp','sharp-mfp')\n| extend DaysSinceLastSeen=datetime_diff('day',now(),Timestamp)\n| project DeviceName, DeviceType, LastIPAddress, PublicIP, OSPlatform, OnboardingStatus, ExposureLevel, DaysSinceLastSeen, MachineGroup, LastSeen=Timestamp\n| order by DaysSinceLastSeen asc",
+              "query": "let _df = '{DeviceFilter}';\nlet _ip = '{IPFilter}';\nlet _mac = '{MACFilter}';\nlet _Net = DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses, MacAddress) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP), IPList=make_set(IP), Mac=take_any(MacAddress) by DeviceId;\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState, OSPlatform, PublicIP, MachineGroup, ExposureLevel) by DeviceId, DeviceName\n| join kind=leftouter _Net on DeviceId\n| where _df == '' or DeviceName has _df\n| where _ip == '' or tostring(IPList) has _ip\n| where _mac == '' or Mac has _mac\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('Printer')\n| extend IsByName = NameLc has_any ('printer','prn-','laserjet','officejet','copier','xerox','epson','brother','ricoh','konica','kyocera','toshiba-mfp','sharp-mfp','-mfp','-mfd')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| extend DaysSinceLastSeen=datetime_diff('day',now(),Timestamp)\n| project DeviceName, DeviceId, DeviceType, LastIPAddress, MAC=Mac, PublicIP, OSPlatform, OnboardingStatus, ExposureLevel, DaysSinceLastSeen, MachineGroup, LastSeen=Timestamp\n| order by DaysSinceLastSeen asc, DeviceName asc\n| top 1000 by LastSeen desc",
               "size": 1,
               "title": "Printer & MFD Detail Inventory",
               "timeContextFromParameter": "TimeRange",
@@ -1029,8 +1188,18 @@
               "exportToExcelOptions": "visible",
               "gridSettings": {
                 "filter": true,
-                "rowLimit": 1000000,
+                "rowLimit": 1000,
                 "formatters": [
+                  {
+                    "columnMatch": "DeviceName",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "Url",
+                      "linkLabel": "",
+                      "customColumnWidthSetting": "24ch",
+                      "linkUrlTemplate": "https://security.microsoft.com/machines/{DeviceId}/overview"
+                    }
+                  },
                   {
                     "columnMatch": "OnboardingStatus",
                     "formatter": 18,
@@ -1045,13 +1214,13 @@
                         },
                         {
                           "operator": "==",
-                          "thresholdValue": "CanBeOnboarded",
+                          "thresholdValue": "Can be onboarded",
                           "representation": "3",
                           "text": "{0}{1}"
                         },
                         {
                           "operator": "==",
-                          "thresholdValue": "NotOnboarded",
+                          "thresholdValue": "Insufficient info",
                           "representation": "2",
                           "text": "{0}{1}"
                         },
@@ -1117,6 +1286,10 @@
                         }
                       ]
                     }
+                  },
+                  {
+                    "columnMatch": "DeviceId",
+                    "formatter": 5
                   }
                 ]
               }
@@ -1151,7 +1324,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded') or DeviceName has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-','vending','access-ctrl','badge-reader','intercom')\n| summarize TotalIoT=count(), Onboarded=countif(OnboardingStatus=~'Onboarded'), CanBeOnboarded=countif(OnboardingStatus=~'CanBeOnboarded'), NotOnboarded=countif(OnboardingStatus=~'NotOnboarded'), Unsupported=countif(OnboardingStatus=~'Unsupported')\n| mv-expand kv=pack_array(pack('label','Total IoT / OT Devices','value',TotalIoT), pack('label','Onboarded','value',Onboarded), pack('label','Can Be Onboarded','value',CanBeOnboarded), pack('label','Not Onboarded','value',NotOnboarded), pack('label','Unsupported','value',Unsupported))\n| project label=tostring(kv.label), value=toint(kv.value)",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded')\n| extend IsByName = NameLc has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-','vending','access-ctrl','badge-reader','intercom')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| summarize TotalIoT=count(), Onboarded=countif(OnboardingStatus=~'Onboarded'), CanBeOnboarded=countif(OnboardingStatus=~'Can be onboarded'), Insufficient=countif(OnboardingStatus=~'Insufficient info'), Unsupported=countif(OnboardingStatus=~'Unsupported')\n| mv-expand kv=pack_array(pack('label','Total IoT / OT Devices','value',TotalIoT), pack('label','Onboarded','value',Onboarded), pack('label','Can Be Onboarded','value',CanBeOnboarded), pack('label','Insufficient Info','value',Insufficient), pack('label','Unsupported','value',Unsupported))\n| project label=tostring(kv.label), value=toint(kv.value)",
               "size": 4,
               "title": "IoT & OT KPI",
               "timeContextFromParameter": "TimeRange",
@@ -1186,7 +1359,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform) by DeviceId, DeviceName\n| where DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded') or DeviceName has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-','vending','access-ctrl','badge-reader','intercom')\n| extend TypeLabel=case(DeviceType=~'VoIPPhone','VoIP Phone', DeviceType=~'CommunicationsDevice','Communications Device', DeviceType in~ ('IoTDevice','SmartAppliance'),'IoT / Smart Appliance', DeviceType=~'GameConsole','Game Console', DeviceType=~'MediaPlayer','Media Player', isnotempty(OSPlatform) and OSPlatform in~ ('IoT','Embedded'),'Embedded / OT', 'Other IoT')\n| summarize Count=count() by TypeLabel\n| order by Count desc",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded')\n| extend IsByName = NameLc has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-','vending','access-ctrl','badge-reader','intercom')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| extend TypeLabel=case(DeviceType=~'VoIPPhone','VoIP Phone', DeviceType=~'CommunicationsDevice','Communications Device', DeviceType=~'SmartAppliance','Smart Appliance', DeviceType=~'IoTDevice','IoT Device', DeviceType=~'GameConsole','Game Console', DeviceType=~'MediaPlayer','Media Player', OSPlatform in~ ('IoT','Embedded'),'Embedded / OT', NameLc has_any ('plc','scada','hmi','bms'),'OT (PLC/SCADA/HMI)', NameLc has_any ('hvac','thermostat'),'Building Mgmt (HVAC)', NameLc has_any ('kiosk','pos-','atm-','vending'),'Kiosk / POS', NameLc has_any ('badge-reader','access-ctrl','intercom'),'Physical Access', 'Other IoT')\n| summarize Count=count() by TypeLabel\n| order by Count desc",
               "size": 3,
               "title": "IoT Sub-Type Breakdown",
               "timeContextFromParameter": "TimeRange",
@@ -1201,7 +1374,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform, ExposureLevel) by DeviceId, DeviceName\n| where DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded') or DeviceName has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-')\n| extend ExpLevel=coalesce(ExposureLevel,'None')\n| summarize Count=count() by ExpLevel",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform, ExposureLevel) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded')\n| extend IsByName = NameLc has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-','vending','access-ctrl','badge-reader','intercom')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| extend ExpLevel=coalesce(ExposureLevel,'None')\n| summarize Count=count() by ExpLevel",
               "size": 3,
               "title": "IoT Exposure Level",
               "timeContextFromParameter": "TimeRange",
@@ -1236,7 +1409,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded') or DeviceName has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-')\n| extend StatusLabel=case(OnboardingStatus=~'Onboarded','Onboarded', OnboardingStatus=~'CanBeOnboarded','Can Be Onboarded', OnboardingStatus=~'NotOnboarded','Not Onboarded', OnboardingStatus=~'Unsupported','Unsupported', 'Unknown')\n| summarize Count=count() by StatusLabel",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded')\n| extend IsByName = NameLc has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-','vending','access-ctrl','badge-reader','intercom')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| extend StatusLabel=case(OnboardingStatus=~'Onboarded','Onboarded', OnboardingStatus=~'Can be onboarded','Can Be Onboarded', OnboardingStatus=~'Insufficient info','Insufficient Info', OnboardingStatus=~'Unsupported','Unsupported', 'Other')\n| where StatusLabel != 'Other'\n| summarize Count=count() by StatusLabel",
               "size": 3,
               "title": "IoT Onboarding Status",
               "timeContextFromParameter": "TimeRange",
@@ -1251,7 +1424,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState, OSPlatform, PublicIP, MachineGroup, ExposureLevel) by DeviceId, DeviceName\n| join kind=leftouter (DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP) by DeviceId) on DeviceId\n| where DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded') or DeviceName has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-','vending','access-ctrl','badge-reader','intercom')\n| extend DaysSinceLastSeen=datetime_diff('day',now(),Timestamp)\n| project DeviceName, DeviceType, OSPlatform, LastIPAddress, PublicIP, OnboardingStatus, ExposureLevel, DaysSinceLastSeen, MachineGroup, LastSeen=Timestamp\n| order by ExposureLevel asc, DaysSinceLastSeen asc",
+              "query": "let _df = '{DeviceFilter}';\nlet _ip = '{IPFilter}';\nlet _mac = '{MACFilter}';\nlet _Net = DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses, MacAddress) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP), IPList=make_set(IP), Mac=take_any(MacAddress) by DeviceId;\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState, OSPlatform, PublicIP, MachineGroup, ExposureLevel) by DeviceId, DeviceName\n| join kind=leftouter _Net on DeviceId\n| where _df == '' or DeviceName has _df\n| where _ip == '' or tostring(IPList) has _ip\n| where _mac == '' or Mac has _mac\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded')\n| extend IsByName = NameLc has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-','vending','access-ctrl','badge-reader','intercom')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| extend DaysSinceLastSeen=datetime_diff('day',now(),Timestamp)\n| project DeviceName, DeviceId, DeviceType, OSPlatform, LastIPAddress, MAC=Mac, PublicIP, OnboardingStatus, ExposureLevel, DaysSinceLastSeen, MachineGroup, LastSeen=Timestamp\n| order by ExposureLevel asc, DaysSinceLastSeen asc, DeviceName asc\n| top 1000 by LastSeen desc",
               "size": 1,
               "title": "IoT & OT Detail Inventory",
               "timeContextFromParameter": "TimeRange",
@@ -1261,8 +1434,18 @@
               "exportToExcelOptions": "visible",
               "gridSettings": {
                 "filter": true,
-                "rowLimit": 1000000,
+                "rowLimit": 1000,
                 "formatters": [
+                  {
+                    "columnMatch": "DeviceName",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "Url",
+                      "linkLabel": "",
+                      "customColumnWidthSetting": "24ch",
+                      "linkUrlTemplate": "https://security.microsoft.com/machines/{DeviceId}/overview"
+                    }
+                  },
                   {
                     "columnMatch": "OnboardingStatus",
                     "formatter": 18,
@@ -1277,13 +1460,13 @@
                         },
                         {
                           "operator": "==",
-                          "thresholdValue": "CanBeOnboarded",
+                          "thresholdValue": "Can be onboarded",
                           "representation": "3",
                           "text": "{0}{1}"
                         },
                         {
                           "operator": "==",
-                          "thresholdValue": "NotOnboarded",
+                          "thresholdValue": "Insufficient info",
                           "representation": "2",
                           "text": "{0}{1}"
                         },
@@ -1349,6 +1532,10 @@
                         }
                       ]
                     }
+                  },
+                  {
+                    "columnMatch": "DeviceId",
+                    "formatter": 5
                   }
                 ]
               }
@@ -1383,7 +1570,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where DeviceType in~ ('Workstation','Desktop','Laptop','Server') or (OSPlatform has_any ('Windows','Linux','macOS') and DeviceType !in~ ('NetworkDevice','Printer','Camera','Webcam','AudioVideoEquipment','IoTDevice','SmartAppliance','MobilePhone','Smartphone','Tablet'))\n| summarize Workstations=countif(DeviceType in~ ('Workstation','Desktop','Laptop') or (OSPlatform has_any ('Windows10','Windows11','macOS') and DeviceType!='Server')), Servers=countif(DeviceType=~'Server' or OSPlatform has 'WindowsServer' or OSPlatform has 'Server'), Total=count(), Onboarded=countif(OnboardingStatus=~'Onboarded'), CanBeOnboarded=countif(OnboardingStatus=~'CanBeOnboarded'), NotOnboarded=countif(OnboardingStatus=~'NotOnboarded')\n| mv-expand kv=pack_array(pack('label','Total Computers / Servers','value',Total), pack('label','Workstations','value',Workstations), pack('label','Servers','value',Servers), pack('label','Onboarded','value',Onboarded), pack('label','Can Be Onboarded','value',CanBeOnboarded), pack('label','Not Onboarded','value',NotOnboarded))\n| project label=tostring(kv.label), value=toint(kv.value)",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| where DeviceType in~ ('Workstation','Desktop','Laptop','Server') or (OSPlatform has_any ('Windows','Linux','macOS') and DeviceType !in~ ('NetworkDevice','Printer','Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo','IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer','MobilePhone','Smartphone','Tablet','Mobile'))\n| summarize Total=count(), Workstations=countif(DeviceType =~ 'Workstation' or (OSPlatform has_any ('Windows10','Windows11','macOS') and DeviceType != 'Server')), Servers=countif(DeviceType =~ 'Server' or OSPlatform has 'WindowsServer' or OSPlatform has 'Server'), Linux=countif(OSPlatform =~ 'Linux'), Onboarded=countif(OnboardingStatus =~ 'Onboarded'), CanBeOnboarded=countif(OnboardingStatus =~ 'Can be onboarded'), InsufficientInfo=countif(OnboardingStatus =~ 'Insufficient info')\n| mv-expand kv=pack_array(pack('label','Total Computers / Servers','value',Total), pack('label','Workstations','value',Workstations), pack('label','Servers','value',Servers), pack('label','Linux','value',Linux), pack('label','Onboarded','value',Onboarded), pack('label','Can Be Onboarded','value',CanBeOnboarded), pack('label','Insufficient Info','value',InsufficientInfo))\n| project label=tostring(kv.label), value=toint(kv.value)",
               "size": 4,
               "title": "Computers & Servers KPI",
               "timeContextFromParameter": "TimeRange",
@@ -1418,7 +1605,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform) by DeviceId\n| where DeviceType in~ ('Workstation','Desktop','Laptop','Server') or (OSPlatform has_any ('Windows','Linux','macOS') and DeviceType !in~ ('NetworkDevice','Printer','Camera','Webcam','AudioVideoEquipment','IoTDevice','SmartAppliance','MobilePhone','Smartphone','Tablet'))\n| extend OSGroup=case(OSPlatform has 'WindowsServer' or DeviceType=~'Server','Windows Server', OSPlatform has 'Windows','Windows', OSPlatform has 'Linux','Linux', OSPlatform has 'macOS','macOS', 'Other')\n| summarize Count=count() by OSGroup\n| order by Count desc",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| where DeviceType in~ ('Workstation','Desktop','Laptop','Server') or (OSPlatform has_any ('Windows','Linux','macOS') and DeviceType !in~ ('NetworkDevice','Printer','Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo','IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer','MobilePhone','Smartphone','Tablet','Mobile'))\n| extend OSGroup = case(OSPlatform startswith 'WindowsServer', strcat('Windows Server (', OSPlatform, ')'), OSPlatform =~ 'Windows11', 'Windows 11', OSPlatform =~ 'Windows10', 'Windows 10', OSPlatform startswith 'Windows', strcat('Windows (', OSPlatform, ')'), OSPlatform =~ 'macOS', 'macOS', OSPlatform =~ 'Linux', 'Linux', isnotempty(OSPlatform), OSPlatform, 'Unspecified')\n| summarize Count = count() by OSGroup\n| order by Count desc",
               "size": 3,
               "title": "Operating System Distribution",
               "timeContextFromParameter": "TimeRange",
@@ -1433,7 +1620,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState) by DeviceId\n| where DeviceType in~ ('Workstation','Desktop','Laptop','Server') or (DeviceType !in~ ('NetworkDevice','Printer','Camera','Webcam','AudioVideoEquipment','IoTDevice','SmartAppliance','MobilePhone','Smartphone','Tablet') and isnotempty(DeviceType))\n| extend CombinedStatus=case(OnboardingStatus=~'Onboarded' and SensorHealthState=~'Active','Onboarded + Active', OnboardingStatus=~'Onboarded' and SensorHealthState!='Active','Onboarded (Impaired)', OnboardingStatus=~'CanBeOnboarded','Can Be Onboarded', OnboardingStatus=~'NotOnboarded','Not Onboarded', 'Other')\n| summarize Count=count() by CombinedStatus",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState, OSPlatform) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| where DeviceType in~ ('Workstation','Desktop','Laptop','Server') or (OSPlatform has_any ('Windows','Linux','macOS') and DeviceType !in~ ('NetworkDevice','Printer','Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo','IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer','MobilePhone','Smartphone','Tablet','Mobile'))\n| extend HealthLabel = case(OnboardingStatus =~ 'Onboarded' and SensorHealthState =~ 'Active', 'Onboarded - Active', OnboardingStatus =~ 'Onboarded' and SensorHealthState =~ 'Inactive', 'Onboarded - Inactive', OnboardingStatus =~ 'Onboarded' and SensorHealthState has 'Impaired', 'Onboarded - Impaired Communications', OnboardingStatus =~ 'Onboarded' and SensorHealthState has 'NoSensorData', 'Onboarded - No Sensor Data', OnboardingStatus =~ 'Onboarded' and isempty(SensorHealthState), 'Onboarded - Unknown', OnboardingStatus =~ 'Onboarded', strcat('Onboarded - ', SensorHealthState), OnboardingStatus =~ 'Can be onboarded', 'Can Be Onboarded', OnboardingStatus =~ 'Insufficient info', 'Insufficient Info', OnboardingStatus =~ 'Unsupported', 'Unsupported', isnotempty(OnboardingStatus), OnboardingStatus, 'Unspecified')\n| summarize Count = count() by HealthLabel\n| order by Count desc",
               "size": 3,
               "title": "Endpoint Health Status",
               "timeContextFromParameter": "TimeRange",
@@ -1468,7 +1655,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform, ExposureLevel) by DeviceId\n| where DeviceType in~ ('Workstation','Desktop','Laptop','Server') or (OSPlatform has_any ('Windows','Linux','macOS') and DeviceType !in~ ('NetworkDevice','Printer','Camera','Webcam','AudioVideoEquipment','IoTDevice','SmartAppliance','MobilePhone','Smartphone','Tablet'))\n| extend ExpLevel=coalesce(ExposureLevel,'None')\n| summarize Count=count() by ExpLevel",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform, ExposureLevel) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| where DeviceType in~ ('Workstation','Desktop','Laptop','Server') or (OSPlatform has_any ('Windows','Linux','macOS') and DeviceType !in~ ('NetworkDevice','Printer','Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo','IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer','MobilePhone','Smartphone','Tablet','Mobile'))\n| extend ExpLevel = coalesce(ExposureLevel, 'None')\n| summarize Count = count() by ExpLevel",
               "size": 3,
               "title": "Exposure Level Distribution",
               "timeContextFromParameter": "TimeRange",
@@ -1503,7 +1690,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform, OSVersion, OnboardingStatus, SensorHealthState, JoinType, IsAzureADJoined, PublicIP, MachineGroup, ExposureLevel) by DeviceId, DeviceName\n| join kind=leftouter (DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP) by DeviceId) on DeviceId\n| where DeviceType in~ ('Workstation','Desktop','Laptop','Server') or (OSPlatform has_any ('Windows','Linux','macOS') and DeviceType !in~ ('NetworkDevice','Printer','Camera','Webcam','AudioVideoEquipment','IoTDevice','SmartAppliance','MobilePhone','Smartphone','Tablet'))\n| extend OSGroup=case(OSPlatform has 'WindowsServer' or DeviceType=~'Server','Server', OSPlatform has 'Windows','Workstation', OSPlatform has 'Linux','Linux', OSPlatform has 'macOS','macOS', DeviceType)\n| extend DomainJoined=case(JoinType=~'AAD Joined' or IsAzureADJoined==1,'AAD Joined', isnotempty(JoinType),JoinType,'Not Joined')\n| extend DaysSinceLastSeen=datetime_diff('day',now(),Timestamp)\n| project DeviceName, OSGroup, OSPlatform, OSVersion, DomainJoined, OnboardingStatus, SensorHealthState, LastIPAddress, ExposureLevel, DaysSinceLastSeen, MachineGroup, LastSeen=Timestamp\n| order by ExposureLevel asc, DaysSinceLastSeen asc",
+              "query": "let _df = '{DeviceFilter}';\nlet _ip = '{IPFilter}';\nlet _mac = '{MACFilter}';\nlet _Net = DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses, MacAddress) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP), IPList=make_set(IP), Mac=take_any(MacAddress) by DeviceId;\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform, OSVersion, OnboardingStatus, SensorHealthState, JoinType, IsAzureADJoined, PublicIP, MachineGroup, ExposureLevel) by DeviceId, DeviceName\n| join kind=leftouter _Net on DeviceId\n| where _df == '' or DeviceName has _df\n| where _ip == '' or tostring(IPList) has _ip\n| where _mac == '' or Mac has _mac\n| where DeviceType in~ ('Workstation','Desktop','Laptop','Server') or (OSPlatform has_any ('Windows','Linux','macOS') and DeviceType !in~ ('NetworkDevice','Printer','Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo','IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer','MobilePhone','Smartphone','Tablet','Mobile'))\n| extend OSGroup = case(OSPlatform startswith 'WindowsServer', strcat('Windows Server (', OSPlatform, ')'), OSPlatform =~ 'Windows11', 'Windows 11', OSPlatform =~ 'Windows10', 'Windows 10', OSPlatform =~ 'macOS', 'macOS', OSPlatform =~ 'Linux', 'Linux', isnotempty(OSPlatform), OSPlatform, DeviceType)\n| extend DomainJoined = case(JoinType =~ 'AAD Joined' or IsAzureADJoined == 1, 'AAD Joined', isnotempty(JoinType), JoinType, 'Not Joined')\n| extend DaysSinceLastSeen = datetime_diff('day', now(), Timestamp)\n| project DeviceName, DeviceId, OSGroup, OSPlatform, OSVersion, DomainJoined, OnboardingStatus, SensorHealthState, LastIPAddress, MAC=Mac, ExposureLevel, DaysSinceLastSeen, MachineGroup, LastSeen=Timestamp\n| order by DaysSinceLastSeen asc, DeviceName asc\n| top 1000 by LastSeen desc",
               "size": 1,
               "title": "Computer & Server Detail Inventory",
               "timeContextFromParameter": "TimeRange",
@@ -1513,8 +1700,18 @@
               "exportToExcelOptions": "visible",
               "gridSettings": {
                 "filter": true,
-                "rowLimit": 1000000,
+                "rowLimit": 1000,
                 "formatters": [
+                  {
+                    "columnMatch": "DeviceName",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "Url",
+                      "linkLabel": "",
+                      "customColumnWidthSetting": "24ch",
+                      "linkUrlTemplate": "https://security.microsoft.com/machines/{DeviceId}/overview"
+                    }
+                  },
                   {
                     "columnMatch": "OnboardingStatus",
                     "formatter": 18,
@@ -1529,13 +1726,13 @@
                         },
                         {
                           "operator": "==",
-                          "thresholdValue": "CanBeOnboarded",
+                          "thresholdValue": "Can be onboarded",
                           "representation": "3",
                           "text": "{0}{1}"
                         },
                         {
                           "operator": "==",
-                          "thresholdValue": "NotOnboarded",
+                          "thresholdValue": "Insufficient info",
                           "representation": "2",
                           "text": "{0}{1}"
                         },
@@ -1622,6 +1819,10 @@
                         }
                       ]
                     }
+                  },
+                  {
+                    "columnMatch": "DeviceId",
+                    "formatter": 5
                   }
                 ]
               }
@@ -1656,7 +1857,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where DeviceType in~ ('MobilePhone','Smartphone','Tablet') or OSPlatform in~ ('iOS','Android','iPadOS','AndroidEnterprise')\n| summarize TotalMobile=count(), iOS=countif(OSPlatform in~ ('iOS','iPadOS')), Android=countif(OSPlatform in~ ('Android','AndroidEnterprise')), Tablets=countif(DeviceType=~'Tablet'), Onboarded=countif(OnboardingStatus=~'Onboarded'), NotOnboarded=countif(OnboardingStatus!='Onboarded')\n| mv-expand kv=pack_array(pack('label','Total Mobile / Tablet','value',TotalMobile), pack('label','iOS / iPadOS','value',iOS), pack('label','Android','value',Android), pack('label','Tablets','value',Tablets), pack('label','Onboarded','value',Onboarded), pack('label','Not Onboarded','value',NotOnboarded))\n| project label=tostring(kv.label), value=toint(kv.value)",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| where DeviceType in~ ('MobilePhone','Smartphone','Tablet','Mobile') or OSPlatform in~ ('iOS','Android','iPadOS','AndroidEnterprise')\n| summarize TotalMobile=count(), iOS=countif(OSPlatform in~ ('iOS','iPadOS')), Android=countif(OSPlatform in~ ('Android','AndroidEnterprise')), Tablets=countif(DeviceType =~ 'Tablet'), Onboarded=countif(OnboardingStatus =~ 'Onboarded'), CanBeOnboarded=countif(OnboardingStatus =~ 'Can be onboarded')\n| mv-expand kv=pack_array(pack('label','Total Mobile / Tablet','value',TotalMobile), pack('label','iOS / iPadOS','value',iOS), pack('label','Android','value',Android), pack('label','Tablets','value',Tablets), pack('label','Onboarded','value',Onboarded), pack('label','Can Be Onboarded','value',CanBeOnboarded))\n| project label=tostring(kv.label), value=toint(kv.value)",
               "size": 4,
               "title": "Mobile & Tablets KPI",
               "timeContextFromParameter": "TimeRange",
@@ -1691,7 +1892,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform) by DeviceId\n| where DeviceType in~ ('MobilePhone','Smartphone','Tablet') or OSPlatform in~ ('iOS','Android','iPadOS','AndroidEnterprise')\n| extend PlatformLabel=case(OSPlatform in~ ('iOS','iPadOS'),'iOS / iPadOS', OSPlatform in~ ('Android','AndroidEnterprise'),'Android', isnotempty(OSPlatform),OSPlatform,'Unknown')\n| summarize Count=count() by PlatformLabel",
+              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform) by DeviceId\n| where DeviceType in~ ('MobilePhone','Smartphone','Mobile','Mobile','Tablet','Mobile') or OSPlatform in~ ('iOS','Android','iPadOS','AndroidEnterprise')\n| extend PlatformLabel=case(OSPlatform in~ ('iOS','iPadOS'),'iOS / iPadOS', OSPlatform in~ ('Android','AndroidEnterprise'),'Android', isnotempty(OSPlatform),OSPlatform,'Unknown')\n| summarize Count=count() by PlatformLabel",
               "size": 3,
               "title": "Mobile Platform Distribution",
               "timeContextFromParameter": "TimeRange",
@@ -1699,14 +1900,14 @@
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "piechart"
             },
-            "customWidth": "50",
+            "customWidth": "33",
             "name": "mobile-platform-pie"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId\n| where DeviceType in~ ('MobilePhone','Smartphone','Tablet') or OSPlatform in~ ('iOS','Android','iPadOS','AndroidEnterprise')\n| extend StatusLabel=case(OnboardingStatus=~'Onboarded','Onboarded', OnboardingStatus=~'CanBeOnboarded','Can Be Onboarded', OnboardingStatus=~'NotOnboarded','Not Onboarded', OnboardingStatus=~'Unsupported','Unsupported', 'Unknown')\n| summarize Count=count() by StatusLabel",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| where DeviceType in~ ('MobilePhone','Smartphone','Tablet','Mobile') or OSPlatform in~ ('iOS','Android','iPadOS','AndroidEnterprise')\n| extend StatusLabel=case(OnboardingStatus=~'Onboarded','Onboarded', OnboardingStatus=~'Can be onboarded','Can Be Onboarded', OnboardingStatus=~'Insufficient info','Insufficient Info', OnboardingStatus=~'Unsupported','Unsupported', 'Other')\n| where StatusLabel != 'Other'\n| summarize Count=count() by StatusLabel",
               "size": 3,
               "title": "Mobile Onboarding Status",
               "timeContextFromParameter": "TimeRange",
@@ -1714,14 +1915,49 @@
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "piechart"
             },
-            "customWidth": "50",
+            "customWidth": "33",
             "name": "mobile-onboarding-pie"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState, OSPlatform, OSVersion, PublicIP, MachineGroup) by DeviceId, DeviceName\n| join kind=leftouter (DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP) by DeviceId) on DeviceId\n| where DeviceType in~ ('MobilePhone','Smartphone','Tablet') or OSPlatform in~ ('iOS','Android','iPadOS','AndroidEnterprise')\n| extend DaysSinceLastSeen=datetime_diff('day',now(),Timestamp)\n| project DeviceName, DeviceType, OSPlatform, OSVersion, LastIPAddress, PublicIP, OnboardingStatus, SensorHealthState, DaysSinceLastSeen, MachineGroup, LastSeen=Timestamp\n| order by DaysSinceLastSeen asc",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform, ExposureLevel) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| where DeviceType in~ ('MobilePhone','Smartphone','Tablet','Mobile') or OSPlatform in~ ('iOS','Android','iPadOS','AndroidEnterprise')\n| extend ExpLevel = coalesce(ExposureLevel,'None')\n| summarize Count=count() by ExpLevel",
+              "size": 3,
+              "title": "Mobile Exposure Level",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart",
+              "chartSettings": {
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "High",
+                    "color": "red"
+                  },
+                  {
+                    "seriesName": "Medium",
+                    "color": "orange"
+                  },
+                  {
+                    "seriesName": "Low",
+                    "color": "yellow"
+                  },
+                  {
+                    "seriesName": "None",
+                    "color": "green"
+                  }
+                ]
+              }
+            },
+            "customWidth": "34",
+            "name": "mobile-exposure-pie"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let _df = '{DeviceFilter}';\nlet _ip = '{IPFilter}';\nlet _mac = '{MACFilter}';\nlet _Net = DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses, MacAddress) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP), IPList=make_set(IP), Mac=take_any(MacAddress) by DeviceId;\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState, OSPlatform, OSVersion, PublicIP, MachineGroup) by DeviceId, DeviceName\n| join kind=leftouter _Net on DeviceId\n| where _df == '' or DeviceName has _df\n| where _ip == '' or tostring(IPList) has _ip\n| where _mac == '' or Mac has _mac\n| where DeviceType in~ ('MobilePhone','Smartphone','Tablet','Mobile') or OSPlatform in~ ('iOS','Android','iPadOS','AndroidEnterprise')\n| extend DaysSinceLastSeen=datetime_diff('day',now(),Timestamp)\n| project DeviceName, DeviceId, DeviceType, OSPlatform, OSVersion, LastIPAddress, MAC=Mac, PublicIP, OnboardingStatus, SensorHealthState, DaysSinceLastSeen, MachineGroup, LastSeen=Timestamp\n| order by DaysSinceLastSeen asc, DeviceName asc\n| top 1000 by LastSeen desc",
               "size": 1,
               "title": "Mobile & Tablet Detail Inventory",
               "timeContextFromParameter": "TimeRange",
@@ -1731,8 +1967,18 @@
               "exportToExcelOptions": "visible",
               "gridSettings": {
                 "filter": true,
-                "rowLimit": 1000000,
+                "rowLimit": 1000,
                 "formatters": [
+                  {
+                    "columnMatch": "DeviceName",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "Url",
+                      "linkLabel": "",
+                      "customColumnWidthSetting": "24ch",
+                      "linkUrlTemplate": "https://security.microsoft.com/machines/{DeviceId}/overview"
+                    }
+                  },
                   {
                     "columnMatch": "OnboardingStatus",
                     "formatter": 18,
@@ -1747,13 +1993,13 @@
                         },
                         {
                           "operator": "==",
-                          "thresholdValue": "CanBeOnboarded",
+                          "thresholdValue": "Can be onboarded",
                           "representation": "3",
                           "text": "{0}{1}"
                         },
                         {
                           "operator": "==",
-                          "thresholdValue": "NotOnboarded",
+                          "thresholdValue": "Insufficient info",
                           "representation": "2",
                           "text": "{0}{1}"
                         },
@@ -1792,6 +2038,10 @@
                         }
                       ]
                     }
+                  },
+                  {
+                    "columnMatch": "DeviceId",
+                    "formatter": 5
                   }
                 ]
               }
@@ -2039,13 +2289,13 @@
                         },
                         {
                           "operator": "==",
-                          "thresholdValue": "CanBeOnboarded",
+                          "thresholdValue": "Can be onboarded",
                           "representation": "3",
                           "text": "{0}{1}"
                         },
                         {
                           "operator": "==",
-                          "thresholdValue": "NotOnboarded",
+                          "thresholdValue": "Insufficient info",
                           "representation": "2",
                           "text": "{0}{1}"
                         },
@@ -2076,7 +2326,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let LastNet = DeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, ConnectedNetworks, IPAddresses) by DeviceId, DeviceName;\nlet DevTypes = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState, MachineGroup) by DeviceId\n| project DeviceId, DType=DeviceType, OnboardingStatus, SensorHealthState, MachineGroup;\nLastNet\n| join kind=leftouter DevTypes on DeviceId\n| extend HasDomainAuth = tostring(parse_json(ConnectedNetworks)) has 'DomainAuthenticated'\n| extend IPs = parse_json(IPAddresses)\n| mv-expand IPE = IPs\n| extend IP = tostring(IPE.IPAddress)\n| where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.'\n| extend Is192_home = IP startswith '192.168.0.' or IP startswith '192.168.1.'\n| extend Is192 = IP startswith '192.168.'\n| extend Is10 = IP startswith '10.'\n| extend Is172 = IP startswith '172.'\n| extend IsPrivate = Is10 or Is172 or Is192\n| summarize HasDomainAuth=any(HasDomainAuth), HasPublicIP=any(not(IsPrivate)), LikelyHome=any(Is192_home), SampleIP=take_any(IP), DType=any(DType), OnboardingStatus=any(OnboardingStatus), SensorHealthState=any(SensorHealthState), MachineGroup=any(MachineGroup), NetworkName=take_any(tostring(parse_json(ConnectedNetworks)[0].Name)) by DeviceId, DeviceName\n| extend NetworkClass=case(HasDomainAuth,'Corporate', HasPublicIP and not(HasDomainAuth),'Public', LikelyHome,'Home', 'Other')\n| where NetworkClass in ('Public','Home')\n| where DType !in~ ('MobilePhone','Smartphone','Tablet')\n| extend RiskLevel=iff(NetworkClass=='Public','HIGH — Device on Public / Internet-Facing Network','MEDIUM — Corporate Asset Detected on Home Network')\n| project DeviceName, DeviceType=DType, NetworkName, LastIP=SampleIP, NetworkType=NetworkClass, RiskLevel, OnboardingStatus, SensorHealthState, MachineGroup\n| order by RiskLevel asc",
+              "query": "let LastNet = DeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, ConnectedNetworks, IPAddresses) by DeviceId, DeviceName;\nlet DevTypes = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState, MachineGroup) by DeviceId\n| project DeviceId, DType=DeviceType, OnboardingStatus, SensorHealthState, MachineGroup;\nLastNet\n| join kind=leftouter DevTypes on DeviceId\n| extend HasDomainAuth = tostring(parse_json(ConnectedNetworks)) has 'DomainAuthenticated'\n| extend IPs = parse_json(IPAddresses)\n| mv-expand IPE = IPs\n| extend IP = tostring(IPE.IPAddress)\n| where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.'\n| extend Is192_home = IP startswith '192.168.0.' or IP startswith '192.168.1.'\n| extend Is192 = IP startswith '192.168.'\n| extend Is10 = IP startswith '10.'\n| extend Is172 = IP startswith '172.'\n| extend IsPrivate = Is10 or Is172 or Is192\n| summarize HasDomainAuth=any(HasDomainAuth), HasPublicIP=any(not(IsPrivate)), LikelyHome=any(Is192_home), SampleIP=take_any(IP), DType=any(DType), OnboardingStatus=any(OnboardingStatus), SensorHealthState=any(SensorHealthState), MachineGroup=any(MachineGroup), NetworkName=take_any(tostring(parse_json(ConnectedNetworks)[0].Name)) by DeviceId, DeviceName\n| extend NetworkClass=case(HasDomainAuth,'Corporate', HasPublicIP and not(HasDomainAuth),'Public', LikelyHome,'Home', 'Other')\n| where NetworkClass in ('Public','Home')\n| where DType !in~ ('MobilePhone','Smartphone','Mobile','Mobile','Tablet','Mobile')\n| extend RiskLevel=iff(NetworkClass=='Public','HIGH — Device on Public / Internet-Facing Network','MEDIUM — Corporate Asset Detected on Home Network')\n| project DeviceName, DeviceType=DType, NetworkName, LastIP=SampleIP, NetworkType=NetworkClass, RiskLevel, OnboardingStatus, SensorHealthState, MachineGroup\n| order by RiskLevel asc",
               "size": 0,
               "title": "Risk Signals: Non-Mobile Assets on Home or Public Networks",
               "timeContextFromParameter": "TimeRange",
@@ -2158,13 +2408,13 @@
                         },
                         {
                           "operator": "==",
-                          "thresholdValue": "CanBeOnboarded",
+                          "thresholdValue": "Can be onboarded",
                           "representation": "3",
                           "text": "{0}{1}"
                         },
                         {
                           "operator": "==",
-                          "thresholdValue": "NotOnboarded",
+                          "thresholdValue": "Insufficient info",
                           "representation": "2",
                           "text": "{0}{1}"
                         },

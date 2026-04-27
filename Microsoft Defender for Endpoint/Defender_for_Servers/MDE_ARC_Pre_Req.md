@@ -1,3 +1,4 @@
+```powershell
 #Requires -Version 5.1
 <#
 .SYNOPSIS
@@ -135,3 +136,4 @@ if ($blocked) {
     }
 }
 Write-Host ""
+```

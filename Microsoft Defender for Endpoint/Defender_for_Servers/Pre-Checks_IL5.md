@@ -44,7 +44,7 @@ Once Tamper Protection is enabled and MDAV switches to Active mode (Phase B), it
 
 ## 2. PREREQUISITES
 
-### 2.1 Network Requirements &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#0078D4; font-size:0.85em;"> **Verification:** Run `OCE.exe -EnvironmentName "USGovDoD"`</span>
+### 2.1 Network Requirements &nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#0078D4; font-size:0.85em;"> **Verification:** |&nbsp; [Pre-Req Connectivity Check](https://github.com/johnB007/Defender_XDR/blob/main/Microsoft%20Defender%20for%20Endpoint/Defender_for_Servers/MDE_ARC_Pre_Req.md)</span>
 
 #### DoD MDE Endpoints (Streamlined Connectivity - Preview)
 

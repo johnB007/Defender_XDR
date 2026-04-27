@@ -4,7 +4,7 @@
     {
       "type": 1,
       "content": {
-        "json": "This workbook provides a **full-spectrum asset inventory** of all devices discovered by MDE Device Discovery: Cameras, Network Infrastructure, Printers, IoT/OT, Computers, Servers, and Mobile devices. The **Network Context** tab classifies every discovered device as **Corporate (Domain Authenticated)**, **Likely Home Network**, or **Public / Internet-Facing**, enabling immediate identification of shadow assets, off-network endpoints, and surveillance gaps. Use the **Time Range** selector and tabs below to explore each security domain.",
+        "json": "This workbook gives you an inventory of devices discovered by Microsoft Defender for Endpoint (MDE) Device Discovery. Use the **Time Range** selector and tabs below to review each device category, network and SSID activity, and the **Network Context** classification.",
         "style": "0"
       },
       "name": "banner-header"
@@ -143,7 +143,7 @@
           {
             "type": 1,
             "content": {
-              "json": "**Device Discovery** &nbsp;·&nbsp; Full inventory from `DeviceInfo` · Network context from `DeviceNetworkInfo` &nbsp;·&nbsp; KPI tiles use the selected Time Range &nbsp;·&nbsp; _Top summary tiles are mutually exclusive inventory categories and add up to Total Discovered. Onboarding counts remain available in the detailed tabs._",
+              "json": "**Device Discovery** &nbsp;·&nbsp; Inventory summary from `DeviceInfo` with network context from `DeviceNetworkInfo` &nbsp;·&nbsp; KPI tiles follow the selected Time Range &nbsp;·&nbsp; _Top summary tiles are mutually exclusive categories and add up to Total Discovered. Onboarding counts remain in the detailed tabs._",
               "style": "info"
             },
             "name": "overview-header"
@@ -176,7 +176,7 @@
           {
             "type": 1,
             "content": {
-              "json": "**Network / SSID Inventory** All distinct network names (SSIDs or wired network identifiers) reported in `DeviceNetworkInfo.ConnectedNetworks`, broken down by device category — use this view to understand which networks have unmanaged or IoT assets on them.",
+              "json": "**Network / SSID Inventory** Distinct network names reported in `DeviceNetworkInfo.ConnectedNetworks`, grouped by device category to show where discovered assets are connected.",
               "style": "info"
             },
             "customWidth": "100",
@@ -349,7 +349,7 @@
           {
             "type": 1,
             "content": {
-              "json": "**All Discovered Devices** Complete inventory from `DeviceInfo` including all device types, onboarding status, OS, last seen IP, and exposure level &nbsp;·&nbsp; Use the column filter to drill into specific types, OS platforms, or onboarding status &nbsp;·&nbsp; Follows Time Range selector",
+              "json": "**All Discovered Devices** Complete inventory from `DeviceInfo` with onboarding status, OS, last seen IP, and exposure level &nbsp;·&nbsp; Use column filters to narrow by device type, platform, or onboarding state &nbsp;·&nbsp; Follows the selected Time Range",
               "style": "info"
             },
             "name": "alldevices-header"
@@ -517,7 +517,7 @@
           {
             "type": 1,
             "content": {
-              "json": "**Cameras & Physical Security Devices** Scope: `DeviceType` in Camera / Webcam / AudioVideoEquipment / VideoSurveillance, plus devices with camera-related names (cam, cctv, nvr, dvr, ipcam) &nbsp;·&nbsp; Most cameras will show `Unsupported` onboarding status, this is expected. Focus on IP addresses, exposure level, and subnet classification &nbsp;·&nbsp; Follows Time Range selector",
+              "json": "**Cameras & Physical Security Devices** Includes devices identified as Camera, Webcam, AudioVideoEquipment, or VideoSurveillance, plus common camera-related hostnames &nbsp;·&nbsp; Many cameras report `Unsupported` onboarding status, so focus on IP, exposure, and last seen details &nbsp;·&nbsp; Follows the selected Time Range",
               "style": "info"
             },
             "name": "cameras-header"
@@ -728,7 +728,7 @@
           {
             "type": 1,
             "content": {
-              "json": "**Network Infrastructure Devices** Scope: `DeviceType == NetworkDevice` plus name-matched routers, switches, firewalls, access points, and load balancers &nbsp;·&nbsp; Sub-type is inferred from device names &nbsp;·&nbsp; Follows Time Range selector",
+              "json": "**Network Infrastructure Devices** Includes `NetworkDevice` records plus common router, switch, firewall, access point, and load balancer hostnames &nbsp;·&nbsp; Device subtype is inferred from the hostname when available &nbsp;·&nbsp; Follows the selected Time Range",
               "style": "info"
             },
             "name": "netinfra-header"
@@ -925,7 +925,7 @@
           {
             "type": 1,
             "content": {
-              "json": "**Printers & Multi-Function Devices (MFDs)** Scope: `DeviceType == Printer` plus name-matched printers, copiers, MFPs, and scan stations &nbsp;·&nbsp; Printers are a common lateral-movement target, each unpatched or unmonitored print device is a foothold risk &nbsp;·&nbsp; Follows Time Range selector",
+              "json": "**Printers & Multi-Function Devices (MFDs)** Includes `Printer` records plus common printer, copier, and MFP hostnames &nbsp;·&nbsp; Use this view to review print devices that may be unmanaged or missing onboarding &nbsp;·&nbsp; Follows the selected Time Range",
               "style": "info"
             },
             "name": "printers-header"
@@ -1142,7 +1142,7 @@
           {
             "type": 1,
             "content": {
-              "json": "**IoT & OT Devices** Scope: `DeviceType` in IoTDevice / SmartAppliance / CommunicationsDevice / VoIPPhone / GameConsole / MediaPlayer, plus `OSPlatform == IoT` or `Embedded`, plus name-matched industrial and building automation devices &nbsp;·&nbsp; IoT/OT devices represent the highest risk surface area, these devices rarely receive patches and are prime targets for persistence and lateral movement &nbsp;·&nbsp; Follows Time Range selector",
+              "json": "**IoT & OT Devices** Includes IoT, embedded, communications, and building or industrial device matches from `DeviceInfo`, `OSPlatform`, and common hostnames &nbsp;·&nbsp; Use this tab to review devices that are often unmanaged or absent from standard endpoint inventories &nbsp;·&nbsp; Follows the selected Time Range",
               "style": "warning"
             },
             "name": "iot-header"
@@ -1374,7 +1374,7 @@
           {
             "type": 1,
             "content": {
-              "json": "**Computers & Servers** Scope: `DeviceType` in Workstation / Desktop / Laptop / Server, plus Windows / Linux / macOS endpoints where DeviceType is unset &nbsp;·&nbsp; These are primary MDE managed endpoints &nbsp;·&nbsp; Follows Time Range selector",
+              "json": "**Computers & Servers** Includes workstation, desktop, laptop, and server records, plus Windows, Linux, and macOS endpoints where `DeviceType` is not set &nbsp;·&nbsp; Use this view to review onboarding, health, and exposure for primary managed endpoints &nbsp;·&nbsp; Follows the selected Time Range",
               "style": "info"
             },
             "name": "computers-header"
@@ -1647,7 +1647,7 @@
           {
             "type": 1,
             "content": {
-              "json": "**Mobile Devices & Tablets** Scope: `DeviceType` in MobilePhone / Smartphone / Tablet, plus `OSPlatform` in iOS / Android / iPadOS &nbsp;·&nbsp; Follows Time Range selector",
+              "json": "**Mobile Devices & Tablets** Includes mobile phone, smartphone, and tablet records, plus iOS, iPadOS, and Android platforms &nbsp;·&nbsp; Follows the selected Time Range",
               "style": "info"
             },
             "name": "mobile-header"
@@ -1817,7 +1817,7 @@
           {
             "type": 1,
             "content": {
-              "json": "**Network Context** Classifies devices as **Corporate** (domain-auth or enterprise RFC1918), **Home** (192.168.0/1.x), **Public** (routable IP), or **Unknown Private**. Risk Signals grid below flags non-mobile corporate assets on Home/Public networks.",
+              "json": "**Network Context** Classifies devices as **Corporate (Domain Authenticated)**, **Corporate (Private - Enterprise)**, **Likely Home Network**, **Public / Internet-Facing**, or **Unknown Private**. The Risk Signals grid highlights non-mobile devices seen on home or public networks.",
               "style": "info"
             },
             "name": "netctx-header"
@@ -2067,7 +2067,7 @@
           {
             "type": 1,
             "content": {
-              "json": "**Risk Signals** Non-mobile corporate devices last seen on Home or Public networks. Immediate investigation priority.",
+              "json": "**Risk Signals** Non-mobile devices seen on home or public networks. Review these systems first.",
               "style": "error"
             },
             "name": "netctx-risk-header"

@@ -51,7 +51,7 @@
             "id": "tab-printers",
             "cellValue": "Tab",
             "linkTarget": "parameter",
-            "linkLabel": "Printers & MFDs",
+            "linkLabel": "Printers & MFPs",
             "subTarget": "Printers",
             "style": "button"
           },
@@ -1083,7 +1083,7 @@
           {
             "type": 1,
             "content": {
-              "json": "**Printers & Multi-Function Devices (MFDs)** Includes `Printer` records plus common printer, copier, and MFP hostnames &nbsp;·&nbsp; Use this view to review print devices that may be unmanaged or missing onboarding &nbsp;·&nbsp; Follows the selected Time Range",
+              "json": "**Printers & Multi-Function Printers (MFPs)** Includes `Printer` records plus common printer, copier, and MFP hostnames &nbsp;·&nbsp; Use this view to review print devices that may be unmanaged or missing onboarding &nbsp;·&nbsp; Follows the selected Time Range",
               "style": "info"
             },
             "name": "printers-header"
@@ -1092,9 +1092,9 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('Printer')\n| extend IsByName = NameLc has_any ('printer','prn-','laserjet','officejet','copier','xerox','epson','brother','ricoh','konica','kyocera','toshiba-mfp','sharp-mfp','-mfp','-mfd')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| summarize TotalPrinters=count(), Unsupported=countif(OnboardingStatus=~'Unsupported'), CanBeOnboarded=countif(OnboardingStatus=~'Can be onboarded'), Insufficient=countif(OnboardingStatus=~'Insufficient info')\n| mv-expand kv=pack_array(pack('label','Total Printers / MFDs','value',TotalPrinters), pack('label','Unsupported (Expected)','value',Unsupported), pack('label','Can Be Onboarded','value',CanBeOnboarded), pack('label','Insufficient Info','value',Insufficient))\n| project label=tostring(kv.label), value=toint(kv.value)",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('Printer')\n| extend IsByName = NameLc has_any ('printer','prn-','laserjet','officejet','copier','xerox','epson','brother','ricoh','konica','kyocera','toshiba-mfp','sharp-mfp','-mfp','-mfd')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| summarize TotalPrinters=count(), Unsupported=countif(OnboardingStatus=~'Unsupported'), CanBeOnboarded=countif(OnboardingStatus=~'Can be onboarded'), Insufficient=countif(OnboardingStatus=~'Insufficient info')\n| mv-expand kv=pack_array(pack('label','Total Printers / MFPs','value',TotalPrinters), pack('label','Unsupported (Expected)','value',Unsupported), pack('label','Can Be Onboarded','value',CanBeOnboarded), pack('label','Insufficient Info','value',Insufficient))\n| project label=tostring(kv.label), value=toint(kv.value)",
               "size": 4,
-              "title": "Printers & MFDs KPI",
+              "title": "Printers & MFPs KPI",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -1179,7 +1179,7 @@
               "version": "KqlItem/1.0",
               "query": "let _df = '{DeviceFilter}';\nlet _ip = '{IPFilter}';\nlet _mac = '{MACFilter}';\nlet _Net = DeviceNetworkInfo | where Timestamp {TimeRange} | summarize arg_max(Timestamp, IPAddresses, MacAddress) by DeviceId | mv-expand IPE = parse_json(IPAddresses) | extend IP = tostring(IPE.IPAddress) | where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.' | summarize LastIPAddress=take_any(IP), IPList=make_set(IP), Mac=take_any(MacAddress) by DeviceId;\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, SensorHealthState, OSPlatform, PublicIP, MachineGroup, ExposureLevel) by DeviceId, DeviceName\n| join kind=leftouter _Net on DeviceId\n| where _df == '' or DeviceName has _df\n| where _ip == '' or tostring(IPList) has _ip\n| where _mac == '' or Mac has _mac\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('Printer')\n| extend IsByName = NameLc has_any ('printer','prn-','laserjet','officejet','copier','xerox','epson','brother','ricoh','konica','kyocera','toshiba-mfp','sharp-mfp','-mfp','-mfd')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| extend DaysSinceLastSeen=datetime_diff('day',now(),Timestamp)\n| project DeviceName, DeviceId, DeviceType, LastIPAddress, MAC=Mac, PublicIP, OSPlatform, OnboardingStatus, ExposureLevel, DaysSinceLastSeen, MachineGroup, LastSeen=Timestamp\n| order by DaysSinceLastSeen asc, DeviceName asc\n| top 1000 by LastSeen desc",
               "size": 1,
-              "title": "Printer & MFD Detail Inventory",
+              "title": "Printer & MFP Detail Inventory",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",

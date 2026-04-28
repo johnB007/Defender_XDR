@@ -44,14 +44,14 @@ This workbook gives IT and security teams one place to review MDE device discove
 
 
 ### Audio & Video Tab
-> _Screenshot placeholder. Add after first deployment._
+<img width="2017" height="1052" alt="image" src="https://github.com/user-attachments/assets/8a8425d2-f5df-4b5d-86f9-5e4e14096e7c" />
 
 ### Network Infrastructure Tab
 <img width="1883" height="812" alt="image" src="https://github.com/user-attachments/assets/475a2be3-6b3d-4c84-85af-3a3d425ab0e5" />
 
 
 ### Printers & MFPs Tab
-> _Screenshot placeholder. Add after first deployment._
+<img width="1615" height="659" alt="image" src="https://github.com/user-attachments/assets/e995592f-88fc-4636-a091-a028bb2e8ebb" />
 
 ### IoT & OT Devices Tab
 <img width="1890" height="813" alt="image" src="https://github.com/user-attachments/assets/7e42e482-664b-4fe9-b75f-6c2d2bcfd777" />

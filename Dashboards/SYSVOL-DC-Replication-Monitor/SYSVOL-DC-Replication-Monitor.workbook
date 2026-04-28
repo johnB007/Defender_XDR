@@ -761,9 +761,9 @@
             "name": "map-world",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let dcs = Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where isnotempty(RemoteIPLatitude) and isnotempty(RemoteIPLongitude)\n| summarize\n    Heartbeats=count(),\n    LastSeen=max(TimeGenerated),\n    Latitude=any(RemoteIPLatitude),\n    Longitude=any(RemoteIPLongitude),\n    Country=tostring(any(RemoteIPCountry)),\n    OSName=any(OSName),\n    OSMajorVersion=any(OSMajorVersion),\n    AgentVersion=any(Version)\n  by Computer;\nlet countryCounts = dcs | summarize CountryDCs=dcount(Computer) by Country;\ndcs\n| join kind=leftouter countryCounts on Country\n| extend SizeMetric=1\n| project Computer, Country, CountryDCs, Latitude, Longitude, SizeMetric, Heartbeats, LastSeen, OSName, OSMajorVersion, AgentVersion",
+              "query": "Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where isnotempty(RemoteIPLatitude) and isnotempty(RemoteIPLongitude)\n| where isnotempty(RemoteIPCountry)\n| summarize\n    DCs=dcount(Computer),\n    Latitude=avg(todouble(RemoteIPLatitude)),\n    Longitude=avg(todouble(RemoteIPLongitude)),\n    LastSeen=max(TimeGenerated)\n  by Country=tostring(RemoteIPCountry)\n| extend SizeMetric=min_of(toint(DCs), 15)\n| order by DCs desc",
               "size": 3,
-              "title": "Domain Controllers World Map (Heartbeat geo) — one dot per DC",
+              "title": "Domain Controllers by Country (Heartbeat geo)",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -775,14 +775,17 @@
                 "longitude": "Longitude",
                 "sizeSettings": "SizeMetric",
                 "sizeAggregation": "Sum",
-                "labelSettings": "Computer",
-                "minSize": 8,
-                "maxSize": 14,
+                "labelSettings": "Country",
+                "legendMetric": "DCs",
+                "legendAggregation": "Sum",
+                "numberOfMetrics": 50,
+                "minSize": 14,
+                "maxSize": 30,
                 "defaultZoom": 1,
                 "itemColorSettings": {
                   "type": "thresholds",
                   "colorAggregation": "Sum",
-                  "nodeColorField": "CountryDCs",
+                  "nodeColorField": "DCs",
                   "thresholdsGrid": [
                     {
                       "operator": ">",
@@ -819,46 +822,6 @@
               }
             },
             "customWidth": "100"
-          },
-          {
-            "type": 3,
-            "name": "map-country-tiles",
-            "customWidth": "100",
-            "content": {
-              "version": "KqlItem/1.0",
-              "query": "Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where isnotempty(RemoteIPCountry)\n| summarize DCs=dcount(Computer) by Country=tostring(RemoteIPCountry)\n| order by DCs desc",
-              "size": 3,
-              "title": "DCs by Country",
-              "timeContextFromParameter": "TimeRange",
-              "queryType": 0,
-              "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "tiles",
-              "tileSettings": {
-                "showBorder": true,
-                "titleContent": {
-                  "columnMatch": "DCs",
-                  "formatter": 1
-                },
-                "leftContent": {
-                  "columnMatch": "DCs",
-                  "formatter": 12,
-                  "formatOptions": {
-                    "palette": "redBright"
-                  },
-                  "numberFormat": {
-                    "unit": 17,
-                    "options": {
-                      "style": "decimal",
-                      "maximumFractionDigits": 0
-                    }
-                  }
-                },
-                "subtitleContent": {
-                  "columnMatch": "Country",
-                  "formatter": 1
-                }
-              }
-            }
           },
           {
             "type": 3,

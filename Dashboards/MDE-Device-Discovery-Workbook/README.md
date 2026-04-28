@@ -47,8 +47,7 @@ This workbook gives IT and security teams one place to review MDE device discove
 <img width="2017" height="1052" alt="image" src="https://github.com/user-attachments/assets/8a8425d2-f5df-4b5d-86f9-5e4e14096e7c" />
 
 ### Network Infrastructure Tab
-<img width="1883" height="812" alt="image" src="https://github.com/user-attachments/assets/475a2be3-6b3d-4c84-85af-3a3d425ab0e5" />
-
+<img width="2100" height="1010" alt="image" src="https://github.com/user-attachments/assets/3d3f143b-ad77-4503-a167-fe805b9407ee" />
 
 ### Printers & MFPs Tab
 <img width="1942" height="988" alt="image" src="https://github.com/user-attachments/assets/d30a0048-bb3d-455f-ba85-4fb97c9bf57e" />

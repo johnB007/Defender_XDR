@@ -776,9 +776,6 @@
                 "sizeSettings": "SizeMetric",
                 "sizeAggregation": "Sum",
                 "labelSettings": "Computer",
-                "legendMetric": "SizeMetric",
-                "legendAggregation": "Sum",
-                "numberOfMetrics": 0,
                 "minSize": 8,
                 "maxSize": 14,
                 "defaultZoom": 1,
@@ -829,7 +826,7 @@
             "customWidth": "100",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where isnotempty(RemoteIPCountry)\n| summarize DCs=dcount(Computer) by Country=tostring(RemoteIPCountry)\n| order by DCs desc\n| take 30",
+              "query": "Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where isnotempty(RemoteIPCountry)\n| summarize DCs=dcount(Computer) by Country=tostring(RemoteIPCountry)\n| order by DCs desc",
               "size": 3,
               "title": "DCs by Country",
               "timeContextFromParameter": "TimeRange",
@@ -837,9 +834,9 @@
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "tiles",
               "tileSettings": {
-                "showBorder": false,
+                "showBorder": true,
                 "titleContent": {
-                  "columnMatch": "Country",
+                  "columnMatch": "DCs",
                   "formatter": 1
                 },
                 "leftContent": {
@@ -855,6 +852,10 @@
                       "maximumFractionDigits": 0
                     }
                   }
+                },
+                "subtitleContent": {
+                  "columnMatch": "Country",
+                  "formatter": 1
                 }
               }
             }

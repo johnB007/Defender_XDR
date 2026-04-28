@@ -762,7 +762,7 @@
             "content": {
               "version": "KqlItem/1.0",
               "query": "Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where isnotempty(RemoteIPLatitude) and isnotempty(RemoteIPLongitude)\n| summarize\n    LastSeen=max(TimeGenerated),\n    Latitude=avg(todouble(RemoteIPLatitude)),\n    Longitude=avg(todouble(RemoteIPLongitude)),\n    DCs=dcount(Computer),\n    DCNames=make_set(Computer, 25)\n  by Country=tostring(RemoteIPCountry)\n| where isnotempty(Country)\n| order by DCs desc",
-              "size": 4,
+              "size": 3,
               "title": "Domain Controllers by Country (Heartbeat geo) — heatmap sized by DC count",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
@@ -778,14 +778,15 @@
                 "labelSettings": "Country",
                 "legendMetric": "DCs",
                 "legendAggregation": "Sum",
-                "minSize": 10,
-                "maxSize": 60,
+                "minSize": 15,
+                "maxSize": 80,
                 "itemColorSettings": {
                   "type": "heatmap",
                   "colorAggregation": "Sum",
                   "nodeColorField": "DCs",
                   "heatmapPalette": "redBright"
-                }
+                },
+                "defaultZoom": 1
               }
             },
             "customWidth": "100"
@@ -796,8 +797,8 @@
             "content": {
               "version": "KqlItem/1.0",
               "query": "Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where isnotempty(RemoteIPCountry)\n| summarize DCs=dcount(Computer) by Country=tostring(RemoteIPCountry)\n| order by DCs desc\n| project Country, DCs",
-              "size": 0,
-              "title": "DC Count by Country",
+              "size": 1,
+              "title": "DC Count by Country (full list)",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -821,7 +822,7 @@
                 ]
               }
             },
-            "customWidth": "50"
+            "customWidth": "100"
           },
           {
             "type": 3,
@@ -839,7 +840,7 @@
                 "showLegend": true
               }
             },
-            "customWidth": "50"
+            "customWidth": "100"
           },
           {
             "type": 3,

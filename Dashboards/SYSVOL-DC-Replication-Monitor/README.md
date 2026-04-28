@@ -23,7 +23,7 @@ This workbook gives sysadmin and security teams fast triage coverage for replica
 |---|---|
 | Overview | Validate whether replication telemetry is healthy and complete across all DCs, and review high-level health and severity posture in one view. |
 | DFS Replication | Investigate DFSR stoppage, out-of-sync conditions, and service disruption patterns while tracking concentration of critical DFSR conditions over time. |
-| DC Locations | Plot every Domain Controller on a world map using Heartbeat geolocation and MDE `DeviceInfo` enrichment. Confirm physical placement, regional spread, and surface DCs reporting from unexpected locations. |
+| DC Locations | Plot every Domain Controller on a world map using Heartbeat geolocation aggregated by country, with MDE `DeviceInfo` enrichment. Confirm physical placement, regional spread, and surface DCs reporting from unexpected locations. Bubbles are size-capped so high-count regions don't crush small ones, and tier-colored by DC count. |
 | Directory Service | Investigate AD replication failures, KCC topology issues, and DNS-linked faults while monitoring enterprise directory health risk. |
 | Security and MDE | Correlate focus event IDs with SecurityEvent, MDE, and Arc operational signals to measure telemetry breadth for DC assets. |
 | Critical Events | Prioritize multi-source failures and highest-severity events for immediate action while tracking systemic risk across replication subsystems. |
@@ -78,9 +78,15 @@ _World map of all Domain Controllers with Heartbeat geo telemetry. Add screensho
 - Why it matters: catches 2213/4012/5002/6016 class failures that can interrupt SYSVOL consistency.
 
 ### DC Locations
-- What it does: plots every reporting Domain Controller on a world map and joins Heartbeat geo with MDE `DeviceInfo`.
-- Primary visuals: world map (sized by heartbeat volume, colored by reporting freshness), country bar chart, status pie, and a full enrichment table with `Latitude`, `Longitude`, `Country`, `OSName`, `PublicIP`, and `OnboardingStatus`.
-- Why it matters: confirms expected DC placement, exposes drift from documented sites, and helps spot DCs reporting from unexpected egress IPs.
+- What it does: plots every reporting Domain Controller on a world map by aggregating `Heartbeat` geolocation by country and joining with MDE `DeviceInfo` for OS, public IP, and onboarding state.
+- Primary visuals:
+  - **World map** with one bubble per country. The map's built-in legend renders the country name on top with the DC count directly underneath (for example `United States` / `161`, `United Kingdom` / `9`, `Japan` / `3`).
+  - **Bubble sizing** is capped at `min_of(DCs, 15)` with `minSize 14` / `maxSize 30` so high-density regions like the US do not visually crush low-count countries such as Guam, Portugal, or Japan.
+  - **Tier coloring** by DC count: 1 = green, 2-4 = blue, 5-9 = yellow, 10-24 = orange, 25-99 = red, 100+ = bright red. Numeric thresholds are applied directly against the `DCs` field for reliable rendering.
+  - **KPI tiles** for total DCs, country count, and freshness.
+  - **Enrichment table** with `Computer`, `Country`, `Latitude`, `Longitude`, `OSName`, `PublicIP`, and `OnboardingStatus` joined from `DeviceInfo` on the short hostname (`tolower(split(name, "."))[0]`) since `Heartbeat.Computer` is FQDN while `DeviceInfo.DeviceName` is short.
+- Why it matters: confirms expected DC placement, exposes drift from documented sites, and helps spot DCs reporting from unexpected egress IPs or countries.
+- Design note: the workbook map widget binds its bottom legend strip to `labelSettings`. To get country-name-on-top with DC-count-below in the legend, the map aggregates per country (8 bubbles for ~200 DCs) rather than rendering 200 individual dots.
 
 ### Directory Service
 - What it does: analyzes AD replication and topology health from Directory Service events.
@@ -148,3 +154,12 @@ When the deployment blade opens, provide:
 1. Save changes in this folder.
 2. Commit and push to your repository.
 3. Open this folder in GitHub to verify README rendering.
+
+## Recent Changes
+- **NTFRS / File Replication Service removed.** The legacy `NTFRS` and `NTFRSEvents` references and the entire File Replication (NTFRS) tab were deleted. The `DFSR` and `DFSREvents` tables are the supported replacement.
+- **DC Locations tab added** in place of the removed NTFRS tab, full page width and length showing latitude/longitude of each DC on a world map.
+- **MDE join fixed.** Enrichment now joins `Heartbeat.Computer` (FQDN) to `DeviceInfo.DeviceName` (short hostname) using `tolower(split(name, "."))[0]`, eliminating the empty-join that occurred when matching FQDN to short name directly.
+- **"Other" buckets eliminated.** The Top 20 DCs by Billed GB widget was rebuilt as a clean ranked table so high-cardinality data no longer collapses into an `Other` slice.
+- **Map sizing rebalanced.** Switched the map's `SizeMetric` from raw heartbeat counts (which produced 50,000+ values per country) to `dcount(Computer)` capped at `min_of(DCs, 15)`. The US (161 DCs) no longer crushes Guam, Portugal, or Japan.
+- **Map color tiers stabilized.** Threshold formatters now use numeric `>` operators against the `DCs` field instead of string equality on a `Tier` column, which previously rendered as invisible black dots.
+- **Map legend shows country + count.** `labelSettings` is set to `Country` so the workbook's bottom legend strip displays the country name on top with the DC count directly below.

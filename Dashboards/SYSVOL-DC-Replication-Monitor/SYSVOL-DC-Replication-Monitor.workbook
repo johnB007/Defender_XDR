@@ -761,7 +761,7 @@
             "name": "map-world",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let dcs = Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where isnotempty(RemoteIPLatitude) and isnotempty(RemoteIPLongitude)\n| summarize\n    Heartbeats=count(),\n    LastSeen=max(TimeGenerated),\n    Latitude=any(RemoteIPLatitude),\n    Longitude=any(RemoteIPLongitude),\n    Country=tostring(any(RemoteIPCountry)),\n    OSName=any(OSName),\n    OSMajorVersion=any(OSMajorVersion),\n    AgentVersion=any(Version),\n    ResourceId=any(_ResourceId)\n  by Computer;\nlet countryCounts = dcs | summarize CountryDCs=dcount(Computer) by Country;\ndcs\n| join kind=leftouter countryCounts on Country\n| extend SizeMetric=1\n| extend MinutesSinceLastSeen=datetime_diff(\"minute\", now(), LastSeen)\n| extend Status=case(\n    MinutesSinceLastSeen > 60, \"Stale\",\n    MinutesSinceLastSeen > 15, \"Warning\",\n    \"Active\"\n  )\n| project Computer, Country, CountryDCs, Latitude, Longitude, Status, Heartbeats, LastSeen, OSName, OSMajorVersion, AgentVersion, ResourceId, SizeMetric\n| order by Country asc, Computer asc",
+              "query": "let dcs = Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where isnotempty(RemoteIPLatitude) and isnotempty(RemoteIPLongitude)\n| summarize\n    Heartbeats=count(),\n    LastSeen=max(TimeGenerated),\n    Latitude=any(RemoteIPLatitude),\n    Longitude=any(RemoteIPLongitude),\n    Country=tostring(any(RemoteIPCountry)),\n    OSName=any(OSName),\n    OSMajorVersion=any(OSMajorVersion),\n    AgentVersion=any(Version)\n  by Computer;\nlet countryCounts = dcs | summarize CountryDCs=dcount(Computer) by Country;\ndcs\n| join kind=leftouter countryCounts on Country\n| extend SizeMetric=1\n| project Computer, Country, CountryDCs, Latitude, Longitude, SizeMetric, Heartbeats, LastSeen, OSName, OSMajorVersion, AgentVersion",
               "size": 3,
               "title": "Domain Controllers World Map (Heartbeat geo) — one dot per DC",
               "timeContextFromParameter": "TimeRange",
@@ -775,12 +775,12 @@
                 "longitude": "Longitude",
                 "sizeSettings": "SizeMetric",
                 "sizeAggregation": "Sum",
-                "labelSettings": "Country",
-                "legendMetric": "Computer",
-                "legendAggregation": "Count",
-                "numberOfMetrics": 50,
+                "labelSettings": "Computer",
+                "legendMetric": "SizeMetric",
+                "legendAggregation": "Sum",
+                "numberOfMetrics": 0,
                 "minSize": 8,
-                "maxSize": 22,
+                "maxSize": 14,
                 "defaultZoom": 1,
                 "itemColorSettings": {
                   "type": "thresholds",
@@ -822,6 +822,42 @@
               }
             },
             "customWidth": "100"
+          },
+          {
+            "type": 3,
+            "name": "map-country-tiles",
+            "customWidth": "100",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where isnotempty(RemoteIPCountry)\n| summarize DCs=dcount(Computer) by Country=tostring(RemoteIPCountry)\n| order by DCs desc\n| take 30",
+              "size": 3,
+              "title": "DCs by Country",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "showBorder": false,
+                "titleContent": {
+                  "columnMatch": "Country",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "DCs",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "redBright"
+                  },
+                  "numberFormat": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 0
+                    }
+                  }
+                }
+              }
+            }
           },
           {
             "type": 3,

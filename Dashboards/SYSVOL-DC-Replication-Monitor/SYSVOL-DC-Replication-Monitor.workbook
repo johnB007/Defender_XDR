@@ -761,9 +761,9 @@
             "name": "map-world",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where isnotempty(RemoteIPLatitude) and isnotempty(RemoteIPLongitude)\n| summarize\n    Heartbeats=count(),\n    LastSeen=max(TimeGenerated),\n    FirstSeen=min(TimeGenerated),\n    Latitude=any(RemoteIPLatitude),\n    Longitude=any(RemoteIPLongitude),\n    Country=any(RemoteIPCountry),\n    OSType=any(OSType),\n    OSName=any(OSName),\n    OSMajorVersion=any(OSMajorVersion),\n    Version=any(Version),\n    ResourceId=any(_ResourceId)\n  by Computer\n| extend DCCount=1\n| extend MinutesSinceLastSeen=datetime_diff(\"minute\", now(), LastSeen)\n| extend Status=case(\n    MinutesSinceLastSeen > 60, \"Stale\",\n    MinutesSinceLastSeen > 15, \"Warning\",\n    \"Active\"\n  )\n| order by Computer asc",
+              "query": "Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where isnotempty(RemoteIPLatitude) and isnotempty(RemoteIPLongitude)\n| summarize\n    DCs=dcount(Computer),\n    Latitude=avg(todouble(RemoteIPLatitude)),\n    Longitude=avg(todouble(RemoteIPLongitude)),\n    LastSeen=max(TimeGenerated),\n    DCNames=make_set(Computer, 50)\n  by Country=tostring(RemoteIPCountry)\n| where isnotempty(Country)\n| order by DCs desc",
               "size": 3,
-              "title": "Domain Controller World Map (Heartbeat geo) — sized by DC count",
+              "title": "Domain Controllers by Country (Heartbeat geo) — sized by DC count",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -773,35 +773,20 @@
                 "locInfoColumn": "Country",
                 "latitude": "Latitude",
                 "longitude": "Longitude",
-                "sizeSettings": "DCCount",
+                "sizeSettings": "DCs",
                 "sizeAggregation": "Sum",
-                "labelSettings": "Computer",
-                "legendMetric": "DCCount",
+                "labelSettings": "Country",
+                "legendMetric": "DCs",
                 "legendAggregation": "Sum",
+                "numberOfMetrics": 50,
                 "minSize": 15,
                 "maxSize": 80,
                 "defaultZoom": 1,
                 "itemColorSettings": {
-                  "type": "thresholds",
+                  "type": "heatmap",
                   "colorAggregation": "Sum",
-                  "nodeColorField": "Status",
-                  "thresholdsGrid": [
-                    {
-                      "operator": "==",
-                      "thresholdValue": "Stale",
-                      "representation": "redBright"
-                    },
-                    {
-                      "operator": "==",
-                      "thresholdValue": "Warning",
-                      "representation": "yellow"
-                    },
-                    {
-                      "operator": "Default",
-                      "thresholdValue": null,
-                      "representation": "green"
-                    }
-                  ]
+                  "nodeColorField": "DCs",
+                  "heatmapPalette": "redBright"
                 }
               }
             },

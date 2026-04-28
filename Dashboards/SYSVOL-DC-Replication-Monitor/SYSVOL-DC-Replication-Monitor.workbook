@@ -761,9 +761,9 @@
             "name": "map-world",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where isnotempty(RemoteIPLatitude) and isnotempty(RemoteIPLongitude)\n| summarize\n    Heartbeats=count(),\n    LastSeen=max(TimeGenerated),\n    FirstSeen=min(TimeGenerated),\n    Latitude=any(RemoteIPLatitude),\n    Longitude=any(RemoteIPLongitude),\n    Country=any(RemoteIPCountry),\n    OSType=any(OSType),\n    OSName=any(OSName),\n    OSMajorVersion=any(OSMajorVersion),\n    Version=any(Version),\n    ResourceId=any(_ResourceId)\n  by Computer\n| extend MinutesSinceLastSeen=datetime_diff(\"minute\", now(), LastSeen)\n| extend Status=case(\n    MinutesSinceLastSeen > 60, \"Stale\",\n    MinutesSinceLastSeen > 15, \"Warning\",\n    \"Active\"\n  )\n| order by Computer asc",
-              "size": 3,
-              "title": "Domain Controller World Map (Heartbeat geo)",
+              "query": "Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where isnotempty(RemoteIPLatitude) and isnotempty(RemoteIPLongitude)\n| summarize\n    LastSeen=max(TimeGenerated),\n    Latitude=avg(todouble(RemoteIPLatitude)),\n    Longitude=avg(todouble(RemoteIPLongitude)),\n    DCs=dcount(Computer),\n    DCNames=make_set(Computer, 25)\n  by Country=tostring(RemoteIPCountry)\n| where isnotempty(Country)\n| order by DCs desc",
+              "size": 4,
+              "title": "Domain Controllers by Country (Heartbeat geo) — heatmap sized by DC count",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -773,50 +773,52 @@
                 "locInfoColumn": "Country",
                 "latitude": "Latitude",
                 "longitude": "Longitude",
-                "sizeSettings": "Heartbeats",
+                "sizeSettings": "DCs",
                 "sizeAggregation": "Sum",
-                "labelSettings": "Computer",
-                "legendMetric": "Heartbeats",
+                "labelSettings": "Country",
+                "legendMetric": "DCs",
                 "legendAggregation": "Sum",
+                "minSize": 10,
+                "maxSize": 60,
                 "itemColorSettings": {
-                  "type": "thresholds",
+                  "type": "heatmap",
                   "colorAggregation": "Sum",
-                  "nodeColorField": "Status",
-                  "thresholdsGrid": [
-                    {
-                      "operator": "==",
-                      "thresholdValue": "Stale",
-                      "representation": "redBright"
-                    },
-                    {
-                      "operator": "==",
-                      "thresholdValue": "Warning",
-                      "representation": "yellow"
-                    },
-                    {
-                      "operator": "Default",
-                      "thresholdValue": null,
-                      "representation": "green"
-                    }
-                  ]
+                  "nodeColorField": "DCs",
+                  "heatmapPalette": "redBright"
                 }
               }
-            }
+            },
+            "customWidth": "100"
           },
           {
             "type": 3,
             "name": "map-by-country",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where isnotempty(RemoteIPCountry)\n| summarize DCs=dcount(Computer), Heartbeats=count() by Country=RemoteIPCountry\n| order by DCs desc",
+              "query": "Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where isnotempty(RemoteIPCountry)\n| summarize DCs=dcount(Computer) by Country=tostring(RemoteIPCountry)\n| order by DCs desc\n| project Country, DCs",
               "size": 0,
               "title": "DC Count by Country",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "barchart",
-              "chartSettings": {
-                "showLegend": false
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "DCs",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "min": 0,
+                      "palette": "redBright"
+                    }
+                  }
+                ],
+                "sortBy": [
+                  {
+                    "itemKey": "DCs",
+                    "sortOrder": 2
+                  }
+                ]
               }
             },
             "customWidth": "50"
@@ -844,7 +846,7 @@
             "name": "map-detail-table",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let hb = Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| summarize\n    Heartbeats=count(),\n    LastSeen=max(TimeGenerated),\n    Latitude=any(RemoteIPLatitude),\n    Longitude=any(RemoteIPLongitude),\n    Country=any(RemoteIPCountry),\n    OSType=any(OSType),\n    OSName=any(OSName),\n    OSMajorVersion=any(OSMajorVersion),\n    AgentVersion=any(Version),\n    ResourceId=any(_ResourceId)\n  by Computer;\nlet mde = union isfuzzy=true\n  (DeviceInfo\n  | where Timestamp {TimeRange}\n  | where \"value::all\" in ({Computers}) or DeviceName in~ ({Computers})\n  | summarize arg_max(Timestamp, *) by DeviceName\n  | project Computer=DeviceName, PublicIP, OSPlatform, OSVersion, DeviceType, MachineGroup, OnboardingStatus, MDE_LastSeen=Timestamp),\n  (datatable(Computer:string, PublicIP:string, OSPlatform:string, OSVersion:string, DeviceType:string, MachineGroup:string, OnboardingStatus:string, MDE_LastSeen:datetime)[]);\nhb\n| join kind=leftouter mde on Computer\n| extend MinutesSinceLastSeen=datetime_diff(\"minute\", now(), LastSeen)\n| extend Status=case(\n    MinutesSinceLastSeen > 60, \"Stale\",\n    MinutesSinceLastSeen > 15, \"Warning\",\n    \"Active\"\n  )\n| project Computer, Status, Country, Latitude, Longitude, OSName, OSMajorVersion, AgentVersion, PublicIP, OSPlatform, OSVersion, DeviceType, OnboardingStatus, Heartbeats, LastSeen, MDE_LastSeen, ResourceId\n| order by Country asc, Computer asc",
+              "query": "let hb = Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| summarize\n    Heartbeats=count(),\n    LastSeen=max(TimeGenerated),\n    Latitude=any(RemoteIPLatitude),\n    Longitude=any(RemoteIPLongitude),\n    Country=any(RemoteIPCountry),\n    OSType=any(OSType),\n    OSName=any(OSName),\n    OSMajorVersion=any(OSMajorVersion),\n    AgentVersion=any(Version),\n    ResourceId=any(_ResourceId)\n  by Computer\n| extend HostKey=tolower(tostring(split(Computer, \".\")[0]));\nlet mde = union isfuzzy=true\n  (DeviceInfo\n  | where Timestamp {TimeRange}\n  | summarize arg_max(Timestamp, *) by DeviceName\n  | extend HostKey=tolower(tostring(split(DeviceName, \".\")[0]))\n  | project HostKey, PublicIP, OSPlatform, OSVersion, DeviceType, MachineGroup, OnboardingStatus, MDE_LastSeen=Timestamp),\n  (datatable(HostKey:string, PublicIP:string, OSPlatform:string, OSVersion:string, DeviceType:string, MachineGroup:string, OnboardingStatus:string, MDE_LastSeen:datetime)[]);\nhb\n| join kind=leftouter mde on HostKey\n| extend MinutesSinceLastSeen=datetime_diff(\"minute\", now(), LastSeen)\n| extend Status=case(\n    MinutesSinceLastSeen > 60, \"Stale\",\n    MinutesSinceLastSeen > 15, \"Warning\",\n    \"Active\"\n  )\n| project Computer, Status, Country, Latitude, Longitude, OSName, OSMajorVersion, AgentVersion, PublicIP, OSPlatform, OSVersion, DeviceType, OnboardingStatus, Heartbeats, LastSeen, MDE_LastSeen, ResourceId\n| order by Country asc, Computer asc",
               "size": 0,
               "title": "DC Location Detail — Heartbeat geo + MDE DeviceInfo",
               "timeContextFromParameter": "TimeRange",

@@ -51,7 +51,7 @@ This workbook gives IT and security teams one place to review MDE device discove
 
 
 ### Printers & MFPs Tab
-<img width="1615" height="659" alt="image" src="https://github.com/user-attachments/assets/e995592f-88fc-4636-a091-a028bb2e8ebb" />
+<img width="1942" height="988" alt="image" src="https://github.com/user-attachments/assets/d30a0048-bb3d-455f-ba85-4fb97c9bf57e" />
 
 ### IoT & OT Devices Tab
 <img width="1890" height="813" alt="image" src="https://github.com/user-attachments/assets/7e42e482-664b-4fe9-b75f-6c2d2bcfd777" />

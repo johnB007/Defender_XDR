@@ -1,14 +1,15 @@
 # DC SYSVOL and AD Replication Health Monitor
 
 ## Intro
-This package publishes a Microsoft Sentinel / Azure Monitor workbook for Domain Controller replication health from a sysadmin and security operations perspective. Using the XPath: DFS Replication!* , File Replication Service!*, Directory Service!*
+This package publishes a Microsoft Sentinel / Azure Monitor workbook for Domain Controller replication health from a sysadmin and security operations perspective. Using the XPath: `DFS Replication!*`, `Directory Service!*`. NTFRS / File Replication Service is **deprecated by Microsoft starting Windows Server 2008 R2** and **removed in Windows Server 2012+**, so this workbook now tracks only DFSR and Directory Service.
 
 It is built for day-1 operations with:
 - Environment-wide replication KPIs
-- DFSR and NTFRS deep-dive troubleshooting views
+- DFSR deep-dive troubleshooting views
 - Directory Service replication and DNS dependency analysis
 - Cross-source critical event triage
 - Per-DC health scoring and silent host detection
+- DC Locations world map (Heartbeat geo + MDE DeviceInfo)
 - Log volume and cost estimation
 
 ## Summary For Sysadmin And Security
@@ -22,7 +23,7 @@ This workbook gives sysadmin and security teams fast triage coverage for replica
 |---|---|
 | Overview | Validate whether replication telemetry is healthy and complete across all DCs, and review high-level health and severity posture in one view. |
 | DFS Replication | Investigate DFSR stoppage, out-of-sync conditions, and service disruption patterns while tracking concentration of critical DFSR conditions over time. |
-| File Replication (NTFRS) | Triage journal wrap, SYSVOL not-ready state, and partner connectivity faults while assessing residual NTFRS risk in legacy or mixed environments. |
+| DC Locations | Plot every Domain Controller on a world map using Heartbeat geolocation and MDE `DeviceInfo` enrichment. Confirm physical placement, regional spread, and surface DCs reporting from unexpected locations. |
 | Directory Service | Investigate AD replication failures, KCC topology issues, and DNS-linked faults while monitoring enterprise directory health risk. |
 | Security and MDE | Correlate focus event IDs with SecurityEvent, MDE, and Arc operational signals to measure telemetry breadth for DC assets. |
 | Critical Events | Prioritize multi-source failures and highest-severity events for immediate action while tracking systemic risk across replication subsystems. |
@@ -39,6 +40,10 @@ This workbook gives sysadmin and security teams fast triage coverage for replica
 
 ### DFS Replication Tab
 <img width="1859" height="717" alt="image" src="https://github.com/user-attachments/assets/59d95958-d088-4819-8c99-7192b96e9147" />
+
+
+### DC Locations Tab
+_World map of all Domain Controllers with Heartbeat geo telemetry. Add screenshot after first publish._
 
 
 ### Directory Service Tab
@@ -72,10 +77,10 @@ This workbook gives sysadmin and security teams fast triage coverage for replica
 - Primary visuals: critical event ID trends, top impacted DCs, service stop/start/halt timelines, detailed recent error table.
 - Why it matters: catches 2213/4012/5002/6016 class failures that can interrupt SYSVOL consistency.
 
-### File Replication (NTFRS)
-- What it does: tracks NTFRS health for legacy or transitional environments still relying on FRS behavior.
-- Primary visuals: journal wrap and SYSVOL readiness indicators, partner connectivity patterns, critical event reference.
-- Why it matters: identifies SYSVOL readiness and partner replication risk where NTFRS is still present.
+### DC Locations
+- What it does: plots every reporting Domain Controller on a world map and joins Heartbeat geo with MDE `DeviceInfo`.
+- Primary visuals: world map (sized by heartbeat volume, colored by reporting freshness), country bar chart, status pie, and a full enrichment table with `Latitude`, `Longitude`, `Country`, `OSName`, `PublicIP`, and `OnboardingStatus`.
+- Why it matters: confirms expected DC placement, exposes drift from documented sites, and helps spot DCs reporting from unexpected egress IPs.
 
 ### Directory Service
 - What it does: analyzes AD replication and topology health from Directory Service events.
@@ -93,7 +98,7 @@ This workbook gives sysadmin and security teams fast triage coverage for replica
 - Why it matters: prioritizes systems failing in multiple subsystems where business impact is highest.
 
 ### DC Health Matrix
-- What it does: produces a per-DC scorecard across DFSR, NTFRS, and Directory Service with an overall health state.
+- What it does: produces a per-DC scorecard across DFSR and Directory Service with an overall health state.
 - Primary visuals: scorecard table, stacked error totals, hourly error-rate summary, silent DC detection.
 - Why it matters: supports daily operational review and helps teams rank remediation by measurable risk.
 
@@ -108,8 +113,9 @@ This workbook gives sysadmin and security teams fast triage coverage for replica
 - Reader access to relevant security and operations tables
 - Event collection configured for:
   - DFS Replication
-  - File Replication Service
   - Directory Service
+- `Heartbeat` table populated for the DC computers (provides `RemoteIPLatitude` / `RemoteIPLongitude` / `RemoteIPCountry` for the DC Locations tab)
+- Optional but recommended: MDE `DeviceInfo` advanced hunting data for DC enrichment
 
 ## The Structure
 This folder contains:

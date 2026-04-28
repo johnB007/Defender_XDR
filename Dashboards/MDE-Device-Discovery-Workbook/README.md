@@ -5,7 +5,7 @@ This workbook gives you an inventory of devices discovered by Microsoft Defender
 
 It includes:
 - KPI tiles for total devices, onboarding state, sensor health, and exposure level
-- Per-category tabs for Cameras, Network Infrastructure, Printers, IoT/OT, Computers & Servers, and Mobile & Tablets
+- Per-category tabs for Audio & Video, Network Infrastructure, Printers & MFPs, IoT/OT, Computers & Servers, and Mobile & Tablets
 - Device grids with OS, IP, last seen, onboarding status, and risk-related fields
 - Network and SSID views that show where discovered devices are connected
 - A Network Context tab that classifies devices as Corporate, Home, Public, or Unknown Private
@@ -14,7 +14,7 @@ It includes:
 ## Summary For Sysadmin And Security
 This workbook gives IT and security teams one place to review MDE device discovery data across device categories.
 - Identify unmanaged or unenrolled devices in each category and prioritize onboarding.
-- Surface surveillance cameras, VoIP phones, and IoT devices on corporate SSIDs that have never been formally inventoried.
+- Surface audio/video devices (cameras, conferencing endpoints, VoIP phones) and IoT devices on corporate SSIDs that have never been formally inventoried.
 - Flag endpoints seen on home or public networks that should only appear on corporate infrastructure.
 - Export any device grid for vendor conversations, compliance reviews, or field technician work orders.
 
@@ -23,9 +23,9 @@ This workbook gives IT and security teams one place to review MDE device discove
 |---|---|
 | Overview | KPI summary of total discovered devices broken down by type, onboarding status, and sensor health. Includes a network / SSID chart showing device categories per network sorted by total device count. |
 | All Devices | Full inventory grid of every device MDE has discovered, with filters for type, OS, onboarding status, and risk level. Exportable to Excel. |
-| Cameras & Physical Sec | Scoped inventory of cameras, webcams, video surveillance, and audio/video equipment. Includes KPI tiles for total, onboarded, and unenrolled counts. |
+| Audio & Video | Scoped inventory of devices XDR classifies as `AudioAndVideo` - cameras, webcams, video surveillance, and conferencing/AV equipment. Includes KPI tiles for total, onboarded, and unenrolled counts. |
 | Network Infrastructure | Scoped inventory of switches, routers, access points, and network devices. Shows onboarding posture and sensor health per device. |
-| Printers & MFDs | Scoped inventory of printers and multi-function devices. Identify unmanaged print infrastructure and correlate with SSID context. |
+| Printers & MFPs | Scoped inventory of printers and multi-function printers (MFPs). Identify unmanaged print infrastructure and correlate with SSID context. |
 | IoT & OT Devices | Scoped inventory of IoT devices, smart appliances, VoIP phones, game consoles, and communication devices. |
 | Computers & Servers | Scoped inventory of workstations, desktops, laptops, and servers. Includes OS platform, onboarding status, and criticality. |
 | Mobile & Tablets | Scoped inventory of mobile phones, smartphones, and tablets discovered by MDE. |
@@ -43,14 +43,14 @@ This workbook gives IT and security teams one place to review MDE device discove
 <img width="1876" height="802" alt="image" src="https://github.com/user-attachments/assets/a58cd8cb-e852-406b-a5a1-76fc5263bf25" />
 
 
-### Cameras & Physical Sec Tab
+### Audio & Video Tab
 > _Screenshot placeholder. Add after first deployment._
 
 ### Network Infrastructure Tab
 <img width="1883" height="812" alt="image" src="https://github.com/user-attachments/assets/475a2be3-6b3d-4c84-85af-3a3d425ab0e5" />
 
 
-### Printers & MFDs Tab
+### Printers & MFPs Tab
 > _Screenshot placeholder. Add after first deployment._
 
 ### IoT & OT Devices Tab
@@ -81,20 +81,20 @@ This workbook gives IT and security teams one place to review MDE device discove
 - Primary visuals: full device inventory grid with column filters, Excel export button.
 - Why it matters: this is the main inventory view for exports, onboarding gap review, and quick lookup of specific devices.
 
-### Cameras & Physical Sec
-- What it does: filters DeviceInfo to DeviceType in Camera, Webcam, AudioVideoEquipment, and VideoSurveillance categories. Shows KPI tiles for total count, onboarded, unenrolled, and sensor health, then a full device grid.
+### Audio & Video
+- What it does: filters DeviceInfo to DeviceType in `AudioAndVideo` (the official XDR classification for this category), plus broader matches on `Camera`, `Webcam`, `AudioVideoEquipment`, and `VideoSurveillance` for legacy values. Shows KPI tiles for total count, onboarded, unenrolled, and sensor health, then a full device grid.
 - Primary visuals: four KPI tiles, filterable device grid with last seen timestamp and network context.
-- Why it matters: physical security cameras are often unmanaged or undocumented. This tab helps identify them and shows which ones are not enrolled in MDE.
+- Why it matters: cameras, conferencing endpoints, and other AV gear are often unmanaged or undocumented. This tab helps identify them and shows which ones are not enrolled in MDE.
 
 ### Network Infrastructure
 - What it does: filters DeviceInfo to NetworkDevice type. Shows KPI tiles and a full grid of all switches, routers, and access points discovered by MDE passive and active discovery.
 - Primary visuals: KPI tiles, device grid with OS and firmware context where available.
 - Why it matters: unmanaged network devices are common blind spots. This tab identifies what MDE can see and highlights coverage gaps.
 
-### Printers & MFDs
-- What it does: filters DeviceInfo to Printer type. Shows KPI tiles for total, onboarded, and unenrolled counts, and a full grid with last seen IP and network association.
+### Printers & MFPs
+- What it does: filters DeviceInfo to `Printer` type plus common printer, copier, and MFP hostname patterns (HP, Xerox, Canon, Konica, Kyocera, Ricoh, Brother, Epson, Toshiba, Sharp). Shows KPI tiles for total, onboarded, and unenrolled counts, and a full grid with last seen IP and network association.
 - Primary visuals: KPI tiles, filterable device grid.
-- Why it matters: printers are often unmanaged and can store sensitive data. This tab gives you a reviewable inventory of the print fleet.
+- Why it matters: printers and multi-function printers are often unmanaged and can store sensitive data. This tab gives you a reviewable inventory of the print fleet.
 
 ### IoT & OT Devices
 - What it does: filters DeviceInfo to IoTDevice, SmartAppliance, CommunicationsDevice, VoIPPhone, GameConsole, and MediaPlayer types. Shows KPI tiles and a full inventory grid.
@@ -152,4 +152,4 @@ Azure workbook resources require the underlying resource name to be a GUID. The 
 ## Notes
 - MDE Device Discovery must be enabled on at least one onboarded device to populate `DeviceNetworkInfo` with passive discovery data.
 - Active discovery may generate additional network traffic. Review your MDE Device Discovery settings before enabling it in sensitive OT or ICS environments.
-- If the Cameras, Mobile, or IoT tabs show no data, confirm that MDE is reporting `DeviceType` for those assets; some older firmware devices may appear as `Unknown` type and surface in the All Devices tab instead.
+- If the Audio & Video, Mobile, or IoT tabs show no data, confirm that MDE is reporting `DeviceType` for those assets; some older firmware devices may appear as `Unknown` type and surface in the All Devices tab instead.

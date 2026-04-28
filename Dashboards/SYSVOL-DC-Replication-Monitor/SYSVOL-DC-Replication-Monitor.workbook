@@ -761,9 +761,9 @@
             "name": "map-world",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where isnotempty(RemoteIPLatitude) and isnotempty(RemoteIPLongitude)\n| summarize\n    DCs=dcount(Computer),\n    Latitude=avg(todouble(RemoteIPLatitude)),\n    Longitude=avg(todouble(RemoteIPLongitude)),\n    LastSeen=max(TimeGenerated),\n    DCNames=make_set(Computer, 50)\n  by Country=tostring(RemoteIPCountry)\n| where isnotempty(Country)\n| extend SizeMetric=round(log10(todouble(DCs) + 1.0) * 10.0, 2)\n| extend Tier=case(\n    DCs >= 100, \"100+\",\n    DCs >= 25, \"25-99\",\n    DCs >= 10, \"10-24\",\n    DCs >= 5, \"5-9\",\n    DCs >= 2, \"2-4\",\n    \"1\"\n  )\n| order by DCs desc",
+              "query": "Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where isnotempty(RemoteIPLatitude) and isnotempty(RemoteIPLongitude)\n| summarize\n    DCs=dcount(Computer),\n    Latitude=avg(todouble(RemoteIPLatitude)),\n    Longitude=avg(todouble(RemoteIPLongitude)),\n    LastSeen=max(TimeGenerated),\n    DCNames=make_set(Computer, 50)\n  by Country=tostring(RemoteIPCountry)\n| where isnotempty(Country)\n| extend SizeMetric=min_of(toint(DCs), 20)\n| order by DCs desc",
               "size": 3,
-              "title": "Domain Controllers by Country (Heartbeat geo) — dot size log-scaled, color by tier",
+              "title": "Domain Controllers by Country (Heartbeat geo)",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -779,48 +779,43 @@
                 "legendMetric": "DCs",
                 "legendAggregation": "Sum",
                 "numberOfMetrics": 50,
-                "minSize": 8,
-                "maxSize": 30,
+                "minSize": 16,
+                "maxSize": 32,
                 "defaultZoom": 1,
                 "itemColorSettings": {
                   "type": "thresholds",
                   "colorAggregation": "Sum",
-                  "nodeColorField": "Tier",
+                  "nodeColorField": "DCs",
                   "thresholdsGrid": [
                     {
-                      "operator": "==",
-                      "thresholdValue": "100+",
+                      "operator": ">",
+                      "thresholdValue": "99",
                       "representation": "redBright"
                     },
                     {
-                      "operator": "==",
-                      "thresholdValue": "25-99",
+                      "operator": ">",
+                      "thresholdValue": "24",
                       "representation": "red"
                     },
                     {
-                      "operator": "==",
-                      "thresholdValue": "10-24",
+                      "operator": ">",
+                      "thresholdValue": "9",
                       "representation": "orange"
                     },
                     {
-                      "operator": "==",
-                      "thresholdValue": "5-9",
+                      "operator": ">",
+                      "thresholdValue": "4",
                       "representation": "yellow"
                     },
                     {
-                      "operator": "==",
-                      "thresholdValue": "2-4",
-                      "representation": "blue"
-                    },
-                    {
-                      "operator": "==",
+                      "operator": ">",
                       "thresholdValue": "1",
-                      "representation": "green"
+                      "representation": "blue"
                     },
                     {
                       "operator": "Default",
                       "thresholdValue": null,
-                      "representation": "lightBlue"
+                      "representation": "green"
                     }
                   ]
                 }

@@ -761,9 +761,9 @@
             "name": "map-world",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where isnotempty(RemoteIPLatitude) and isnotempty(RemoteIPLongitude)\n| summarize\n    LastSeen=max(TimeGenerated),\n    Latitude=avg(todouble(RemoteIPLatitude)),\n    Longitude=avg(todouble(RemoteIPLongitude)),\n    DCs=dcount(Computer),\n    DCNames=make_set(Computer, 25)\n  by Country=tostring(RemoteIPCountry)\n| where isnotempty(Country)\n| order by DCs desc",
+              "query": "Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where isnotempty(RemoteIPLatitude) and isnotempty(RemoteIPLongitude)\n| summarize\n    Heartbeats=count(),\n    LastSeen=max(TimeGenerated),\n    FirstSeen=min(TimeGenerated),\n    Latitude=any(RemoteIPLatitude),\n    Longitude=any(RemoteIPLongitude),\n    Country=any(RemoteIPCountry),\n    OSType=any(OSType),\n    OSName=any(OSName),\n    OSMajorVersion=any(OSMajorVersion),\n    Version=any(Version),\n    ResourceId=any(_ResourceId)\n  by Computer\n| extend MinutesSinceLastSeen=datetime_diff(\"minute\", now(), LastSeen)\n| extend Status=case(\n    MinutesSinceLastSeen > 60, \"Stale\",\n    MinutesSinceLastSeen > 15, \"Warning\",\n    \"Active\"\n  )\n| order by Computer asc",
               "size": 3,
-              "title": "Domain Controllers by Country (Heartbeat geo) — heatmap sized by DC count",
+              "title": "Domain Controller World Map (Heartbeat geo)",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -773,20 +773,36 @@
                 "locInfoColumn": "Country",
                 "latitude": "Latitude",
                 "longitude": "Longitude",
-                "sizeSettings": "DCs",
+                "sizeSettings": "Heartbeats",
                 "sizeAggregation": "Sum",
-                "labelSettings": "Country",
-                "legendMetric": "DCs",
+                "labelSettings": "Computer",
+                "legendMetric": "Heartbeats",
                 "legendAggregation": "Sum",
                 "minSize": 15,
                 "maxSize": 80,
+                "defaultZoom": 1,
                 "itemColorSettings": {
-                  "type": "heatmap",
+                  "type": "thresholds",
                   "colorAggregation": "Sum",
-                  "nodeColorField": "DCs",
-                  "heatmapPalette": "redBright"
-                },
-                "defaultZoom": 1
+                  "nodeColorField": "Status",
+                  "thresholdsGrid": [
+                    {
+                      "operator": "==",
+                      "thresholdValue": "Stale",
+                      "representation": "redBright"
+                    },
+                    {
+                      "operator": "==",
+                      "thresholdValue": "Warning",
+                      "representation": "yellow"
+                    },
+                    {
+                      "operator": "Default",
+                      "thresholdValue": null,
+                      "representation": "green"
+                    }
+                  ]
+                }
               }
             },
             "customWidth": "100"

@@ -109,6 +109,14 @@
             "style": "link"
           },
           {
+            "id": "tab-dns",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "DNS Intelligence",
+            "subTarget": "DNS",
+            "style": "link"
+          },
+          {
             "id": "tab-netflow",
             "cellValue": "Tab",
             "linkTarget": "parameter",

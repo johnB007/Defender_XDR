@@ -718,6 +718,91 @@
               ]
             },
             "customWidth": "100"
+          },
+          {
+            "type": 3,
+            "name": "unified-domain-search",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let s = tolower('{SearchDomain}');\nunion isfuzzy=true\n  (PiholeDNS_CL\n    | extend Domain = tolower(coalesce(extract(@'query\\[\\w+\\]\\s+(\\S+)\\s+from', 1, _raw_s), extract(@'(?:cached|cached-stale|forwarded|reply|gravity\\s+blocked|regex\\s+blacklisted|config)\\s+(\\S+)\\s+(?:is|to)', 1, _raw_s)))\n    | extend ClientIP = extract(@'\\bfrom\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)', 1, _raw_s)\n    | where isnotempty(Domain) and Domain !in ('<cname>','<ptr>','0.0.0.0','::')\n    | where isempty(s) or Domain has s\n    | project TimeGenerated, Source = 'Pi-hole DNS', Domain, ClientIP),\n  (ZeekLogs_CL\n    | where logType_s == 'dns' and isnotempty(dns_query_s) and dns_query_s != '-'\n    | where isempty(s) or tolower(dns_query_s) has s\n    | project TimeGenerated, Source = 'Zeek DNS', Domain = tolower(dns_query_s), ClientIP = tostring(src_ip_s)),\n  (ZeekLogs_CL\n    | where logType_s == 'ssl'\n    | extend f = split(_raw_s, '\\t')\n    | extend Domain = tolower(tostring(f[9]))\n    | where isnotempty(Domain) and Domain != '-'\n    | where isempty(s) or Domain has s\n    | project TimeGenerated, Source = 'Zeek SSL/SNI', Domain, ClientIP = tostring(src_ip_s)),\n  (ZeekLogs_CL\n    | where logType_s == 'http'\n    | extend f = split(_raw_s, '\\t')\n    | extend Domain = tolower(tostring(f[8]))\n    | where isnotempty(Domain) and Domain != '-'\n    | where isempty(s) or Domain has s\n    | project TimeGenerated, Source = 'Zeek HTTP', Domain, ClientIP = tostring(src_ip_s)),\n  (ZeekLogs_CL\n    | where logType_s == 'socks'\n    | extend f = split(_raw_s, '\\t')\n    | extend Domain = tolower(tostring(f[11]))\n    | where isnotempty(Domain) and Domain != '-'\n    | where isempty(s) or Domain has s\n    | project TimeGenerated, Source = 'Zeek SOCKS', Domain, ClientIP = tostring(src_ip_s)),\n  (DeviceNetworkEvents\n    | where isnotempty(RemoteUrl)\n    | where isempty(s) or tolower(RemoteUrl) has s\n    | project TimeGenerated, Source = 'MDE Network', Domain = tolower(RemoteUrl), ClientIP = tostring(LocalIP))\n| summarize Hits = count(), UniqueClients = dcount(ClientIP), Clients = make_set(ClientIP, 10), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by Source, Domain\n| top 500 by Hits",
+              "size": 0,
+              "title": "Unified Domain Search - All Sources (Pi-hole + Zeek DNS/SSL/HTTP/SOCKS + MDE)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Hits",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "red"
+                    }
+                  },
+                  {
+                    "columnMatch": "UniqueClients",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "blue"
+                    }
+                  },
+                  {
+                    "columnMatch": "Source",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Pi-hole DNS",
+                          "representation": "blue",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Zeek DNS",
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Zeek SSL/SNI",
+                          "representation": "purple",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Zeek HTTP",
+                          "representation": "turquoise",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Zeek SOCKS",
+                          "representation": "orange",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "MDE Network",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "gray",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "filter": true,
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "100"
           }
         ]
       }
@@ -972,7 +1057,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## WiFi / LAN Details\n\n**Switch + Access Point health at a glance, plus MDE-enriched WiFi visibility: SSID sessions, device identity, signal quality, rogue detection, and connection anomalies.**\n\n> **SSID resolution priority:** MDE `DeviceNetworkInfo` (real SSID from endpoint) \u2192 UniFi Site Manager `essid_s` \u2192 StaticMap fallback.",
+              "json": "## WiFi / LAN Details\n\n**Switch + Access Point health at a glance, plus MDE-enriched WiFi visibility: SSID sessions, device identity, signal quality, rogue detection, and connection anomalies.**\n\n> **SSID resolution priority:** MDE `DeviceNetworkInfo` (real SSID from endpoint) → UniFi Site Manager `essid_s` → StaticMap fallback.",
               "style": "info"
             },
             "name": "text-firewall-header"
@@ -2137,6 +2222,91 @@
               }
             },
             "customWidth": "100"
+          },
+          {
+            "type": 3,
+            "name": "unified-domain-search",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let s = tolower('{SearchDomain}');\nunion isfuzzy=true\n  (PiholeDNS_CL\n    | extend Domain = tolower(coalesce(extract(@'query\\[\\w+\\]\\s+(\\S+)\\s+from', 1, _raw_s), extract(@'(?:cached|cached-stale|forwarded|reply|gravity\\s+blocked|regex\\s+blacklisted|config)\\s+(\\S+)\\s+(?:is|to)', 1, _raw_s)))\n    | extend ClientIP = extract(@'\\bfrom\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)', 1, _raw_s)\n    | where isnotempty(Domain) and Domain !in ('<cname>','<ptr>','0.0.0.0','::')\n    | where isempty(s) or Domain has s\n    | project TimeGenerated, Source = 'Pi-hole DNS', Domain, ClientIP),\n  (ZeekLogs_CL\n    | where logType_s == 'dns' and isnotempty(dns_query_s) and dns_query_s != '-'\n    | where isempty(s) or tolower(dns_query_s) has s\n    | project TimeGenerated, Source = 'Zeek DNS', Domain = tolower(dns_query_s), ClientIP = tostring(src_ip_s)),\n  (ZeekLogs_CL\n    | where logType_s == 'ssl'\n    | extend f = split(_raw_s, '\\t')\n    | extend Domain = tolower(tostring(f[9]))\n    | where isnotempty(Domain) and Domain != '-'\n    | where isempty(s) or Domain has s\n    | project TimeGenerated, Source = 'Zeek SSL/SNI', Domain, ClientIP = tostring(src_ip_s)),\n  (ZeekLogs_CL\n    | where logType_s == 'http'\n    | extend f = split(_raw_s, '\\t')\n    | extend Domain = tolower(tostring(f[8]))\n    | where isnotempty(Domain) and Domain != '-'\n    | where isempty(s) or Domain has s\n    | project TimeGenerated, Source = 'Zeek HTTP', Domain, ClientIP = tostring(src_ip_s)),\n  (ZeekLogs_CL\n    | where logType_s == 'socks'\n    | extend f = split(_raw_s, '\\t')\n    | extend Domain = tolower(tostring(f[11]))\n    | where isnotempty(Domain) and Domain != '-'\n    | where isempty(s) or Domain has s\n    | project TimeGenerated, Source = 'Zeek SOCKS', Domain, ClientIP = tostring(src_ip_s)),\n  (DeviceNetworkEvents\n    | where isnotempty(RemoteUrl)\n    | where isempty(s) or tolower(RemoteUrl) has s\n    | project TimeGenerated, Source = 'MDE Network', Domain = tolower(RemoteUrl), ClientIP = tostring(LocalIP))\n| summarize Hits = count(), UniqueClients = dcount(ClientIP), Clients = make_set(ClientIP, 10), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by Source, Domain\n| top 500 by Hits",
+              "size": 0,
+              "title": "Unified Domain Search - All Sources (Pi-hole + Zeek DNS/SSL/HTTP/SOCKS + MDE)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Hits",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "red"
+                    }
+                  },
+                  {
+                    "columnMatch": "UniqueClients",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "blue"
+                    }
+                  },
+                  {
+                    "columnMatch": "Source",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Pi-hole DNS",
+                          "representation": "blue",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Zeek DNS",
+                          "representation": "green",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Zeek SSL/SNI",
+                          "representation": "purple",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Zeek HTTP",
+                          "representation": "turquoise",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Zeek SOCKS",
+                          "representation": "orange",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "MDE Network",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "gray",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  }
+                ],
+                "filter": true,
+                "rowLimit": 10000
+              }
+            },
+            "customWidth": "100"
           }
         ]
       }
@@ -2499,7 +2669,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## Global Threat Heat Map\n\n**Geographic visualization of external threat sources correlated across all Sentinel & XDR data sources \u2014 NetFlow, Zeek/Corelight, Syslog firewalls, CEF, Cribl, Azure Firewall, Defender XDR, Threat Intel, and Security Alerts. Heat is log-scaled so mid-tier countries remain visible alongside high-volume regions.**",
+              "json": "## Global Threat Heat Map\n\n**Geographic visualization of external threat sources correlated across all Sentinel & XDR data sources — NetFlow, Zeek/Corelight, Syslog firewalls, CEF, Cribl, Azure Firewall, Defender XDR, Threat Intel, and Security Alerts. Heat is log-scaled so mid-tier countries remain visible alongside high-volume regions.**",
               "style": "info"
             },
             "name": "text-worldmap-header"
@@ -2565,7 +2735,7 @@
               "version": "KqlItem/1.0",
               "query": "let Events = union isfuzzy=true\n  (NetFlow_CL\n    | extend SrcIPStr = tostring(SrcIP), DstIPStr = tostring(DstIP)\n    | extend ExternalIP = iff(not(ipv4_is_private(SrcIPStr)) and isnotempty(SrcIPStr), SrcIPStr, iff(not(ipv4_is_private(DstIPStr)) and isnotempty(DstIPStr), DstIPStr, \"\"))\n    | extend InternalIP = iff(ipv4_is_private(SrcIPStr), SrcIPStr, iff(ipv4_is_private(DstIPStr), DstIPStr, \"\"))\n    | where isnotempty(ExternalIP)\n    | project TimeGenerated, ExternalIP, InternalIP, SourceType=\"NetFlow\", DeviceName=tostring(column_ifexists(\"Computer\", \"\")), DstPort=tolong(column_ifexists(\"DstPort\", 0)), Protocol=tostring(column_ifexists(\"Protocol\", \"\")), Bytes=tolong(column_ifexists(\"Bytes\", 0)), Action=\"\"),\n  (Syslog\n    | where Facility == \"kern\"\n    | extend ExternalIP = extract(@\"SRC=(\\d+\\.\\d+\\.\\d+\\.\\d+)\", 1, SyslogMessage)\n    | extend InternalIPx = extract(@\"DST=(\\d+\\.\\d+\\.\\d+\\.\\d+)\", 1, SyslogMessage)\n    | extend DstPortx = tolong(extract(@\"DPT=(\\d+)\", 1, SyslogMessage))\n    | extend Protox = extract(@\"PROTO=([A-Z]+)\", 1, SyslogMessage)\n    | where isnotempty(ExternalIP) and not(ipv4_is_private(ExternalIP))\n    | project TimeGenerated, ExternalIP, InternalIP=InternalIPx, SourceType=\"Firewall-Syslog\", DeviceName=tostring(Computer), DstPort=DstPortx, Protocol=Protox, Bytes=tolong(0), Action=\"block\"),\n  (CommonSecurityLog\n    | extend SrcIPStr = tostring(SourceIP), DstIPStr = tostring(DestinationIP)\n    | extend ExternalIP = iff(not(ipv4_is_private(SrcIPStr)) and isnotempty(SrcIPStr), SrcIPStr, iff(not(ipv4_is_private(DstIPStr)) and isnotempty(DstIPStr), DstIPStr, \"\"))\n    | extend InternalIPx = iff(ipv4_is_private(SrcIPStr), SrcIPStr, iff(ipv4_is_private(DstIPStr), DstIPStr, \"\"))\n    | where isnotempty(ExternalIP)\n    | project TimeGenerated, ExternalIP, InternalIP=InternalIPx, SourceType=\"CEF\", DeviceName=tostring(DeviceName), DstPort=tolong(DestinationPort), Protocol=tostring(Protocol), Bytes=tolong(column_ifexists(\"ReceivedBytes\", 0)), Action=tostring(DeviceAction)),\n  (DeviceNetworkEvents\n    | extend ExternalIP = tostring(RemoteIP)\n    | where isnotempty(ExternalIP) and not(ipv4_is_private(ExternalIP))\n    | project TimeGenerated, ExternalIP, InternalIP=tostring(LocalIP), SourceType=\"XDR-MDE\", DeviceName=tostring(DeviceName), DstPort=tolong(RemotePort), Protocol=tostring(Protocol), Bytes=tolong(0), Action=tostring(ActionType)),\n  (SecurityAlert\n    | extend entities = parse_json(Entities)\n    | mv-expand entity = entities\n    | extend ExternalIP = tostring(entity.Address)\n    | where isnotempty(ExternalIP) and not(ipv4_is_private(ExternalIP))\n    | project TimeGenerated, ExternalIP, InternalIP=\"\", SourceType=\"SecurityAlert\", DeviceName=tostring(CompromisedEntity), DstPort=tolong(0), Protocol=\"\", Bytes=tolong(0), Action=tostring(Status)),\n  (ThreatIntelligenceIndicator\n    | extend ExternalIP = tostring(NetworkIP)\n    | where isnotempty(ExternalIP) and not(ipv4_is_private(ExternalIP))\n    | project TimeGenerated, ExternalIP, InternalIP=\"\", SourceType=\"ThreatIntel\", DeviceName=\"\", DstPort=tolong(0), Protocol=\"\", Bytes=tolong(0), Action=tostring(ThreatType));\nEvents\n| extend Country = tostring(geo_info_from_ip_address(ExternalIP).country)\n| extend City = tostring(geo_info_from_ip_address(ExternalIP).city)\n| extend ASN = tostring(geo_info_from_ip_address(ExternalIP).state)\n| where isnotempty(Country) and Country != \"\"\n| where Country !in (\"United States\", \"United States of America\", \"USA\", \"US\")\n| summarize \n    Events = count(),\n    FirstSeen = min(TimeGenerated),\n    LastSeen = max(TimeGenerated),\n    Devices = make_set_if(DeviceName, isnotempty(DeviceName), 5),\n    InternalPeers = make_set_if(InternalIP, isnotempty(InternalIP), 5),\n    TopPorts = make_set_if(DstPort, DstPort > 0, 8),\n    Protocols = make_set_if(Protocol, isnotempty(Protocol), 5),\n    Actions = make_set_if(Action, isnotempty(Action), 5),\n    Sources = make_set(SourceType),\n    TotalBytes = sum(Bytes)\n    by IP=ExternalIP, Country, City\n| extend TIMatch = iff(Sources has \"ThreatIntel\", \"\\u26A0\\uFE0F Yes\", \"No\")\n| extend SourceCount = array_length(Sources)\n| extend DeviceCount = array_length(Devices)\n| extend PeerCount = array_length(InternalPeers)\n| project IP, Country, City, TIMatch, Events, FirstSeen, LastSeen, Devices, DeviceCount, InternalPeers, PeerCount, TopPorts, Protocols, Actions, TotalBytes, SourceCount, Sources\n| sort by Events desc\n| take 1000",
               "size": 0,
-              "title": "Top 1000 External Threat IPs \u2014 Threat Hunter View (Non-US)",
+              "title": "Top 1000 External Threat IPs — Threat Hunter View (Non-US)",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",

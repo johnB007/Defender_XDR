@@ -33,36 +33,40 @@ This workbook gives sysadmin and security teams fast triage coverage for replica
 ## Workbook Overview Screenshots
 
 ### Overview Tab
-<img width="1834" height="456" alt="image" src="https://github.com/user-attachments/assets/13484e32-76cd-48c3-b72b-007353873349" />
-<img width="1873" height="728" alt="image" src="https://github.com/user-attachments/assets/225a53c6-b6e1-4a68-a584-7e7f55d86887" />
-<img width="1862" height="561" alt="image" src="https://github.com/user-attachments/assets/782a1877-1bd7-4261-8e93-412156bca0a6" />
+<img width="2273" height="969" alt="image" src="https://github.com/user-attachments/assets/daf230b9-aecc-404e-b4fd-a2cb38e58b9d" />
+<img width="2251" height="1101" alt="image" src="https://github.com/user-attachments/assets/fe66d47e-56fe-4f84-a7c4-0fc13414869f" />
 
 
 ### DFS Replication Tab
-<img width="1859" height="717" alt="image" src="https://github.com/user-attachments/assets/59d95958-d088-4819-8c99-7192b96e9147" />
-
+<img width="2279" height="1137" alt="image" src="https://github.com/user-attachments/assets/61c29c48-4150-493f-b8cb-5df5b7abc05e" />
 
 ### DC Locations Tab
-_World map of all Domain Controllers with Heartbeat geo telemetry. Add screenshot after first publish._
+<img width="2149" height="1093" alt="image" src="https://github.com/user-attachments/assets/9f4a3120-183b-4294-ac5c-0fcc75c0d1fe" />
+
 
 
 ### Directory Service Tab
-<img width="1861" height="696" alt="image" src="https://github.com/user-attachments/assets/ffde1782-9da2-435e-a2d3-02c388a15da5" />
+<img width="2274" height="1123" alt="image" src="https://github.com/user-attachments/assets/f0314fe6-7ea3-4fc4-9a40-795de9bc3797" />
+
 
 
 ### Security and MDE Tab
-<img width="1868" height="723" alt="image" src="https://github.com/user-attachments/assets/8efe638d-8083-420f-be0b-c4f568258ac3" />
+<img width="2284" height="1102" alt="image" src="https://github.com/user-attachments/assets/b8c7bbb1-164a-46d2-8a3c-14eeadd1f9b7" />
+
 
 
 ### Critical Events Tab
+<img width="2285" height="1098" alt="image" src="https://github.com/user-attachments/assets/30038459-a982-4026-b05a-69d08ecffead" />
 
 
 ### DC Health Matrix Tab
-<img width="1872" height="743" alt="image" src="https://github.com/user-attachments/assets/511c9f79-1005-40f3-984b-487138c888ff" />
+<img width="2268" height="1066" alt="image" src="https://github.com/user-attachments/assets/4ea5a898-a482-4a33-949d-6055d1336250" />
+
 
 
 ### Log Volume and Cost Tab
-<img width="1844" height="696" alt="image" src="https://github.com/user-attachments/assets/5be912f5-43a9-459b-ba30-404631a825e1" />
+<img width="2287" height="837" alt="image" src="https://github.com/user-attachments/assets/2d9ea4a2-de82-4104-98ba-7e812571802b" />
+
 
 
 ## Section Details And What Each One Does

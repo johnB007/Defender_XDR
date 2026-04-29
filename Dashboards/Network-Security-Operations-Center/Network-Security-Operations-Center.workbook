@@ -345,7 +345,7 @@
             "name": "metric-dns-queries",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "PiholeDNS_CL\n| extend Domain = extract(@\"query\\[\\w+\\]\\s+(\\S+)\", 1, RawData)\n| extend ClientIP = extract(@\"from\\s+(\\S+)\", 1, RawData)\n| summarize Value = count(), UniqueDomains = dcountif(Domain, isnotempty(Domain) and Domain != \"-\"), UniqueClients = dcountif(ClientIP, isnotempty(ClientIP))\n| project Value, Subtitle = strcat(UniqueDomains, \" unique domains | \", UniqueClients, \" client IPs\")",
+              "query": "PiholeDNS_CL\n| extend Domain = extract(@\"query\\[\\w+\\]\\s+(\\S+)\", 1, _raw_s)\n| extend ClientIP = extract(@\"from\\s+(\\S+)\", 1, _raw_s)\n| summarize Value = count(), UniqueDomains = dcountif(Domain, isnotempty(Domain) and Domain != \"-\"), UniqueClients = dcountif(ClientIP, isnotempty(ClientIP))\n| project Value, Subtitle = strcat(UniqueDomains, \" unique domains | \", UniqueClients, \" client IPs\")",
               "size": 4,
               "title": "DNS Queries",
               "timeContextFromParameter": "TimeRange",
@@ -496,7 +496,7 @@
             "name": "dns-top-queried-domains",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let searchDomain = \"{SearchDomain}\";\nPiholeDNS_CL\n| extend Domain = tolower(coalesce(extract(@\"query\\[\\w+\\]\\s+(\\S+)\", 1, RawData), extract(@\"query=([^\\s&]+)\", 1, RawData), \"\"))\n| extend ClientIP = extract(@\"from\\s+(\\S+)\", 1, RawData)\n| where isnotempty(Domain) and Domain != \"-\"\n| where (isempty(searchDomain)) or (Domain contains searchDomain)\n| summarize Queries = count(), UniqueClients = dcount(ClientIP) by Domain\n| sort by Queries desc\n| take 100\n| project Domain, Queries, UniqueClients",
+              "query": "let searchDomain = \"{SearchDomain}\";\nPiholeDNS_CL\n| extend Domain = tolower(coalesce(extract(@\"query\\[\\w+\\]\\s+(\\S+)\", 1, _raw_s), extract(@\"query=([^\\s&]+)\", 1, _raw_s), \"\"))\n| extend ClientIP = extract(@\"from\\s+(\\S+)\", 1, _raw_s)\n| where isnotempty(Domain) and Domain != \"-\"\n| where (isempty(searchDomain)) or (Domain contains searchDomain)\n| summarize Queries = count(), UniqueClients = dcount(ClientIP) by Domain\n| sort by Queries desc\n| take 100\n| project Domain, Queries, UniqueClients",
               "size": 0,
               "title": "Top 100 Queried Domains",
               "timeContextFromParameter": "TimeRange",
@@ -530,7 +530,7 @@
             "name": "dns-query-types",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "PiholeDNS_CL\n| extend QueryType = extract(@\"query\\[(\\w+)\\]\", 1, RawData)\n| where isnotempty(QueryType)\n| summarize Count = count() by QueryType\n| render piechart with (title=\"DNS Query Types Distribution\")",
+              "query": "PiholeDNS_CL\n| extend QueryType = extract(@\"query\\[(\\w+)\\]\", 1, _raw_s)\n| where isnotempty(QueryType)\n| summarize Count = count() by QueryType\n| render piechart with (title=\"DNS Query Types Distribution\")",
               "size": 1,
               "title": "DNS Query Types",
               "timeContextFromParameter": "TimeRange",
@@ -560,7 +560,7 @@
             "name": "dns-suspicious-domains",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "PiholeDNS_CL\n| extend Domain = tolower(coalesce(extract(@\"query\\[\\w+\\]\\s+(\\S+)\", 1, RawData), extract(@\"query=([^\\s&]+)\", 1, RawData), \"\"))\n| extend ClientIP = extract(@\"from\\s+(\\S+)\", 1, RawData)\n| where isnotempty(Domain) and Domain != \"-\"\n| extend DomainLength = strlen(Domain)\n| extend SubdomainCount = countof(Domain, \".\")\n| extend HasNumbers = iff(Domain matches regex @\"\\d{4,}\", 1, 0)\n| extend EntropyScore = case(\n    Domain matches regex @\"[a-z0-9]{20,}\", 3,\n    Domain matches regex @\"[a-z0-9]{15,}\", 2,\n    Domain matches regex @\"[a-z0-9]{10,}\", 1,\n    0\n)\n| extend SuspicionScore = DomainLength/10 + SubdomainCount*2 + HasNumbers*3 + EntropyScore*5\n| where SuspicionScore >= 8\n| summarize Queries = count(), UniqueClients = dcount(ClientIP), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by Domain, DomainLength, SubdomainCount, SuspicionScore\n| sort by SuspicionScore desc\n| take 50\n| project Domain, SuspicionScore, Queries, UniqueClients, DomainLength, SubdomainCount, FirstSeen, LastSeen",
+              "query": "PiholeDNS_CL\n| extend Domain = tolower(coalesce(extract(@\"query\\[\\w+\\]\\s+(\\S+)\", 1, _raw_s), extract(@\"query=([^\\s&]+)\", 1, _raw_s), \"\"))\n| extend ClientIP = extract(@\"from\\s+(\\S+)\", 1, _raw_s)\n| where isnotempty(Domain) and Domain != \"-\"\n| extend DomainLength = strlen(Domain)\n| extend SubdomainCount = countof(Domain, \".\")\n| extend HasNumbers = iff(Domain matches regex @\"\\d{4,}\", 1, 0)\n| extend EntropyScore = case(\n    Domain matches regex @\"[a-z0-9]{20,}\", 3,\n    Domain matches regex @\"[a-z0-9]{15,}\", 2,\n    Domain matches regex @\"[a-z0-9]{10,}\", 1,\n    0\n)\n| extend SuspicionScore = DomainLength/10 + SubdomainCount*2 + HasNumbers*3 + EntropyScore*5\n| where SuspicionScore >= 8\n| summarize Queries = count(), UniqueClients = dcount(ClientIP), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by Domain, DomainLength, SubdomainCount, SuspicionScore\n| sort by SuspicionScore desc\n| take 50\n| project Domain, SuspicionScore, Queries, UniqueClients, DomainLength, SubdomainCount, FirstSeen, LastSeen",
               "size": 0,
               "title": "Suspicious Domains (Potential DNS Tunneling / DGA)",
               "timeContextFromParameter": "TimeRange",
@@ -594,7 +594,7 @@
             "name": "dns-top-clients",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let searchIP = \"{SearchIP}\";\nPiholeDNS_CL\n| extend ClientIP = extract(@\"from\\s+(\\S+)\", 1, RawData)\n| where isnotempty(ClientIP) and ClientIP != \"127.0.0.1\"\n| where (isempty(searchIP)) or (ClientIP has searchIP)\n| summarize Queries = count(), UniqueDomains = dcount(extract(@\"query\\[\\w+\\]\\s+(\\S+)\", 1, RawData)) by ClientIP\n| sort by Queries desc\n| take 50\n| project ClientIP, Queries, UniqueDomains",
+              "query": "let searchIP = \"{SearchIP}\";\nPiholeDNS_CL\n| extend ClientIP = extract(@\"from\\s+(\\S+)\", 1, _raw_s)\n| where isnotempty(ClientIP) and ClientIP != \"127.0.0.1\"\n| where (isempty(searchIP)) or (ClientIP has searchIP)\n| summarize Queries = count(), UniqueDomains = dcount(extract(@\"query\\[\\w+\\]\\s+(\\S+)\", 1, _raw_s)) by ClientIP\n| sort by Queries desc\n| take 50\n| project ClientIP, Queries, UniqueDomains",
               "size": 0,
               "title": "Top 50 DNS Clients (Excluding Localhost)",
               "timeContextFromParameter": "TimeRange",
@@ -621,7 +621,7 @@
             "name": "dns-rare-query-types",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "PiholeDNS_CL\n| extend QueryType = extract(@\"query\\[(\\w+)\\]\", 1, RawData)\n| where isnotempty(QueryType)\n| where QueryType !in (\"A\", \"AAAA\", \"PTR\")\n| summarize Queries = count(), UniqueDomains = dcount(extract(@\"query\\[\\w+\\]\\s+(\\S+)\", 1, RawData)) by QueryType\n| sort by Queries desc\n| project QueryType, Queries, UniqueDomains",
+              "query": "PiholeDNS_CL\n| extend QueryType = extract(@\"query\\[(\\w+)\\]\", 1, _raw_s)\n| where isnotempty(QueryType)\n| where QueryType !in (\"A\", \"AAAA\", \"PTR\")\n| summarize Queries = count(), UniqueDomains = dcount(extract(@\"query\\[\\w+\\]\\s+(\\S+)\", 1, _raw_s)) by QueryType\n| sort by Queries desc\n| project QueryType, Queries, UniqueDomains",
               "size": 0,
               "title": "Unusual DNS Query Types (Non-Standard)",
               "timeContextFromParameter": "TimeRange",
@@ -648,7 +648,7 @@
             "name": "dns-comprehensive-analysis",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "union isfuzzy=true\n(PiholeDNS_CL\n| extend Domain = tolower(extract(@\"query\\[\\w+\\]\\s+(\\S+)\", 1, RawData))\n| extend QueryType = extract(@\"query\\[(\\w+)\\]\", 1, RawData)\n| extend ResponseCode = \"NOERROR\"\n| extend ClientIP = extract(@\"from\\s+(\\S+)\", 1, RawData)\n| extend AnswerIPs = \"\"\n| where isnotempty(Domain) and Domain !in~ (\"unknown\", \"other\", \"<empty>\")\n| summarize \n    QueryCount = count(), \n    UniqueSourceIPs = dcount(ClientIP), \n    QueryTypes = make_set_if(QueryType, isnotempty(QueryType), 5),\n    ResponseCodes = make_set_if(ResponseCode, isnotempty(ResponseCode), 5),\n    ResolvedIPs = make_set_if(AnswerIPs, isnotempty(AnswerIPs), 10),\n    FirstSeen = min(TimeGenerated), \n    LastSeen = max(TimeGenerated) \n    by Domain\n| extend \n    QueryFrequency = QueryCount / (datetime_diff('hour', LastSeen, FirstSeen) + 1.0),\n    SuspicionScore = case(\n        Domain contains \"..\" or Domain startswith \".\" or Domain endswith \".\", 90,\n        Domain matches regex @\"\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\", 80,\n        strlen(Domain) > 50, 70,\n        Domain contains \"--\" or Domain matches regex @\"[a-z0-9]{20,}\", 60,\n        QueryCount > 1000, 50,\n        0\n    )\n| project Domain, QueryCount, UniqueSourceIPs, QueryFrequency = round(QueryFrequency, 2), SuspicionScore, QueryTypes, ResponseCodes, ResolvedIPs, FirstSeen, LastSeen\n| sort by QueryCount desc\n| take 200),\n(datatable(Domain:string, QueryCount:long, UniqueSourceIPs:long, QueryFrequency:real, SuspicionScore:int, QueryTypes:dynamic, ResponseCodes:dynamic, ResolvedIPs:dynamic, FirstSeen:datetime, LastSeen:datetime)[])\n| where isnotempty(Domain)",
+              "query": "union isfuzzy=true\n(PiholeDNS_CL\n| extend Domain = tolower(extract(@\"query\\[\\w+\\]\\s+(\\S+)\", 1, _raw_s))\n| extend QueryType = extract(@\"query\\[(\\w+)\\]\", 1, _raw_s)\n| extend ResponseCode = \"NOERROR\"\n| extend ClientIP = extract(@\"from\\s+(\\S+)\", 1, _raw_s)\n| extend AnswerIPs = \"\"\n| where isnotempty(Domain) and Domain !in~ (\"unknown\", \"other\", \"<empty>\")\n| summarize \n    QueryCount = count(), \n    UniqueSourceIPs = dcount(ClientIP), \n    QueryTypes = make_set_if(QueryType, isnotempty(QueryType), 5),\n    ResponseCodes = make_set_if(ResponseCode, isnotempty(ResponseCode), 5),\n    ResolvedIPs = make_set_if(AnswerIPs, isnotempty(AnswerIPs), 10),\n    FirstSeen = min(TimeGenerated), \n    LastSeen = max(TimeGenerated) \n    by Domain\n| extend \n    QueryFrequency = QueryCount / (datetime_diff('hour', LastSeen, FirstSeen) + 1.0),\n    SuspicionScore = case(\n        Domain contains \"..\" or Domain startswith \".\" or Domain endswith \".\", 90,\n        Domain matches regex @\"\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\", 80,\n        strlen(Domain) > 50, 70,\n        Domain contains \"--\" or Domain matches regex @\"[a-z0-9]{20,}\", 60,\n        QueryCount > 1000, 50,\n        0\n    )\n| project Domain, QueryCount, UniqueSourceIPs, QueryFrequency = round(QueryFrequency, 2), SuspicionScore, QueryTypes, ResponseCodes, ResolvedIPs, FirstSeen, LastSeen\n| sort by QueryCount desc\n| take 200),\n(datatable(Domain:string, QueryCount:long, UniqueSourceIPs:long, QueryFrequency:real, SuspicionScore:int, QueryTypes:dynamic, ResponseCodes:dynamic, ResolvedIPs:dynamic, FirstSeen:datetime, LastSeen:datetime)[])\n| where isnotempty(Domain)",
               "size": 0,
               "title": "Comprehensive DNS Query Analysis (Top 200 with Threat Scoring)",
               "timeContextFromParameter": "TimeRange",

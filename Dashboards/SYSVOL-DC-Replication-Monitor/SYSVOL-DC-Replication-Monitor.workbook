@@ -191,7 +191,7 @@
             "name": "overview-kpis",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let base = Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers});\nlet totalEvents = toscalar(base | count);\nlet dcCount = toscalar(base | summarize dcount(Computer));\nlet errorCount = toscalar(base | where EventLevelName in (\"Error\",\"Critical\") | count);\nlet warningCount = toscalar(base | where EventLevelName == \"Warning\" | count);\nlet dfsrCriticalCount = toscalar(base | where EventLog == \"DFS Replication\" and EventID in (2213, 4012, 5002, 6016, 4002, 4004) | count);\nlet dsCriticalCount = toscalar(base | where EventLog == \"Directory Service\" and EventID in (1311, 1388, 1925, 2042, 1866) | count);\nprint Metric=\"Total Events\", Value=totalEvents\n| union (print Metric=\"DCs Reporting\", Value=dcCount)\n| union (print Metric=\"Errors / Critical\", Value=errorCount)\n| union (print Metric=\"Warning Events\", Value=warningCount)\n| union (print Metric=\"DFSR Critical\", Value=dfsrCriticalCount)\n| union (print Metric=\"DS Critical\", Value=dsCriticalCount)",
+              "query": "let base = Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers});\nlet totalEvents = toscalar(base | count);\nlet dcCount = toscalar(base | summarize dcount(Computer));\nlet errorCount = toscalar(base | where EventLevelName in (\"Error\",\"Critical\",\"Warning\") | count);\nlet warningCount = toscalar(base | where EventLevelName == \"Warning\" | count);\nlet dfsrCriticalCount = toscalar(base | where EventLog == \"DFS Replication\" and EventID in (2213, 4012, 5002, 6016, 4002, 4004) | count);\nlet dsCriticalCount = toscalar(base | where EventLog == \"Directory Service\" and EventID in (1311, 1388, 1925, 2042, 1866) | count);\nprint Metric=\"Total Events\", Value=totalEvents\n| union (print Metric=\"DCs Reporting\", Value=dcCount)\n| union (print Metric=\"Errors / Critical\", Value=errorCount)\n| union (print Metric=\"Warning Events\", Value=warningCount)\n| union (print Metric=\"DFSR Critical\", Value=dfsrCriticalCount)\n| union (print Metric=\"DS Critical\", Value=dsCriticalCount)",
               "size": 4,
               "title": "Key Performance Indicators",
               "timeContextFromParameter": "TimeRange",
@@ -311,7 +311,7 @@
             "name": "overview-events-by-hour-heatmap",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\")\n| extend Hour=format_datetime(TimeGenerated,'HH')\n| summarize Errors=count() by Hour, EventLog\n| order by Hour asc",
+              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\",\"Warning\")\n| extend Hour=format_datetime(TimeGenerated,'HH')\n| summarize Errors=count() by Hour, EventLog\n| order by Hour asc",
               "size": 0,
               "title": "Error Distribution by Hour of Day (All Sources)",
               "timeContextFromParameter": "TimeRange",
@@ -328,7 +328,7 @@
             "name": "overview-top-dcs",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| summarize\n    TotalEvents=count(),\n    DFSREvents=countif(EventLog==\"DFS Replication\"),\n    DSEvents=countif(EventLog==\"Directory Service\"),\n    Errors=countif(EventLevelName in (\"Error\",\"Critical\")),\n    Warnings=countif(EventLevelName==\"Warning\"),\n    FirstSeen=min(TimeGenerated),\n    LastSeen=max(TimeGenerated)\n  by Computer\n| extend HealthStatus=case(\n    Errors > 100, \"Critical\",\n    Errors > 10, \"Degraded\",\n    Errors > 0, \"Warning\",\n    \"Healthy\"\n  )\n| order by Errors desc, TotalEvents desc\n| project Computer, HealthStatus, TotalEvents, Errors, Warnings, DFSREvents, DSEvents, FirstSeen, LastSeen",
+              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| summarize\n    TotalEvents=count(),\n    DFSREvents=countif(EventLog==\"DFS Replication\"),\n    DSEvents=countif(EventLog==\"Directory Service\"),\n    Errors=countif(EventLevelName in (\"Error\",\"Critical\",\"Warning\")),\n    Warnings=countif(EventLevelName==\"Warning\"),\n    FirstSeen=min(TimeGenerated),\n    LastSeen=max(TimeGenerated)\n  by Computer\n| extend HealthStatus=case(\n    Errors > 100, \"Critical\",\n    Errors > 10, \"Degraded\",\n    Errors > 0, \"Warning\",\n    \"Healthy\"\n  )\n| order by Errors desc, TotalEvents desc\n| project Computer, HealthStatus, TotalEvents, Errors, Warnings, DFSREvents, DSEvents, FirstSeen, LastSeen",
               "size": 0,
               "title": "All Domain Controllers - Event Summary",
               "timeContextFromParameter": "TimeRange",
@@ -879,7 +879,7 @@
             "name": "map-detail-table",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let hb = Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| summarize\n    Heartbeats=count(),\n    LastSeen=max(TimeGenerated),\n    Latitude=any(RemoteIPLatitude),\n    Longitude=any(RemoteIPLongitude),\n    Country=any(RemoteIPCountry),\n    OSType=any(OSType),\n    OSName=any(OSName),\n    OSMajorVersion=any(OSMajorVersion),\n    AgentVersion=any(Version),\n    ResourceId=any(_ResourceId)\n  by Computer\n| extend HostKey=tolower(tostring(split(Computer, \".\")[0]));\nlet mde = union isfuzzy=true\n  (DeviceInfo\n  | where Timestamp {TimeRange}\n  | summarize arg_max(Timestamp, *) by DeviceName\n  | extend HostKey=tolower(tostring(split(DeviceName, \".\")[0]))\n  | project HostKey, PublicIP, OSPlatform, OSVersion, DeviceType, MachineGroup, OnboardingStatus, MDE_LastSeen=Timestamp),\n  (datatable(HostKey:string, PublicIP:string, OSPlatform:string, OSVersion:string, DeviceType:string, MachineGroup:string, OnboardingStatus:string, MDE_LastSeen:datetime)[]);\nhb\n| join kind=leftouter mde on HostKey\n| extend MinutesSinceLastSeen=datetime_diff(\"minute\", now(), LastSeen)\n| extend Status=case(\n    MinutesSinceLastSeen > 60, \"Stale\",\n    MinutesSinceLastSeen > 15, \"Warning\",\n    \"Active\"\n  )\n| project Computer, Status, Country, Latitude, Longitude, OSName, OSMajorVersion, AgentVersion, PublicIP, OSPlatform, OSVersion, DeviceType, OnboardingStatus, Heartbeats, LastSeen, MDE_LastSeen, ResourceId\n| order by Country asc, Computer asc",
+              "query": "let hb = Heartbeat\n| where TimeGenerated {TimeRange}\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| summarize\n    Heartbeats=count(),\n    LastSeen=max(TimeGenerated),\n    Latitude=any(RemoteIPLatitude),\n    Longitude=any(RemoteIPLongitude),\n    Country=any(RemoteIPCountry),\n    OSType=any(OSType),\n    OSName=any(OSName),\n    OSMajorVersion=any(OSMajorVersion),\n    AgentVersion=any(Version),\n    ResourceId=any(_ResourceId)\n  by Computer\n| extend HostKey=tolower(tostring(split(Computer, \".\")[0]));\nlet mde = union isfuzzy=true\n  (DeviceInfo\n  | where Timestamp {TimeRange}\n  | summarize arg_max(Timestamp, *) by DeviceName\n  | extend HostKey=tolower(tostring(split(DeviceName, \".\")[0]))\n  | project HostKey, PublicIP, OSPlatform, OSVersion, DeviceType, MachineGroup, OnboardingStatus, MDE_LastSeen=Timestamp),\n  (datatable(HostKey:string, PublicIP:string, OSPlatform:string, OSVersion:string, DeviceType:string, MachineGroup:string, OnboardingStatus:string, MDE_LastSeen:datetime)[]);\nhb\n| join kind=leftouter mde on HostKey\n| extend MinutesSinceLastSeen=datetime_diff(\"minute\", now(), LastSeen)\n| extend Status=case(\n    MinutesSinceLastSeen > 60, \"Stale\",\n    MinutesSinceLastSeen > 15, \"Warning\",\n    \"Active\"\n  )\n| project Computer, ResourceId, Status, Country, Latitude, Longitude, OSName, OSMajorVersion, AgentVersion, PublicIP, OSPlatform, OSVersion, DeviceType, OnboardingStatus, Heartbeats, LastSeen, MDE_LastSeen\n| order by Country asc, Computer asc",
               "size": 0,
               "title": "DC Location Detail — Heartbeat geo + MDE DeviceInfo",
               "timeContextFromParameter": "TimeRange",
@@ -961,7 +961,7 @@
             "name": "ds-kpis",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let base = Event\n| where TimeGenerated {TimeRange}\n| where EventLog == \"Directory Service\"\n| where \"value::all\" in ({Computers}) or Computer in ({Computers});\nlet totalEvents = toscalar(base | count);\nlet dcCount = toscalar(base | summarize dcount(Computer));\nlet replicationFailureCount = toscalar(base | where EventID in (1311, 1388, 1925, 2042) | count);\nlet kccErrorCount = toscalar(base | where EventID in (1311, 1866) | count);\nlet dnsFailureCount = toscalar(base | where EventID in (2087, 2088) | count);\nlet allErrorCount = toscalar(base | where EventLevelName in (\"Error\",\"Critical\") | count);\nprint Metric=\"Total DS Events\", Value=totalEvents\n| union (print Metric=\"DCs Reporting\", Value=dcCount)\n| union (print Metric=\"Replication Failures\", Value=replicationFailureCount)\n| union (print Metric=\"KCC Errors\", Value=kccErrorCount)\n| union (print Metric=\"DNS Failures\", Value=dnsFailureCount)\n| union (print Metric=\"All Errors / Critical\", Value=allErrorCount)",
+              "query": "let base = Event\n| where TimeGenerated {TimeRange}\n| where EventLog == \"Directory Service\"\n| where \"value::all\" in ({Computers}) or Computer in ({Computers});\nlet totalEvents = toscalar(base | count);\nlet dcCount = toscalar(base | summarize dcount(Computer));\nlet replicationFailureCount = toscalar(base | where EventID in (1311, 1388, 1925, 2042) | count);\nlet kccErrorCount = toscalar(base | where EventID in (1311, 1866) | count);\nlet dnsFailureCount = toscalar(base | where EventID in (2087, 2088) | count);\nlet allErrorCount = toscalar(base | where EventLevelName in (\"Error\",\"Critical\",\"Warning\") | count);\nprint Metric=\"Total DS Events\", Value=totalEvents\n| union (print Metric=\"DCs Reporting\", Value=dcCount)\n| union (print Metric=\"Replication Failures\", Value=replicationFailureCount)\n| union (print Metric=\"KCC Errors\", Value=kccErrorCount)\n| union (print Metric=\"DNS Failures\", Value=dnsFailureCount)\n| union (print Metric=\"All Errors / Critical\", Value=allErrorCount)",
               "size": 4,
               "title": "Directory Service Key Indicators",
               "timeContextFromParameter": "TimeRange",
@@ -1610,7 +1610,7 @@
             "name": "critical-timeline",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\")\n| summarize Count=count() by bin(TimeGenerated, 1h), EventLog\n| order by TimeGenerated asc",
+              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\",\"Warning\")\n| summarize Count=count() by bin(TimeGenerated, 1h), EventLog\n| order by TimeGenerated asc",
               "size": 0,
               "title": "Error and Critical Events Timeline - All Sources",
               "timeContextFromParameter": "TimeRange",
@@ -1637,7 +1637,7 @@
             "name": "critical-by-dc-source",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\")\n| summarize\n    TotalErrors=count(),\n    DFSRErrors=countif(EventLog==\"DFS Replication\"),\n    DSErrors=countif(EventLog==\"Directory Service\"),\n    FirstError=min(TimeGenerated),\n    LastError=max(TimeGenerated)\n  by Computer\n| extend SourcesAffected=(iff(DFSRErrors>0, 1, 0) + iff(DSErrors>0, 1, 0))\n| extend RiskLevel=case(\n    SourcesAffected >= 2, \"BOTH SOURCES FAILING\",\n    SourcesAffected == 1, \"1 Source\",\n    \"No Errors\"\n  )\n| order by TotalErrors desc\n| project Computer, RiskLevel, TotalErrors, DFSRErrors, DSErrors, SourcesAffected, FirstError, LastError",
+              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\",\"Warning\")\n| summarize\n    TotalErrors=count(),\n    DFSRErrors=countif(EventLog==\"DFS Replication\"),\n    DSErrors=countif(EventLog==\"Directory Service\"),\n    FirstError=min(TimeGenerated),\n    LastError=max(TimeGenerated)\n  by Computer\n| extend SourcesAffected=(iff(DFSRErrors>0, 1, 0) + iff(DSErrors>0, 1, 0))\n| extend RiskLevel=case(\n    SourcesAffected >= 2, \"BOTH SOURCES FAILING\",\n    SourcesAffected == 1, \"1 Source\",\n    \"No Errors\"\n  )\n| order by TotalErrors desc\n| project Computer, RiskLevel, TotalErrors, DFSRErrors, DSErrors, SourcesAffected, FirstError, LastError",
               "size": 0,
               "title": "Error Distribution by DC - All Sources Combined",
               "timeContextFromParameter": "TimeRange",
@@ -1721,7 +1721,7 @@
             "name": "critical-multi-source",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\")\n| summarize Sources=make_set(EventLog), ErrorCount=count() by Computer\n| where array_length(Sources) >= 2\n| extend SourceList=tostring(Sources)\n| order by array_length(Sources) desc, ErrorCount desc\n| project Computer, SourceList, ErrorCount",
+              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\",\"Warning\")\n| summarize Sources=make_set(EventLog), ErrorCount=count() by Computer\n| where array_length(Sources) >= 2\n| extend SourceList=tostring(Sources)\n| order by array_length(Sources) desc, ErrorCount desc\n| project Computer, SourceList, ErrorCount",
               "size": 0,
               "title": "Multi-Source Impact - DCs with Errors in 2 or More Log Sources",
               "timeContextFromParameter": "TimeRange",
@@ -1748,7 +1748,7 @@
             "name": "critical-top-eventids",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\")\n| summarize Count=count(), AffectedDCs=dcount(Computer) by EventID, EventLog\n| order by Count desc\n| take 25",
+              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\",\"Warning\")\n| summarize Count=count(), AffectedDCs=dcount(Computer) by EventID, EventLog\n| order by Count desc\n| take 25",
               "size": 0,
               "title": "Top 25 Critical Event IDs",
               "timeContextFromParameter": "TimeRange",
@@ -1783,7 +1783,7 @@
             "name": "critical-stacked-bar",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\")\n| summarize\n    DFSRErrors=countif(EventLog==\"DFS Replication\"),\n    DSErrors=countif(EventLog==\"Directory Service\")\n  by Computer\n| top 25 by (DFSRErrors + DSErrors) desc",
+              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\",\"Warning\")\n| summarize\n    DFSRErrors=countif(EventLog==\"DFS Replication\"),\n    DSErrors=countif(EventLog==\"Directory Service\")\n  by Computer\n| top 25 by (DFSRErrors + DSErrors) desc",
               "size": 0,
               "title": "Top 25 DCs by Error Count - Stacked by Source",
               "timeContextFromParameter": "TimeRange",
@@ -1812,7 +1812,7 @@
             "name": "critical-full-table",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\")\n| extend Description=substring(RenderedDescription, 0, 400)\n| project TimeGenerated, Computer, EventLog, EventID, EventLevelName, Description\n| order by TimeGenerated desc\n| take 1000",
+              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\",\"Warning\")\n| extend Description=substring(RenderedDescription, 0, 400)\n| project TimeGenerated, Computer, EventLog, EventID, EventLevelName, Description\n| order by TimeGenerated desc\n| take 1000",
               "size": 0,
               "title": "All Critical and Error Events - Full Detail (Latest 1000)",
               "timeContextFromParameter": "TimeRange",
@@ -1919,7 +1919,7 @@
             "name": "dcmatrix-scorecard",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| summarize\n    TotalEvents=count(),\n    DFSRTotal=countif(EventLog==\"DFS Replication\"),\n    DFSRErrors=countif(EventLog==\"DFS Replication\" and EventLevelName in (\"Error\",\"Critical\")),\n    DFSRCritical=countif(EventLog==\"DFS Replication\" and EventID in (2213, 4012, 5002, 6016, 4002)),\n    DSTotal=countif(EventLog==\"Directory Service\"),\n    DSErrors=countif(EventLog==\"Directory Service\" and EventLevelName in (\"Error\",\"Critical\")),\n    DSCritical=countif(EventLog==\"Directory Service\" and EventID in (1311, 1388, 1925, 2042, 1866)),\n    LastActivity=max(TimeGenerated),\n    FirstActivity=min(TimeGenerated)\n  by Computer\n| extend DFSRHealth=case(\n    DFSRCritical > 0, \"Critical\",\n    DFSRErrors > 0, \"Degraded\",\n    DFSRTotal > 0, \"Active\",\n    \"No Data\"\n  )\n| extend DSHealth=case(\n    DSCritical > 0, \"Critical\",\n    DSErrors > 0, \"Degraded\",\n    DSTotal > 0, \"Active\",\n    \"No Data\"\n  )\n| extend OverallHealth=case(\n    DFSRCritical > 0 or DSCritical > 0, \"Critical\",\n    DFSRErrors > 0 or DSErrors > 0, \"Degraded\",\n    TotalEvents > 0, \"Active\",\n    \"No Data\"\n  )\n| order by DFSRCritical desc, DSCritical desc, TotalEvents desc\n| project Computer, OverallHealth, DFSRHealth, DSHealth, DFSRCritical, DSCritical, TotalEvents, FirstActivity, LastActivity",
+              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| summarize\n    TotalEvents=count(),\n    DFSRTotal=countif(EventLog==\"DFS Replication\"),\n    DFSRErrors=countif(EventLog==\"DFS Replication\" and EventLevelName in (\"Error\",\"Critical\",\"Warning\")),\n    DFSRCritical=countif(EventLog==\"DFS Replication\" and EventID in (2213, 4012, 5002, 6016, 4002)),\n    DSTotal=countif(EventLog==\"Directory Service\"),\n    DSErrors=countif(EventLog==\"Directory Service\" and EventLevelName in (\"Error\",\"Critical\",\"Warning\")),\n    DSCritical=countif(EventLog==\"Directory Service\" and EventID in (1311, 1388, 1925, 2042, 1866)),\n    LastActivity=max(TimeGenerated),\n    FirstActivity=min(TimeGenerated)\n  by Computer\n| extend DFSRHealth=case(\n    DFSRCritical > 0, \"Critical\",\n    DFSRErrors > 0, \"Degraded\",\n    DFSRTotal > 0, \"Active\",\n    \"No Data\"\n  )\n| extend DSHealth=case(\n    DSCritical > 0, \"Critical\",\n    DSErrors > 0, \"Degraded\",\n    DSTotal > 0, \"Active\",\n    \"No Data\"\n  )\n| extend OverallHealth=case(\n    DFSRCritical > 0 or DSCritical > 0, \"Critical\",\n    DFSRErrors > 0 or DSErrors > 0, \"Degraded\",\n    TotalEvents > 0, \"Active\",\n    \"No Data\"\n  )\n| order by DFSRCritical desc, DSCritical desc, TotalEvents desc\n| project Computer, OverallHealth, DFSRHealth, DSHealth, DFSRCritical, DSCritical, TotalEvents, FirstActivity, LastActivity",
               "size": 0,
               "title": "DC Health Scorecard - DFSR / NTFRS / Directory Service",
               "timeContextFromParameter": "TimeRange",
@@ -2066,7 +2066,7 @@
             "name": "dcmatrix-stacked-errors",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\")\n| summarize\n    DFSR=countif(EventLog==\"DFS Replication\"),\n    DS=countif(EventLog==\"Directory Service\")\n  by Computer\n| top 30 by (DFSR + DS) desc",
+              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\",\"Warning\")\n| summarize\n    DFSR=countif(EventLog==\"DFS Replication\"),\n    DS=countif(EventLog==\"Directory Service\")\n  by Computer\n| top 30 by (DFSR + DS) desc",
               "size": 0,
               "title": "Error Count Comparison - All DCs Stacked by Source",
               "timeContextFromParameter": "TimeRange",
@@ -2093,7 +2093,7 @@
             "name": "dcmatrix-hourly-heatmap",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\")\n| summarize ErrorCount=count() by Computer, bin(TimeGenerated, 1h)\n| summarize\n    AvgErrorsPerHour=round(avg(ErrorCount), 1),\n    MaxErrorsInHour=max(ErrorCount),\n    TotalErrors=sum(ErrorCount),\n    ActiveHours=dcount(bin(TimeGenerated, 1h))\n  by Computer\n| order by TotalErrors desc",
+              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\",\"Warning\")\n| summarize ErrorCount=count() by Computer, bin(TimeGenerated, 1h)\n| summarize\n    AvgErrorsPerHour=round(avg(ErrorCount), 1),\n    MaxErrorsInHour=max(ErrorCount),\n    TotalErrors=sum(ErrorCount),\n    ActiveHours=dcount(bin(TimeGenerated, 1h))\n  by Computer\n| order by TotalErrors desc",
               "size": 0,
               "title": "DC Error Rate Summary - Average / Max / Total per Hour",
               "timeContextFromParameter": "TimeRange",
@@ -2198,7 +2198,7 @@
             "name": "dcmatrix-replication-timeline-per-dc",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\")\n| summarize ErrorCount=count() by Computer, bin(TimeGenerated, 1h)\n| order by TimeGenerated asc",
+              "query": "Event\n| where TimeGenerated {TimeRange}\n| where EventLog in (\"DFS Replication\",\"Directory Service\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| where EventLevelName in (\"Error\",\"Critical\",\"Warning\")\n| summarize ErrorCount=count() by Computer, bin(TimeGenerated, 1h)\n| order by TimeGenerated asc",
               "size": 0,
               "title": "Per-DC Error Volume Over Time (Top DCs in Legend)",
               "timeContextFromParameter": "TimeRange",

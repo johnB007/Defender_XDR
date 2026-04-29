@@ -4,7 +4,7 @@
     {
       "type": 1,
       "content": {
-        "json": "# DC SYSVOL & AD Replication Health Monitor\n---\n**Classification:** UNCLASSIFIED // FOR OFFICIAL USE ONLY &nbsp;&nbsp;|&nbsp;&nbsp; **Data Sources:** DFS Replication · Directory Service · MDE / Heartbeat (geo) &nbsp;&nbsp;|&nbsp;&nbsp; **Scope:** Domain Controllers with DFSR / Directory Service Replication\n\nThis workbook monitors DFS Replication and Active Directory Directory Service event sources for SYSVOL replication health, DFSR status, and AD replication. NTFRS / File Replication Service has been **deprecated by Microsoft starting Windows Server 2008 R2** and is **removed in Windows Server 2012+** — only **DFSR** is supported for SYSVOL replication today, so this workbook now tracks only DFSR and Directory Service. Use the **Time Range** selector and tabs below to explore each domain. The new **DC Locations** tab plots every reporting Domain Controller on a world map using Heartbeat geo telemetry.",
+        "json": "# DC SYSVOL & AD Replication Health Monitor\n---\n**Data Sources:** DFS Replication · Directory Service · MDE / Heartbeat (geo) &nbsp;&nbsp;|&nbsp;&nbsp; **Scope:** Domain Controllers with DFSR / Directory Service Replication\n\nThis workbook monitors DFS Replication and Active Directory Directory Service event sources for SYSVOL replication health, DFSR status, and AD replication. NTFRS / File Replication Service has been **deprecated by Microsoft starting Windows Server 2008 R2** and is **removed in Windows Server 2012+** — only **DFSR** is supported for SYSVOL replication today, so this workbook now tracks only DFSR and Directory Service. Use the **Time Range** selector and tabs below to explore each domain. The new **DC Locations** tab plots every reporting Domain Controller on a world map using Heartbeat geo telemetry.",
         "style": "0"
       },
       "name": "banner-header"
@@ -181,7 +181,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## Environment-Wide Summary\nTop-level health across all three replication event sources. **Errors / Critical** and **DFSR/NTFRS Critical** KPIs are the most actionable.",
+              "json": "<small>**Environment-Wide Summary** — Top-level health across DFSR and Directory Service. **Errors / Critical** and **DFSR Critical** KPIs are the most actionable.</small>",
               "style": "info"
             },
             "name": "overview-header"
@@ -428,7 +428,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## DFS Replication (DFSR) Health\n**Event Log Source:** `DFS Replication`\n\n**Critical Event IDs to watch:** 2213 (replication stopped ΓÇö requires manual intervention), 4012 (partner exceeded max out-of-sync time), 5002 (DFSR service stopped), 6016 (sync failed), 4002 (init failed), 4004 (disk space).\n\n**Event 2213** is the most severe ΓÇö it means DFSR has been halted and requires an authoritative restore (`BurFlags D4/D2`) or manual `wmic /namespace:\\\\root\\microsoftdfs path DfsrMachineConfig set StopReplicationOnAutoRecovery=FALSE` to recover.",
+              "json": "<small>**DFSR Health** (`DFS Replication` log) — Watch IDs **2213, 4012, 5002, 6016, 4002, 4004**. **2213** halts replication and requires an authoritative restore (`BurFlags D4/D2`).</small>",
               "style": "warning"
             },
             "name": "dfsr-header"
@@ -716,7 +716,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## DC Locations — World Map\nEach Domain Controller is plotted on the world map using **Heartbeat** geolocation telemetry (`RemoteIPLatitude` / `RemoteIPLongitude` / `RemoteIPCountry`), enriched with **DeviceInfo** (MDE) attributes where available. Use this view to verify physical placement, regional spread, and to spot DCs reporting from unexpected locations.\n\n**Sources:** `Heartbeat` (geo + last-seen), `DeviceInfo` (OS / model / public IP). **Heartbeat geo fields** are populated by Azure Monitor based on the agent's reporting public IP.",
+              "json": "<small>**DC Locations — World Map** — DCs plotted from `Heartbeat` geo (`RemoteIPLatitude/Longitude/Country`), enriched with MDE `DeviceInfo`. Use to verify placement and spot DCs reporting from unexpected locations.</small>",
               "style": "info"
             },
             "name": "map-header"
@@ -951,7 +951,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## Active Directory Directory Service Health\n**Event Log Source:** `Directory Service`\n\n**Critical Event IDs:** 1311 (KCC replication errors), 1388 (inbound replication DISABLED), 1925 (replication link failed), 2042 (too long since replication), 1866 (KCC spanning tree failure), 5805 (session setup failed), 1645 (no RID pools).\n\n**Event 2042** means replication has not occurred for longer than the tombstone lifetime ΓÇö this DC is **ISOLATED** and should be demoted/repromoted or restored from backup. **Event 1388** means replication has been DISABLED and ADSI Edit may be required to re-enable it.",
+              "json": "<small>**Directory Service Health** (`Directory Service` log) — Watch IDs **1311, 1388, 1925, 2042, 1866, 5805, 1645**. **2042** means replication exceeded tombstone lifetime — DC is isolated and must be demoted or restored.</small>",
               "style": "warning"
             },
             "name": "ds-header"
@@ -1289,7 +1289,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## Security and MDE Operations\nThis tab is focused on sysadmin and security operations for domain controllers using security telemetry, MDE advanced hunting data, and Arc-connected heartbeat signals. It emphasizes your high-priority replication and service event IDs: **4012, 2213, 5002, 5008, 4202, 4204, 4412, 4414, 1206, 1202**.",
+              "json": "<small>**Security and MDE Operations** — DC sysadmin/security view across SecurityEvent, MDE, and Arc heartbeat. Focus IDs: **4012, 2213, 5002, 5008, 4202, 4204, 4412, 4414, 1206, 1202**.</small>",
               "style": "error"
             },
             "name": "socsecurity-header"
@@ -1534,7 +1534,7 @@
             "name": "socsecurity-arc-heartbeat",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "union isfuzzy=true\n  (Heartbeat\n  | where TimeGenerated {TimeRange}\n  | where ResourceType has \"microsoft.hybridcompute/machines\"\n  | where \"value::all\" in ({Computers}) or Computer in ({Computers})\n  | summarize Heartbeats=count(), LastHeartbeat=max(TimeGenerated), FirstHeartbeat=min(TimeGenerated) by Computer, OSType, ResourceId),\n  (datatable(Computer:string, Heartbeats:long, LastHeartbeat:datetime, FirstHeartbeat:datetime, OSType:string, ResourceId:string)[])\n| extend ArcStatus=case(\n    Heartbeats == 0, \"No Arc Heartbeat\",\n    datetime_diff(\"minute\", now(), LastHeartbeat) > 60, \"Arc Stale\",\n    \"Arc Active\"\n  )\n| order by Heartbeats desc",
+              "query": "let arcHb = Heartbeat\n| where TimeGenerated {TimeRange}\n| where (Category =~ \"Azure Arc\") or (_ResourceId has \"/microsoft.hybridcompute/machines/\") or (ResourceType =~ \"machines\" and ResourceProvider =~ \"Microsoft.HybridCompute\")\n| where \"value::all\" in ({Computers}) or Computer in ({Computers})\n| summarize Heartbeats=count(), LastHeartbeat=max(TimeGenerated), FirstHeartbeat=min(TimeGenerated) by Computer, OSType, _ResourceId\n| project Computer, Heartbeats, LastHeartbeat, FirstHeartbeat, OSType, ResourceId=_ResourceId;\nunion isfuzzy=true\n  arcHb,\n  (datatable(Computer:string, Heartbeats:long, LastHeartbeat:datetime, FirstHeartbeat:datetime, OSType:string, ResourceId:string)[])\n| extend ArcStatus=case(\n    isnull(Heartbeats) or Heartbeats == 0, \"No Arc Heartbeat\",\n    datetime_diff(\"minute\", now(), LastHeartbeat) > 60, \"Arc Stale\",\n    \"Arc Active\"\n  )\n| order by Heartbeats desc",
               "size": 0,
               "title": "Arc Connected DC Heartbeat Coverage",
               "timeContextFromParameter": "TimeRange",
@@ -1600,7 +1600,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## Cross-Source Critical Events\nThis tab consolidates **Error and Critical** severity events across all three log sources into a single operational view. DCs appearing in the **Multi-Source Impact** table have problems in 2 or more replication subsystems and are the highest priority for remediation.",
+              "json": "<small>**Cross-Source Critical Events** — Error/Critical severity across DFSR and Directory Service. DCs in the **Multi-Source Impact** table have faults in 2+ subsystems and are top priority.</small>",
               "style": "error"
             },
             "name": "critical-header"
@@ -1909,7 +1909,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## DC Health Matrix\nThis tab provides a per-DC health scorecard across all three replication subsystems. The **Overall Health** column aggregates DFSR, NTFRS, and Directory Service status into a single signal. Use this view for daily SOC review and as a starting point for targeted investigation.\n\n| Status | Meaning |\n|---|---|\n| Critical | One or more critical event IDs observed (e.g., 2213, 13552, 2042) |\n| Degraded | Errors or warnings observed but no critical-tier event IDs |\n| Active | Events logging normally, no errors |\n| No Data | No events received ΓÇö check DCR and agent health |",
+              "json": "<small>**DC Health Matrix** — Per-DC scorecard across DFSR and Directory Service. Status legend: **Critical** (e.g., 2213/2042), **Degraded** (errors/warnings), **Active** (clean), **No Data** (check DCR/agent).</small>",
               "style": "info"
             },
             "name": "dcmatrix-header"
@@ -2228,7 +2228,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## Log Volume and Cost Estimation\nIngestion is calculated from billable `Event` records only (`_IsBillable=true`) using `_BilledSize`.\nVolume uses decimal GB: `sum(_BilledSize) / 1,000,000,000`.\nCost = `VolumeGB x PricePerGB` (default $2.76), and 30-day projection = `DailyAvgGB x 30 x PricePerGB`.",
+              "json": "<small>**Log Volume and Cost** — Billed `Event` records (`_IsBillable=true`, `_BilledSize`); decimal GB. Cost = `VolumeGB x PricePerGB` (default $2.76); 30-day = `DailyAvgGB x 30 x PricePerGB`.</small>",
               "style": "info"
             },
             "name": "logvolume-header"

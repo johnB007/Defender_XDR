@@ -1,0 +1,40 @@
+=== correlation-kpi-tiles ===
+  query length: 2120
+  OK rows=4
+  sample row:
+
+Column    : Active TI Indicators (24h)
+TableName : PrimaryResult
+Value     : 321543
+
+
+=== correlation-ti-ip-matches ===
+  query length: 6692
+  FAIL exit=1
+ERROR: (BadArgumentError) The request had some invalid properties
+Code: BadArgumentError
+Message: The request had some invalid properties
+Inner error: {
+    "code": "SemanticError",
+    "message": "A semantic error occurred.",
+    "innererror": {
+        "code": "SEM0100",
+        "message": "'where' operator: Failed to resolve scalar expression named 'dns_answers_s'"
+    }
+}
+
+=== correlation-top-clients ===
+  query length: 2504
+  FAIL exit=1
+ERROR: (BadArgumentError) The request had some invalid properties
+Code: BadArgumentError
+Message: The request had some invalid properties
+Inner error: {
+    "code": "SemanticError",
+    "message": "A semantic error occurred.",
+    "innererror": {
+        "code": "SEM0001",
+        "message": "Summarize group key 'IPAddresses' is of a 'dynamic' type. Please use an explicit cast (for example, 'summarize ... by tostring(IPAddresses)') as grouping by a 'dynamic' type is not supported."
+    }
+}
+

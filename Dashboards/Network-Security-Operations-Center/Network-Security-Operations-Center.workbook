@@ -4,7 +4,7 @@
     {
       "type": 1,
       "content": {
-        "json": "# Network Security Operations Center\n\n**Quick Actions:** Use the search boxes below to investigate specific IPs, domains, or MAC addresses across ALL network data sources.",
+        "json": "# Network Security Operations Center\n\nUnified NSOC view across NetFlow, Zeek, firewall, DNS, MDE, and threat intel \u2014 search by IP, domain, or MAC below.",
         "style": "info"
       },
       "name": "banner-header"
@@ -191,7 +191,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## Executive Security Summary\n\n**Real-time overview of network security posture across all data sources**",
+              "json": "## Executive Security Summary\n\nReal-time network security posture rolled up from every connected data source.",
               "style": "info"
             },
             "name": "text-executive-header"
@@ -486,7 +486,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## DNS Intelligence Dashboard\n\n**DNS Sinkhole query analysis, suspicious domain detection, and DNS tunneling identification**\n\n**Status:** Analyzing {SearchDomain:value} {SearchIP:value}",
+              "json": "## DNS Intelligence Dashboard\n\nPi-hole sinkhole query analysis with suspicious domain and DNS tunneling detection.",
               "style": "info"
             },
             "name": "text-dns-header"
@@ -834,7 +834,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## NetFlow Deep Dive Analytics\n\n**Bandwidth analysis, top talkers, protocol distribution, and flow patterns**",
+              "json": "## NetFlow Deep Dive Analytics\n\nBandwidth, top talkers, protocol distribution, and flow-pattern analytics from NetFlow_CL.",
               "style": "info"
             },
             "name": "text-netflow-header"
@@ -1069,7 +1069,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## WiFi / LAN Details\n\n**Switch + Access Point health at a glance, plus MDE-enriched WiFi visibility: SSID sessions, device identity, signal quality, rogue detection, and connection anomalies.**\n\n> **SSID resolution priority:** MDE `DeviceNetworkInfo` (real SSID from endpoint) \u2192 UniFi Site Manager `essid_s` \u2192 StaticMap fallback.",
+              "json": "## WiFi / LAN Details\n\nSwitch and AP health plus MDE-enriched WiFi visibility (SSID, identity, signal, rogue and anomaly detection).",
               "style": "info"
             },
             "name": "text-firewall-header"
@@ -1796,7 +1796,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## Zeek IDS Deep Analysis\n\n**Network intrusion detection, protocol analysis, and behavioral analytics from Zeek (bridge-mode capture via DNS Sinkhole -> Cribl -> Sentinel)**",
+              "json": "## Zeek IDS Deep Analysis\n\nProtocol analysis and behavioral IDS analytics from bridge-mode Zeek capture (Sinkhole \u2192 Cribl \u2192 Sentinel).",
               "style": "info"
             },
             "name": "text-zeek-header"
@@ -2338,7 +2338,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## Threat Correlation\n\n**Cross-source threat correlation: IPs, domains, URLs, and file hashes from MDTI + abuse.ch (URLhaus, ThreatFox, Feodo Tracker, MalwareBazaar, SSLBL) in `ThreatIntelIndicators`, matched against NetFlow, Zeek, Firewall, DNS, and MDE. The `TI_Source` / `Tags` columns identify which feed flagged the IOC.**",
+              "json": "## Threat Correlation\n\nCross-source TI correlation: MDTI + abuse.ch IOCs vs NetFlow, Zeek, Firewall, DNS, MDE.",
               "style": "info"
             },
             "name": "text-correlation-header"
@@ -2347,7 +2347,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let TI = ThreatIntelIndicators | where TimeGenerated > ago(30d) and IsActive == true;\nlet TIip_ind = TI | where ObservableKey in (\"network-traffic:src_ref.value\",\"network-traffic:dst_ref.value\",\"ipv4-addr:value\") | project Ip = tostring(ObservableValue), SourceSystem = tostring(SourceSystem);\nlet TIip_alert = SecurityAlert | where TimeGenerated > ago(30d) | mv-expand todynamic(Entities) | where tostring(Entities.Type) == \"ip\" | extend Ip = tostring(Entities.Address) | where isnotempty(Ip) | project Ip, SourceSystem = \"SecurityAlert\";\nlet TIipMap = union TIip_ind, TIip_alert | summarize SourceSystem = take_any(SourceSystem) by Ip;\nlet TIip = TIipMap | distinct Ip;\nlet TIdomMap = union\n  (TI | where ObservableKey == \"domain-name:value\" | extend d = tolower(tostring(ObservableValue)) | project d, SourceSystem = tostring(SourceSystem)),\n  (TI | where ObservableKey == \"url:value\" | extend d = tolower(extract(@'^(?:https?://)?([^/:?]+)', 1, tostring(ObservableValue))) | where isnotempty(d) | project d, SourceSystem = tostring(SourceSystem))\n| summarize SourceSystem = take_any(SourceSystem) by d;\nlet TIdom = TIdomMap | distinct d;\nlet TIurl = TI | where ObservableKey == \"url:value\" | extend u = tolower(tostring(ObservableValue)) | summarize SourceSystem = take_any(tostring(SourceSystem)) by u;\nlet TIhash = TI | where ObservableKey in (\"file:hashes.'SHA-256'\",\"file:hashes.'SHA-1'\",\"file:hashes.MD5\") | extend h = tolower(tostring(ObservableValue)) | summarize SourceSystem = take_any(tostring(SourceSystem)) by h;\nlet ipHits = union\n  (NetFlow_CL | where TimeGenerated > ago(24h) | extend Ip = case(not(ipv4_is_private(SrcIP)), SrcIP, DstIP), Int = case(ipv4_is_private(SrcIP), SrcIP, DstIP) | where Ip in (TIip) | project Ip, Int),\n  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == \"conn\" | extend Ip = case(not(ipv4_is_private(src_ip_s)), src_ip_s, dst_ip_s), Int = case(ipv4_is_private(src_ip_s), src_ip_s, dst_ip_s) | where Ip in (TIip) | project Ip, Int),\n  (DeviceNetworkEvents | where TimeGenerated > ago(24h) | where RemoteIP in (TIip) | project Ip = RemoteIP, Int = LocalIP);\nlet domHits = union\n  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == \"dns\" | extend d = tolower(dns_query_s) | where d in (TIdom) | project d),\n  (PiholeDNS_CL | where TimeGenerated > ago(24h) | extend d = tolower(coalesce(extract(@'query\\[\\w+\\]\\s+(\\S+)\\s+from', 1, _raw_s), extract(@'(?:cached|forwarded|reply)\\s+(\\S+)\\s+(?:is|to)', 1, _raw_s))) | where d in (TIdom) | project d),\n  (DeviceNetworkEvents | where TimeGenerated > ago(24h) and isnotempty(RemoteUrl) | extend d = tolower(extract(@'^(?:https?://)?([^/:?]+)', 1, RemoteUrl)) | where d in (TIdom) | project d);\nlet urlHits = DeviceNetworkEvents | where TimeGenerated > ago(24h) and isnotempty(RemoteUrl) | extend u = tolower(RemoteUrl) | where u in (TIurl) | project u;\nlet hashHits = DeviceFileEvents | where TimeGenerated > ago(24h) | extend h = tolower(coalesce(SHA256, SHA1, MD5)) | where h in (TIhash) | project h;\nlet nonMdeDev = union\n  (NetFlow_CL | where TimeGenerated > ago(24h) | extend Ext = case(not(ipv4_is_private(DstIP)), DstIP, SrcIP), Int = case(ipv4_is_private(SrcIP), SrcIP, DstIP) | where Ext in (TIip) and ipv4_is_private(Int) | project Int),\n  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == \"conn\" | extend Ext = case(not(ipv4_is_private(dst_ip_s)), dst_ip_s, src_ip_s), Int = case(ipv4_is_private(src_ip_s), src_ip_s, dst_ip_s) | where Ext in (TIip) and ipv4_is_private(Int) | project Int),\n  (PiholeDNS_CL | where TimeGenerated > ago(24h) | extend d = tolower(coalesce(extract(@'query\\[\\w+\\]\\s+(\\S+)\\s+from', 1, _raw_s), extract(@'(?:cached|forwarded|reply)\\s+(\\S+)\\s+(?:is|to)', 1, _raw_s))), Int = extract(@'\\bfrom\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)', 1, _raw_s) | where d in (TIdom) and isnotempty(Int) | project Int)\n  | distinct Int;\nlet topFeed = union\n  (ipHits | join kind=inner (TIipMap) on Ip | project SourceSystem),\n  (domHits | join kind=inner (TIdomMap) on d | project SourceSystem),\n  (urlHits | join kind=inner (TIurl) on u | project SourceSystem),\n  (hashHits | join kind=inner (TIhash) on h | project SourceSystem)\n  | summarize c = count() by SourceSystem | top 1 by c desc | project Top = strcat(SourceSystem, \" (\", c, \")\");\nlet topClient = ipHits | where ipv4_is_private(Int) | summarize c = count() by Int | top 1 by c desc | project Top = strcat(Int, \" (\", c, \")\");\nlet topCountry = ipHits | summarize c = count() by Ip | join kind=leftouter (ipHits | distinct Ip | extend Geo = geo_info_from_ip_address(Ip) | extend Country = tostring(Geo.country)) on Ip | summarize c = sum(c) by Country | where isnotempty(Country) | top 1 by c desc | project Top = strcat(Country, \" (\", c, \")\");\nunion\n  (print Column = \"Active TI Indicators (24h)\", Value = tostring(toscalar(TI | count))),\n  (print Column = \"TI IP Hits (24h)\", Value = tostring(toscalar(ipHits | distinct Ip | count))),\n  (print Column = \"TI Domain Hits (24h)\", Value = tostring(toscalar(domHits | distinct d | count))),\n  (print Column = \"TI URL Hits (24h)\", Value = tostring(toscalar(urlHits | distinct u | count))),\n  (print Column = \"TI File Hash Hits (24h)\", Value = tostring(toscalar(hashHits | distinct h | count))),\n  (print Column = \"Non-MDE Devices Touching TI (24h)\", Value = tostring(toscalar(nonMdeDev | count))),\n  (print Column = \"Top TI Feed (24h)\", Value = coalesce(toscalar(topFeed), \"\u2014\")),\n  (print Column = \"Top Threatened Client (24h)\", Value = coalesce(toscalar(topClient), \"\u2014\")),\n  (print Column = \"Top Threat Country (24h)\", Value = coalesce(toscalar(topCountry), \"\u2014\"))",
+              "query": "let TI = ThreatIntelIndicators | where TimeGenerated > ago(30d) and IsActive == true;\nlet TIip_ind = TI | where ObservableKey in (\"network-traffic:src_ref.value\",\"network-traffic:dst_ref.value\",\"ipv4-addr:value\") | project Ip = tostring(ObservableValue), SourceSystem = tostring(SourceSystem);\nlet TIip_alert = SecurityAlert | where TimeGenerated > ago(30d) | mv-expand todynamic(Entities) | where tostring(Entities.Type) == \"ip\" | extend Ip = tostring(Entities.Address) | where isnotempty(Ip) | project Ip, SourceSystem = \"SecurityAlert\";\nlet TIipMap = union TIip_ind, TIip_alert | summarize SourceSystem = take_any(SourceSystem) by Ip;\nlet TIip = TIipMap | distinct Ip;\nlet TIdomMap = union\n  (TI | where ObservableKey == \"domain-name:value\" | extend d = tolower(tostring(ObservableValue)) | project d, SourceSystem = tostring(SourceSystem)),\n  (TI | where ObservableKey == \"url:value\" | extend d = tolower(extract(@\"^(?:https?://)?([^/:?]+)\", 1, tostring(ObservableValue))) | where isnotempty(d) | project d, SourceSystem = tostring(SourceSystem))\n| summarize SourceSystem = take_any(SourceSystem) by d;\nlet TIdom = TIdomMap | distinct d;\nlet TIurl = TI | where ObservableKey == \"url:value\" | extend u = tolower(tostring(ObservableValue)) | summarize SourceSystem = take_any(tostring(SourceSystem)) by u;\nlet TIhash = TI | where ObservableKey in (\"file:hashes.''SHA-256''\",\"file:hashes.''SHA-1''\",\"file:hashes.MD5\") | extend h = tolower(tostring(ObservableValue)) | summarize SourceSystem = take_any(tostring(SourceSystem)) by h;\nlet ipHits = union\n  (NetFlow_CL | where TimeGenerated > ago(24h) | extend Ip = case(not(ipv4_is_private(SrcIP)), SrcIP, DstIP), Int = case(ipv4_is_private(SrcIP), SrcIP, DstIP) | where Ip in (TIip) | project Ip, Int),\n  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == \"conn\" | extend Ip = case(not(ipv4_is_private(src_ip_s)), src_ip_s, dst_ip_s), Int = case(ipv4_is_private(src_ip_s), src_ip_s, dst_ip_s) | where Ip in (TIip) | project Ip, Int),\n  (DeviceNetworkEvents | where TimeGenerated > ago(24h) | where RemoteIP in (TIip) | project Ip = RemoteIP, Int = LocalIP);\nlet domHits = union\n  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == \"dns\" | extend d = tolower(dns_query_s) | where d in (TIdom) | project d),\n  (PiholeDNS_CL | where TimeGenerated > ago(24h) | extend d = tolower(coalesce(extract(@\"query\\[\\w+\\]\\s+(\\S+)\\s+from\", 1, _raw_s), extract(@\"(?:cached|forwarded|reply)\\s+(\\S+)\\s+(?:is|to)\", 1, _raw_s))) | where d in (TIdom) | project d),\n  (DeviceNetworkEvents | where TimeGenerated > ago(24h) and isnotempty(RemoteUrl) | extend d = tolower(extract(@\"^(?:https?://)?([^/:?]+)\", 1, RemoteUrl)) | where d in (TIdom) | project d);\nlet urlHits = DeviceNetworkEvents | where TimeGenerated > ago(24h) and isnotempty(RemoteUrl) | extend u = tolower(RemoteUrl) | where u in (TIurl) | project u;\nlet hashHits = DeviceFileEvents | where TimeGenerated > ago(24h) | extend h = tolower(coalesce(SHA256, SHA1, MD5)) | where h in (TIhash) | project h;\nlet nonMdeDev = union\n  (NetFlow_CL | where TimeGenerated > ago(24h) | extend Ext = case(not(ipv4_is_private(DstIP)), DstIP, SrcIP), Int = case(ipv4_is_private(SrcIP), SrcIP, DstIP) | where Ext in (TIip) and ipv4_is_private(Int) | project Int),\n  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == \"conn\" | extend Ext = case(not(ipv4_is_private(dst_ip_s)), dst_ip_s, src_ip_s), Int = case(ipv4_is_private(src_ip_s), src_ip_s, dst_ip_s) | where Ext in (TIip) and ipv4_is_private(Int) | project Int),\n  (PiholeDNS_CL | where TimeGenerated > ago(24h) | extend d = tolower(coalesce(extract(@\"query\\[\\w+\\]\\s+(\\S+)\\s+from\", 1, _raw_s), extract(@\"(?:cached|forwarded|reply)\\s+(\\S+)\\s+(?:is|to)\", 1, _raw_s))), Int = extract(@\"\\bfrom\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)\", 1, _raw_s) | where d in (TIdom) and isnotempty(Int) | project Int)\n  | distinct Int;\nlet topFeed = union\n  (ipHits | join kind=inner (TIipMap) on Ip | project SourceSystem),\n  (domHits | join kind=inner (TIdomMap) on d | project SourceSystem),\n  (urlHits | join kind=inner (TIurl) on u | project SourceSystem),\n  (hashHits | join kind=inner (TIhash) on h | project SourceSystem)\n  | summarize c = count() by SourceSystem | top 1 by c desc;\nlet topClient = ipHits | where ipv4_is_private(Int) | summarize c = count() by Int | top 1 by c desc;\nlet topCountry = ipHits | summarize c = count() by Ip | join kind=leftouter (ipHits | distinct Ip | extend Geo = geo_info_from_ip_address(Ip) | extend Country = tostring(Geo.country)) on Ip | summarize c = sum(c) by Country | where isnotempty(Country) | top 1 by c desc;\nunion\n  (print Column = \"Active TI Indicators (24h)\", Value = toscalar(TI | count), Detail = \"\"),\n  (print Column = \"TI IP Hits (24h)\", Value = toscalar(ipHits | distinct Ip | count), Detail = \"\"),\n  (print Column = \"TI Domain Hits (24h)\", Value = toscalar(domHits | distinct d | count), Detail = \"\"),\n  (print Column = \"TI URL Hits (24h)\", Value = toscalar(urlHits | distinct u | count), Detail = \"\"),\n  (print Column = \"TI File Hash Hits (24h)\", Value = toscalar(hashHits | distinct h | count), Detail = \"\"),\n  (print Column = \"Non-MDE Devices Touching TI (24h)\", Value = toscalar(nonMdeDev | count), Detail = \"\"),\n  (print Column = \"Top TI Feed (24h)\", Value = coalesce(toscalar(topFeed | project c), long(0)), Detail = coalesce(toscalar(topFeed | project SourceSystem), \"\u2014\")),\n  (print Column = \"Top Threatened Client (24h)\", Value = coalesce(toscalar(topClient | project c), long(0)), Detail = coalesce(toscalar(topClient | project Int), \"\u2014\")),\n  (print Column = \"Top Threat Country (24h)\", Value = coalesce(toscalar(topCountry | project c), long(0)), Detail = coalesce(toscalar(topCountry | project Country), \"\u2014\"))\n\n",
               "size": 3,
               "title": "Threat Correlation KPIs (24h)",
               "noDataMessage": "No TI activity in the last 24h",
@@ -2361,9 +2361,16 @@
                 },
                 "leftContent": {
                   "columnMatch": "Value",
-                  "formatter": 1
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  }
                 },
-                "showBorder": true
+                "showBorder": true,
+                "secondaryContent": {
+                  "columnMatch": "Detail",
+                  "formatter": 1
+                }
               },
               "tileSettings_unused": "see chartSettings",
               "chartSettings": {
@@ -2762,7 +2769,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## Threat Hunting\n\n**Proactive threat hunting: anomalous behaviors, beaconing detection, lateral movement, and data exfiltration indicators**",
+              "json": "## Threat Hunting\n\nProactive hunts for beaconing, lateral movement, and data-exfiltration indicators.",
               "style": "info"
             },
             "name": "text-hunting-header"
@@ -2884,7 +2891,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## Global Threat Heat Map\n\n**Geographic visualization of external threat sources correlated across all Sentinel & XDR data sources \u2014 NetFlow, Zeek/Corelight, Syslog firewalls, CEF, Cribl, Azure Firewall, Defender XDR, Threat Intel, and Security Alerts. Heat is log-scaled so mid-tier countries remain visible alongside high-volume regions.**",
+              "json": "## Global Threat Heat Map\n\nLog-scaled geo heat map of external threat sources correlated across all Sentinel and XDR data.",
               "style": "info"
             },
             "name": "text-worldmap-header"
@@ -3043,7 +3050,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## Investigation Portal\n\n**Deep-dive investigation across all data sources for specific IPs, domains, or MAC addresses**\n\n**Current Search:** IP=`{SearchIP:value}` | Domain=`{SearchDomain:value}` | MAC=`{SearchMAC:value}`\n\nAll panels honor the TimeRange picker and the Search parameters above. Leave a field blank to match everything. Sources: NetFlow_CL, PiholeDNS_CL (dnsmasq raw log), Syslog (IPfreely/Switch firewall), ZeekLogs_CL (conn/dns/http), ThreatIntelligenceIndicator, DeviceInfo/DeviceNetworkInfo/DeviceNetworkEvents (MDE).",
+              "json": "## Investigation Portal\n\nDeep-dive across all sources for IP=`{SearchIP:value}` Domain=`{SearchDomain:value}` MAC=`{SearchMAC:value}` (blank = all).",
               "style": "info"
             },
             "name": "text-investigate-header"

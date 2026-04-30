@@ -1,0 +1,45 @@
+let TI = ThreatIntelIndicators | where TimeGenerated > ago(30d) and IsActive == true;
+let TIip_ind = TI | where ObservableKey in ("network-traffic:src_ref.value","network-traffic:dst_ref.value","ipv4-addr:value") | project Ip = tostring(ObservableValue), SourceSystem = tostring(SourceSystem);
+let TIip_alert = SecurityAlert | where TimeGenerated > ago(30d) | mv-expand todynamic(Entities) | where tostring(Entities.Type) == "ip" | extend Ip = tostring(Entities.Address) | where isnotempty(Ip) | project Ip, SourceSystem = "SecurityAlert";
+let TIipMap = union TIip_ind, TIip_alert | summarize SourceSystem = take_any(SourceSystem) by Ip;
+let TIip = TIipMap | distinct Ip;
+let TIdomMap = union
+  (TI | where ObservableKey == "domain-name:value" | extend d = tolower(tostring(ObservableValue)) | project d, SourceSystem = tostring(SourceSystem)),
+  (TI | where ObservableKey == "url:value" | extend d = tolower(extract(@'^(?:https?://)?([^/:?]+)', 1, tostring(ObservableValue))) | where isnotempty(d) | project d, SourceSystem = tostring(SourceSystem))
+| summarize SourceSystem = take_any(SourceSystem) by d;
+let TIdom = TIdomMap | distinct d;
+let TIurl = TI | where ObservableKey == "url:value" | extend u = tolower(tostring(ObservableValue)) | summarize SourceSystem = take_any(tostring(SourceSystem)) by u;
+let TIhash = TI | where ObservableKey in ("file:hashes.'SHA-256'","file:hashes.'SHA-1'","file:hashes.MD5") | extend h = tolower(tostring(ObservableValue)) | summarize SourceSystem = take_any(tostring(SourceSystem)) by h;
+let ipHits = union
+  (NetFlow_CL | where TimeGenerated > ago(24h) | extend Ip = case(not(ipv4_is_private(SrcIP)), SrcIP, DstIP), Int = case(ipv4_is_private(SrcIP), SrcIP, DstIP) | where Ip in (TIip) | project Ip, Int),
+  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == "conn" | extend Ip = case(not(ipv4_is_private(src_ip_s)), src_ip_s, dst_ip_s), Int = case(ipv4_is_private(src_ip_s), src_ip_s, dst_ip_s) | where Ip in (TIip) | project Ip, Int),
+  (DeviceNetworkEvents | where TimeGenerated > ago(24h) | where RemoteIP in (TIip) | project Ip = RemoteIP, Int = LocalIP);
+let domHits = union
+  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == "dns" | extend d = tolower(dns_query_s) | where d in (TIdom) | project d),
+  (PiholeDNS_CL | where TimeGenerated > ago(24h) | extend d = tolower(coalesce(extract(@'query\[\w+\]\s+(\S+)\s+from', 1, _raw_s), extract(@'(?:cached|forwarded|reply)\s+(\S+)\s+(?:is|to)', 1, _raw_s))) | where d in (TIdom) | project d),
+  (DeviceNetworkEvents | where TimeGenerated > ago(24h) and isnotempty(RemoteUrl) | extend d = tolower(extract(@'^(?:https?://)?([^/:?]+)', 1, RemoteUrl)) | where d in (TIdom) | project d);
+let urlHits = DeviceNetworkEvents | where TimeGenerated > ago(24h) and isnotempty(RemoteUrl) | extend u = tolower(RemoteUrl) | where u in (TIurl) | project u;
+let hashHits = DeviceFileEvents | where TimeGenerated > ago(24h) | extend h = tolower(coalesce(SHA256, SHA1, MD5)) | where h in (TIhash) | project h;
+let nonMdeDev = union
+  (NetFlow_CL | where TimeGenerated > ago(24h) | extend Ext = case(not(ipv4_is_private(DstIP)), DstIP, SrcIP), Int = case(ipv4_is_private(SrcIP), SrcIP, DstIP) | where Ext in (TIip) and ipv4_is_private(Int) | project Int),
+  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == "conn" | extend Ext = case(not(ipv4_is_private(dst_ip_s)), dst_ip_s, src_ip_s), Int = case(ipv4_is_private(src_ip_s), src_ip_s, dst_ip_s) | where Ext in (TIip) and ipv4_is_private(Int) | project Int),
+  (PiholeDNS_CL | where TimeGenerated > ago(24h) | extend d = tolower(coalesce(extract(@'query\[\w+\]\s+(\S+)\s+from', 1, _raw_s), extract(@'(?:cached|forwarded|reply)\s+(\S+)\s+(?:is|to)', 1, _raw_s))), Int = extract(@'\bfrom\s+(\d+\.\d+\.\d+\.\d+)', 1, _raw_s) | where d in (TIdom) and isnotempty(Int) | project Int)
+  | distinct Int;
+let topFeed = union
+  (ipHits | join kind=inner (TIipMap) on Ip | project SourceSystem),
+  (domHits | join kind=inner (TIdomMap) on d | project SourceSystem),
+  (urlHits | join kind=inner (TIurl) on u | project SourceSystem),
+  (hashHits | join kind=inner (TIhash) on h | project SourceSystem)
+  | summarize c = count() by SourceSystem | top 1 by c desc | project Top = strcat(SourceSystem, " (", c, ")");
+let topClient = ipHits | where ipv4_is_private(Int) | summarize c = count() by Int | top 1 by c desc | project Top = strcat(Int, " (", c, ")");
+let topCountry = ipHits | summarize c = count() by Ip | join kind=leftouter (ipHits | distinct Ip | extend Geo = geo_info_from_ip_address(Ip) | extend Country = tostring(Geo.country)) on Ip | summarize c = sum(c) by Country | where isnotempty(Country) | top 1 by c desc | project Top = strcat(Country, " (", c, ")");
+union
+  (print Column = "Active TI Indicators (24h)", Value = tostring(toscalar(TI | count))),
+  (print Column = "TI IP Hits (24h)", Value = tostring(toscalar(ipHits | distinct Ip | count))),
+  (print Column = "TI Domain Hits (24h)", Value = tostring(toscalar(domHits | distinct d | count))),
+  (print Column = "TI URL Hits (24h)", Value = tostring(toscalar(urlHits | distinct u | count))),
+  (print Column = "TI File Hash Hits (24h)", Value = tostring(toscalar(hashHits | distinct h | count))),
+  (print Column = "Non-MDE Devices Touching TI (24h)", Value = tostring(toscalar(nonMdeDev | count))),
+  (print Column = "Top TI Feed (24h)", Value = coalesce(toscalar(topFeed), "—")),
+  (print Column = "Top Threatened Client (24h)", Value = coalesce(toscalar(topClient), "—")),
+  (print Column = "Top Threat Country (24h)", Value = coalesce(toscalar(topCountry), "—"))

@@ -1,0 +1,18 @@
+let TIip = ThreatIntelIndicators | where TimeGenerated > ago(24h) and IsActive == true | where ObservableKey in ("network-traffic:src_ref.value","network-traffic:dst_ref.value","ipv4-addr:value") | distinct ObservableValue;
+let TIdom = ThreatIntelIndicators | where TimeGenerated > ago(24h) and IsActive == true | where ObservableKey == "domain-name:value" | distinct tolower(ObservableValue);
+let zeekConn = ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == "conn" | extend Ext = case(not(ipv4_is_private(dst_ip_s)), dst_ip_s, src_ip_s), Int = case(ipv4_is_private(src_ip_s), src_ip_s, dst_ip_s) | where Ext in (TIip) and isnotempty(Int) | summarize IpHits = count() by Int;
+let pihole = PiholeDNS_CL | where TimeGenerated > ago(24h) | extend d = tolower(coalesce(extract(@'query\[\w+\]\s+(\S+)\s+from', 1, _raw_s), extract(@'(?:cached|forwarded|reply)\s+(\S+)\s+(?:is|to)', 1, _raw_s))), Int = extract(@'from\s+(\d+\.\d+\.\d+\.\d+)', 1, _raw_s) | where d in (TIdom) and isnotempty(Int) | summarize DomainHits = count() by Int;
+let zeekDns = ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == "dns" | extend d = tolower(dns_query_s), Int = src_ip_s | where d in (TIdom) and isnotempty(Int) | summarize ZeekDnsHits = count() by Int;
+let MdeIdent = DeviceNetworkInfo | extend IPArr = todynamic(IPAddresses) | mv-expand IPArr | extend Int = tostring(IPArr.IPAddress) | where ipv4_is_private(Int) | summarize arg_max(Timestamp, MacAddress, DeviceName) by Int | project Int, MdeDevice = DeviceName, MdeMac = MacAddress;
+let DhcpIdent = ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == "dhcp" | extend f = split(_raw_s, "	") | extend Int = tostring(f[7]), DhcpHost = tostring(f[10]), DhcpMac = tostring(f[3]) | where isnotempty(Int) | summarize arg_max(TimeGenerated, *) by Int | project Int, DhcpHost, DhcpMac;
+union zeekConn, pihole, zeekDns
+| summarize IpHits = sum(coalesce(IpHits,0)), DomainHits = sum(coalesce(DomainHits,0)), ZeekDnsHits = sum(coalesce(ZeekDnsHits,0)) by Int
+| extend TotalHits = IpHits + DomainHits + ZeekDnsHits
+| join kind=leftouter MdeIdent on Int
+| join kind=leftouter DhcpIdent on Int
+| extend ClientName = coalesce(MdeDevice, DhcpHost, Int)
+| extend ClientMac = coalesce(MdeMac, DhcpMac, "")
+| extend ClientType = case(isnotempty(MdeDevice), "MDE Managed", isnotempty(DhcpHost), "Non-MDE (DHCP)", "Non-MDE (Unknown)")
+| project ClientType, ClientName, InternalIP = Int, ClientMac, IpHits, DomainHits, ZeekDnsHits, TotalHits
+| sort by TotalHits desc
+| top 50 by TotalHits

@@ -1,0 +1,81 @@
+let TIIPs = ThreatIntelIndicators
+| where TimeGenerated > ago(30d) and IsActive == true
+| where ObservableKey in ("network-traffic:src_ref.value","network-traffic:dst_ref.value","ipv4-addr:value")
+| summarize arg_max(TimeGenerated, Confidence, Tags, Pattern, ValidUntil, Id, SourceSystem) by ObservableValue
+| project ThreatIP = ObservableValue, Confidence = toint(Confidence), TISource = tostring(SourceSystem), Tags = tostring(Tags), Pattern = tostring(Pattern), ValidUntil, IndicatorId = tostring(Id);
+let AlertIPs = SecurityAlert
+| where TimeGenerated > ago(30d)
+| mv-expand todynamic(Entities)
+| where tostring(Entities.Type) == "ip"
+| extend ThreatIP = tostring(Entities.Address)
+| where ThreatIP matches regex @'^\d+\.\d+\.\d+\.\d+$' and not(ipv4_is_private(ThreatIP))
+| extend Confidence = toint(case(AlertSeverity=="High",90,AlertSeverity=="Medium",70,AlertSeverity=="Low",50,30))
+| summarize Confidence = max(Confidence), TISource = take_any("SecurityAlert"), Tags = strcat_array(make_set(AlertName,5), " | "), Pattern = take_any(""), ValidUntil = max(TimeGenerated), IndicatorId = take_any("") by ThreatIP;
+let TI = union TIIPs, AlertIPs | summarize arg_max(Confidence, *) by ThreatIP;
+let NetFlowHits = NetFlow_CL
+| extend SrcIp = tostring(SrcIP), DstIp = tostring(DstIP)
+| extend ThreatIP = case(not(ipv4_is_private(SrcIp)), SrcIp, not(ipv4_is_private(DstIp)), DstIp, "")
+| where isnotempty(ThreatIP)
+| extend InternalIP = case(ipv4_is_private(SrcIp), SrcIp, ipv4_is_private(DstIp), DstIp, "")
+| summarize NetFlowHits = count(), NetFlowClients = make_set(InternalIP, 10), LastNetFlow = max(TimeGenerated) by ThreatIP;
+let ZeekConnHits = ZeekLogs_CL
+| where logType_s == "conn"
+| extend SrcIp = tostring(src_ip_s), DstIp = tostring(dst_ip_s)
+| extend ThreatIP = case(not(ipv4_is_private(SrcIp)), SrcIp, not(ipv4_is_private(DstIp)), DstIp, "")
+| where isnotempty(ThreatIP)
+| extend InternalIP = case(ipv4_is_private(SrcIp), SrcIp, ipv4_is_private(DstIp), DstIp, "")
+| summarize ZeekConnHits = count(), ZeekClients = make_set(InternalIP, 10), LastZeek = max(TimeGenerated) by ThreatIP;
+let FwHits = Syslog
+| where Facility == "kern" and SyslogMessage has "BLOCK"
+| extend ThreatIP = extract(@'(?:DST|SRC)=([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)', 1, SyslogMessage)
+| extend InternalIP = extract(@'SRC=([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)', 1, SyslogMessage)
+| where isnotempty(ThreatIP) and not(ipv4_is_private(ThreatIP))
+| summarize FwHits = count(), FwClients = make_set(InternalIP, 10), LastFw = max(TimeGenerated) by ThreatIP;
+let MdeHits = DeviceNetworkEvents
+| where isnotempty(RemoteIP) and not(ipv4_is_private(RemoteIP))
+| summarize MdeHits = count(), MdeDevices = make_set(DeviceName, 10), LastMde = max(TimeGenerated) by ThreatIP = RemoteIP;
+let PiHoleHits = PiholeDNS_CL
+| extend ThreatIP = extract(@'((?:\d+\.){3}\d+)', 1, _raw_s)
+| where isnotempty(ThreatIP) and not(ipv4_is_private(ThreatIP))
+| extend ClientIP = extract(@'from\s+(\d+\.\d+\.\d+\.\d+)', 1, _raw_s)
+| summarize PiHoleHits = count(), PiHoleClients = make_set(ClientIP, 10), LastPiHole = max(TimeGenerated) by ThreatIP;
+let MdeIdent = DeviceNetworkInfo
+| extend IPArr = todynamic(IPAddresses)
+| mv-expand IPArr
+| extend InternalIP = tostring(IPArr.IPAddress)
+| where ipv4_is_private(InternalIP)
+| summarize arg_max(Timestamp, MacAddress, DeviceName) by InternalIP
+| project InternalIP, MdeDevice = DeviceName, MdeMac = MacAddress;
+let DhcpIdent = ZeekLogs_CL
+| where logType_s == "dhcp"
+| extend f = split(_raw_s, "	")
+| extend InternalIP = tostring(f[7]), DhcpHost = tostring(f[10]), DhcpMac = tostring(f[3])
+| where isnotempty(InternalIP) and ipv4_is_private(InternalIP)
+| summarize arg_max(TimeGenerated, *) by InternalIP
+| project InternalIP, DhcpHost, DhcpMac;
+let Joined = TI
+| join kind=leftouter NetFlowHits on ThreatIP
+| join kind=leftouter ZeekConnHits on ThreatIP
+| join kind=leftouter FwHits on ThreatIP
+| join kind=leftouter MdeHits on ThreatIP
+| join kind=leftouter PiHoleHits on ThreatIP
+| extend NetFlowHits = coalesce(NetFlowHits,0), ZeekConnHits = coalesce(ZeekConnHits,0), FwHits = coalesce(FwHits,0), MdeHits = coalesce(MdeHits,0), PiHoleHits = coalesce(PiHoleHits,0)
+| extend NonMdeHits = NetFlowHits + ZeekConnHits + FwHits + PiHoleHits
+| extend NonMdeOnly = iff(MdeHits == 0 and NonMdeHits > 0, "Yes", "No")
+| where NonMdeHits > 0 or MdeHits > 0
+| extend AllClients = array_concat(coalesce(NetFlowClients, dynamic([])), coalesce(ZeekClients, dynamic([])), coalesce(FwClients, dynamic([])), coalesce(PiHoleClients, dynamic([])))
+| extend Sources = strcat(iff(NetFlowHits>0,"NetFlow ",""), iff(ZeekConnHits>0,"ZeekConn ",""), iff(FwHits>0,"FW ",""), iff(PiHoleHits>0,"DnsSinkhole ",""), iff(MdeHits>0,"MDE",""))
+| extend LastSeen = max_of(coalesce(LastNetFlow, datetime(1970-01-01)), coalesce(LastZeek, datetime(1970-01-01)), coalesce(LastFw, datetime(1970-01-01)), coalesce(LastMde, datetime(1970-01-01)), coalesce(LastPiHole, datetime(1970-01-01)));
+Joined
+| mv-expand InternalIP = AllClients to typeof(string)
+| where isnotempty(InternalIP)
+| join kind=leftouter MdeIdent on InternalIP
+| join kind=leftouter DhcpIdent on InternalIP
+| extend ClientName = coalesce(MdeDevice, DhcpHost, InternalIP)
+| extend ClientMac = coalesce(MdeMac, DhcpMac, "")
+| extend ClientType = case(isnotempty(MdeDevice), "MDE Managed", isnotempty(DhcpHost), "Non-MDE (DHCP)", "Non-MDE (Unknown)")
+| summarize Clients = make_set(strcat(ClientName, iff(isnotempty(ClientMac), strcat(" [",ClientMac,"]"), "")), 10), ClientTypes = make_set(ClientType, 5), ClientCount = dcount(InternalIP) by ThreatIP, Confidence, TISource, Tags, Sources, NonMdeOnly, NonMdeHits, MdeHits, NetFlowHits, ZeekConnHits, FwHits, PiHoleHits, MdeDevices = tostring(MdeDevices), LastSeen, ValidUntil, Pattern, IndicatorId
+| extend MdeDevices = todynamic(MdeDevices)
+| project ThreatIP, Confidence, TISource, Tags, Sources, NonMdeOnly, NonMdeHits, MdeHits, ClientCount, Clients, ClientTypes, MdeDevices, NetFlowHits, ZeekConnHits, FwHits, PiHoleHits, LastSeen, ValidUntil, Pattern, IndicatorId
+| sort by Confidence desc, NonMdeHits desc
+| top 200 by Confidence

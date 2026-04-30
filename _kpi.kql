@@ -1,0 +1,21 @@
+let TI = ThreatIntelIndicators | where TimeGenerated > ago(24h) and IsActive == true;
+let TIip = TI | where ObservableKey in ("network-traffic:src_ref.value","network-traffic:dst_ref.value","ipv4-addr:value") | distinct ObservableValue;
+let TIdom = TI | where ObservableKey == "domain-name:value" | distinct tolower(ObservableValue);
+let ipHits = union
+  (NetFlow_CL | where TimeGenerated > ago(24h) | extend Ip = case(not(ipv4_is_private(SrcIP)), SrcIP, DstIP) | where Ip in (TIip)),
+  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == "conn" | extend Ip = case(not(ipv4_is_private(src_ip_s)), src_ip_s, dst_ip_s) | where Ip in (TIip)),
+  (DeviceNetworkEvents | where TimeGenerated > ago(24h) | where RemoteIP in (TIip) | project Ip = RemoteIP)
+  | distinct Ip;
+let domHits = union
+  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == "dns" | extend d = tolower(dns_query_s) | where d in (TIdom) | project d),
+  (PiholeDNS_CL | where TimeGenerated > ago(24h) | extend d = tolower(coalesce(extract(@'query\[\w+\]\s+(\S+)\s+from', 1, _raw_s), extract(@'(?:cached|forwarded|reply)\s+(\S+)\s+(?:is|to)', 1, _raw_s))) | where d in (TIdom) | project d)
+  | distinct d;
+let nonMdeDev = union
+  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == "conn" | extend Ext = case(not(ipv4_is_private(dst_ip_s)), dst_ip_s, src_ip_s), Int = case(ipv4_is_private(src_ip_s), src_ip_s, dst_ip_s) | where Ext in (TIip) | project Int),
+  (PiholeDNS_CL | where TimeGenerated > ago(24h) | extend d = tolower(coalesce(extract(@'query\[\w+\]\s+(\S+)\s+from', 1, _raw_s), extract(@'(?:cached|forwarded|reply)\s+(\S+)\s+(?:is|to)', 1, _raw_s))), Int = extract(@'\bfrom\s+(\d+\.\d+\.\d+\.\d+)', 1, _raw_s) | where d in (TIdom) | project Int)
+  | where isnotempty(Int) | distinct Int;
+union
+  (print Column = "Active TI Indicators (24h)", Value = toscalar(TI | count)),
+  (print Column = "TI IP Hits (24h)", Value = toscalar(ipHits | count)),
+  (print Column = "TI Domain Hits (24h)", Value = toscalar(domHits | count)),
+  (print Column = "Non-MDE Devices Touching TI (24h)", Value = toscalar(nonMdeDev | count))

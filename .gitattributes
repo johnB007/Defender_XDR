@@ -1,0 +1,2 @@
+*.workbook linguist-language=JSON
+*.workbook linguist-detectable=true

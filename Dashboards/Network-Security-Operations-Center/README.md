@@ -68,6 +68,37 @@ az deployment group create \
   - **MDE** → Microsoft Defender for Endpoint connected to Sentinel
 - The workbook gracefully handles missing tables — tabs with no data will show empty results without errors
 
+## Screenshots
+
+> Paste a screenshot under each tab heading below. Drag-and-drop into the GitHub editor (or use `![alt](path/to/image.png)`).
+
+### 1. Executive Dashboard
+<!-- paste screenshot here -->
+
+### 2. DNS Intelligence
+<!-- paste screenshot here -->
+
+### 3. NetFlow Analytics
+<!-- paste screenshot here -->
+
+### 4. Firewall and LAN
+<!-- paste screenshot here -->
+
+### 5. Zeek IDS
+<!-- paste screenshot here -->
+
+### 6. Threat Correlation
+<!-- paste screenshot here -->
+
+### 7. Threat Hunting
+<!-- paste screenshot here -->
+
+### 8. Global Threat Map
+<!-- paste screenshot here -->
+
+### 9. Investigation Portal
+<!-- paste screenshot here -->
+
 ## Identity Enrichment
 The workbook uses a multi-layer identity resolution strategy:
 1. **MDE DeviceNetworkInfo** — Real device name, SSID, IP from onboarded endpoints

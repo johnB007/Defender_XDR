@@ -1,7 +1,7 @@
 # Network Security Operations Center
 
 ## Overview
-A comprehensive Microsoft Sentinel workbook for full-stack network security monitoring. It unifies **NetFlow**, **Zeek IDS**, **Pi-hole DNS**, **Firewall/Switch syslog**, and **MDE device intelligence** into a single operational dashboard with cross-source correlation, threat hunting, and investigation capabilities.
+A comprehensive Microsoft Sentinel workbook for full-stack network security monitoring. It unifies **NetFlow**, **Zeek IDS**, **DNS Sinkhole**, **Firewall/Switch syslog**, and **MDE device intelligence** into a single operational dashboard with cross-source correlation, threat hunting, and investigation capabilities.
 
 Built for SOC analysts, network engineers, and security operations teams who need real-time visibility across every layer of the network — from WiFi client sessions to external threat correlation.
 
@@ -10,7 +10,7 @@ Built for SOC analysts, network engineers, and security operations teams who nee
 |---|---|---|
 | NetFlow | `NetFlow_CL` | Bandwidth, flow analytics, top talkers, external connections |
 | Zeek IDS | `ZeekLogs_CL` | DNS, HTTP, SSL/TLS, notices, alerts, protocol analysis |
-| Pi-hole DNS | `PiholeDNS_CL` | DNS queries, suspicious domains, tunneling detection |
+| DNS Sinkhole | `PiholeDNS_CL` | DNS queries, suspicious domains, tunneling detection |
 | Firewall / Switch | `Syslog` (kern) | Firewall blocks, WiFi auth/assoc/deauth, link up/down |
 | MDE | `DeviceNetworkInfo`, `DeviceNetworkEvents`, `DeviceLogonEvents`, `DeviceProcessEvents`, `DeviceInfo` | Device identity, WiFi SSID resolution, managed/unmanaged status |
 | Zeek DHCP | `ZeekLogs_CL` (dhcp) | MAC-to-IP-to-hostname resolution for unmanaged devices |
@@ -20,7 +20,7 @@ Built for SOC analysts, network engineers, and security operations teams who nee
 | # | Tab | What It Does |
 |---|---|---|
 | 1 | **Executive Dashboard** | Real-time KPIs across all sources — total events, firewall blocks, Zeek alerts, unique external IPs, DNS queries. Multi-source event volume timeline, data source distribution, top bandwidth consumers, and recent security events. |
-| 2 | **DNS Intelligence** | Pi-hole DNS query analysis with top domains, query type distribution, timeline, suspicious domain detection (DGA / tunneling scoring), top clients, unusual query types, and comprehensive threat-scored domain analysis. |
+| 2 | **DNS Intelligence** | DNS Sinkhole query analysis with top domains, query type distribution, timeline, suspicious domain detection (DGA / tunneling scoring), top clients, unusual query types, and comprehensive threat-scored domain analysis. |
 | 3 | **NetFlow Analytics** | Bandwidth KPIs, direction-and-protocol timeline, top 50 internal bandwidth consumers with MAC addresses, protocol distribution, top destination ports, and top 100 external connections with direction indicators. |
 | 4 | **Firewall and LAN** | WiFi/LAN event timeline by source and type, switch link-down/up KPIs, AP authentication and disassociation metrics, MDE-enriched WiFi client session tracker (device name, SSID, IP, vendor, managed status), SSID usage charts, managed vs unmanaged breakdown, MDE WiFi sessions, signal quality scoring, connect/disconnect heatmap, rogue device detection, and executive summary tiles. |
 | 5 | **Zeek IDS** | Log type distribution, event volume over time, SOC-enriched DNS queries with category filtering (User Browsing, Ads/Tracking, App Telemetry, CDN, Microsoft/Azure, etc.), HTTP and SSL/TLS activity tables with identity enrichment (DeviceName, MAC, SSID, Vendor, MDE status), and Zeek notices/alerts with bidirectional identity resolution. |
@@ -63,7 +63,7 @@ az deployment group create \
 - Data collection configured for the sources you use:
   - **NetFlow** → Custom table `NetFlow_CL` (via Cribl, Logstash, or custom DCR)
   - **Zeek IDS** → Custom table `ZeekLogs_CL` (bridge-mode capture via Cribl → Sentinel)
-  - **Pi-hole DNS** → Custom table `PiholeDNS_CL`
+  - **DNS Sinkhole** → Custom table `PiholeDNS_CL`
   - **Firewall/Switch** → `Syslog` with facility `kern`
   - **MDE** → Microsoft Defender for Endpoint connected to Sentinel
 - The workbook gracefully handles missing tables — tabs with no data will show empty results without errors

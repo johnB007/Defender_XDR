@@ -10,7 +10,7 @@ For documentation, see [Kusto Query Language (KQL) overview](https://learn.micro
 
 ### [Network Security Operations Center](Dashboards/Network-Security-Operations-Center/)
 
-A comprehensive Microsoft Sentinel workbook unifying **NetFlow**, **Zeek IDS**, **Pi-hole DNS**, **Firewall/Switch syslog**, and **MDE device intelligence** into a single operational SOC dashboard with cross-source correlation, threat hunting, and investigation capabilities.
+A comprehensive Microsoft Sentinel workbook unifying **NetFlow**, **Zeek IDS**, **DNS Sinkhole**, **Firewall/Switch syslog**, and **MDE device intelligence** into a single operational SOC dashboard with cross-source correlation, threat hunting, and investigation capabilities.
 
 **9 tabs:** Executive Dashboard · DNS Intelligence · NetFlow Analytics · Firewall and LAN · Zeek IDS · Threat Correlation · Threat Hunting · Global Threat Map · Investigation Portal
 

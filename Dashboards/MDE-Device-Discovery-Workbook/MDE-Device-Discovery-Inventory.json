@@ -581,6 +581,46 @@
         "groupType": "editable",
         "items": [
           {
+            "type": 11,
+            "content": {
+              "version": "LinkItem/1.0",
+              "style": "tabs",
+              "links": [
+                {
+                  "id": "av-sub-inventory",
+                  "cellValue": "AVSection",
+                  "linkTarget": "parameter",
+                  "linkLabel": "Inventory",
+                  "subTarget": "Inventory",
+                  "style": "primary"
+                },
+                {
+                  "id": "av-sub-heartbeat",
+                  "cellValue": "AVSection",
+                  "linkTarget": "parameter",
+                  "linkLabel": "Camera Heartbeat",
+                  "subTarget": "Heartbeat",
+                  "style": "link"
+                },
+                {
+                  "id": "av-sub-netactivity",
+                  "cellValue": "AVSection",
+                  "linkTarget": "parameter",
+                  "linkLabel": "Camera Network Activity",
+                  "subTarget": "NetworkActivity",
+                  "style": "link"
+                }
+              ]
+            },
+            "name": "audiovideo-subtabs"
+          },
+          {
+            "type": 12,
+            "content": {
+              "version": "NotebookGroup/1.0",
+              "groupType": "editable",
+              "items": [
+          {
             "type": 1,
             "content": {
               "json": "**Audio & Video Devices** Includes devices Microsoft Defender XDR classifies as 'AudioAndVideo' (cameras, webcams, video surveillance, AV / conferencing equipment), plus common camera and AV hostnames &nbsp;·&nbsp; Many cameras report `Unsupported` onboarding status, so focus on IP, exposure, and last seen details &nbsp;·&nbsp; Follows the selected Time Range",
@@ -789,6 +829,279 @@
             },
             "customWidth": "100",
             "name": "audiovideo-grid"
+          }
+              ]
+            },
+            "conditionalVisibility": {
+              "parameterName": "AVSection",
+              "comparison": "isEqualTo",
+              "value": "Inventory"
+            },
+            "name": "av-sub-inventory-group"
+          },
+          {
+            "type": 12,
+            "content": {
+              "version": "NotebookGroup/1.0",
+              "groupType": "editable",
+              "items": [
+                {
+                  "type": 1,
+                  "content": {
+                    "json": "**Camera Heartbeat** Onboarding trend, vendor / model census, and observed successful network connections for devices identified as cameras (`DeviceSubtype` contains `camera` or `DeviceType` is an Audio & Video class). &nbsp;·&nbsp; Use this view to validate that newly discovered cameras are coming online, identify camera fleet composition by vendor, and confirm cameras are reachable on the network. &nbsp;·&nbsp; Follows the selected Time Range.",
+                    "style": "info"
+                  },
+                  "name": "av-heartbeat-header"
+                },
+                {
+                  "type": 3,
+                  "content": {
+                    "version": "KqlItem/1.0",
+                    "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| where (DeviceSubtype has 'camera') or (DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo'))\n| where _df == '' or DeviceName has _df\n| where isnotempty(DeviceId)\n| summarize FirstSeen = min(Timestamp) by DeviceId\n| summarize NewCameras = count() by Day = startofday(FirstSeen)\n| order by Day asc",
+                    "size": 0,
+                    "title": "New Cameras Discovered Over Time",
+                    "timeContextFromParameter": "TimeRange",
+                    "queryType": 0,
+                    "resourceType": "microsoft.operationalinsights/workspaces",
+                    "visualization": "timechart",
+                    "chartSettings": {
+                      "showLegend": false,
+                      "seriesLabelSettings": [
+                        {
+                          "seriesName": "NewCameras",
+                          "color": "redBright"
+                        }
+                      ]
+                    }
+                  },
+                  "customWidth": "100",
+                  "name": "av-heartbeat-trend"
+                },
+                {
+                  "type": 3,
+                  "content": {
+                    "version": "KqlItem/1.0",
+                    "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| where (DeviceSubtype has 'camera') or (DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo'))\n| where _df == '' or DeviceName has _df\n| where isnotempty(Vendor)\n| summarize Devices = dcount(DeviceId) by Vendor\n| order by Devices desc\n| top 15 by Devices desc",
+                    "size": 3,
+                    "title": "Top Camera Vendors",
+                    "timeContextFromParameter": "TimeRange",
+                    "queryType": 0,
+                    "resourceType": "microsoft.operationalinsights/workspaces",
+                    "visualization": "piechart"
+                  },
+                  "customWidth": "40",
+                  "name": "av-heartbeat-vendor-pie"
+                },
+                {
+                  "type": 3,
+                  "content": {
+                    "version": "KqlItem/1.0",
+                    "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| where (DeviceSubtype has 'camera') or (DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo'))\n| where _df == '' or DeviceName has _df\n| summarize arg_max(Timestamp, Vendor, Model, DeviceSubtype, DeviceType) by DeviceId, DeviceName\n| extend Vendor = coalesce(Vendor, 'Unknown'), Model = coalesce(Model, ''), DeviceSubtype = coalesce(DeviceSubtype, '')\n| summarize Devices = dcount(DeviceId) by Vendor, DeviceSubtype, Model\n| order by Vendor asc, Devices desc",
+                    "size": 1,
+                    "title": "Camera Vendor / Subtype / Model Census",
+                    "timeContextFromParameter": "TimeRange",
+                    "queryType": 0,
+                    "resourceType": "microsoft.operationalinsights/workspaces",
+                    "showExportToExcel": true,
+                    "exportToExcelOptions": "visible",
+                    "gridSettings": {
+                      "filter": true,
+                      "rowLimit": 1000,
+                      "formatters": [
+                        {
+                          "columnMatch": "Devices",
+                          "formatter": 4,
+                          "formatOptions": {
+                            "palette": "blue",
+                            "min": 0
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "customWidth": "60",
+                  "name": "av-heartbeat-vendor-grid"
+                },
+                {
+                  "type": 3,
+                  "content": {
+                    "version": "KqlItem/1.0",
+                    "query": "let _df = '{DeviceFilter}';\nlet CamDevices = DeviceInfo\n| where Timestamp {TimeRange}\n| where (DeviceSubtype has 'camera') or (DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo'))\n| where _df == '' or DeviceName has _df\n| summarize arg_max(Timestamp, DeviceName, Vendor, Model, DeviceSubtype) by DeviceId;\nlet CamNet = DeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, IPAddresses, ConnectedNetworks) by DeviceId\n| join kind=inner CamDevices on DeviceId\n| extend FirstIP = tostring(parse_json(IPAddresses)[0].IPAddress)\n| extend Network = tostring(parse_json(ConnectedNetworks)[0].Name)\n| where isnotempty(FirstIP)\n| project DeviceId, CameraIP=FirstIP, DeviceName, DeviceSubtype, Vendor, Model, Network;\nDeviceNetworkEvents\n| where Timestamp {TimeRange}\n| where ActionType == 'ConnectionSuccess' and isnotempty(RemoteIP)\n| lookup kind=inner CamNet on $left.RemoteIP == $right.CameraIP\n| summarize Connections = count(), DistinctClients = dcount(DeviceId), LocalIPs = make_set(LocalIP, 25), Initiators = make_set(InitiatingProcessFileName, 10), LastSeen = max(Timestamp) by DeviceName, DeviceSubtype, Vendor, Model, Network, RemoteIP\n| order by LastSeen desc, Connections desc\n| top 1000 by LastSeen desc",
+                    "size": 1,
+                    "title": "Observed Successful Connections to Cameras",
+                    "timeContextFromParameter": "TimeRange",
+                    "queryType": 0,
+                    "resourceType": "microsoft.operationalinsights/workspaces",
+                    "showExportToExcel": true,
+                    "exportToExcelOptions": "visible",
+                    "noDataMessage": "No successful connections were observed reaching any discovered camera IP within the selected Time Range.",
+                    "gridSettings": {
+                      "filter": true,
+                      "rowLimit": 1000,
+                      "formatters": [
+                        {
+                          "columnMatch": "Connections",
+                          "formatter": 4,
+                          "formatOptions": {
+                            "palette": "blue",
+                            "min": 0
+                          }
+                        },
+                        {
+                          "columnMatch": "DistinctClients",
+                          "formatter": 4,
+                          "formatOptions": {
+                            "palette": "purple",
+                            "min": 0
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "customWidth": "100",
+                  "name": "av-heartbeat-connections"
+                }
+              ]
+            },
+            "conditionalVisibility": {
+              "parameterName": "AVSection",
+              "comparison": "isEqualTo",
+              "value": "Heartbeat"
+            },
+            "name": "av-sub-heartbeat-group"
+          },
+          {
+            "type": 12,
+            "content": {
+              "version": "NotebookGroup/1.0",
+              "groupType": "editable",
+              "items": [
+                {
+                  "type": 1,
+                  "content": {
+                    "json": "**Camera Network Activity** Network connection action breakdown, internet-routable camera detection, and outbound traffic from cameras to public destinations. &nbsp;·&nbsp; Cameras that talk to non-RFC1918 destinations (cloud, vendor, public) or sit on public IPs are high-priority review items. &nbsp;·&nbsp; Follows the selected Time Range.",
+                    "style": "warning"
+                  },
+                  "name": "av-netactivity-header"
+                },
+                {
+                  "type": 3,
+                  "content": {
+                    "version": "KqlItem/1.0",
+                    "query": "let _df = '{DeviceFilter}';\nlet CamIPs = toscalar(DeviceInfo\n| where Timestamp {TimeRange}\n| where (DeviceSubtype has 'camera') or (DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo'))\n| where _df == '' or DeviceName has _df\n| join kind=inner (DeviceNetworkInfo | where Timestamp {TimeRange}) on DeviceId\n| mv-expand IPE = parse_json(IPAddresses)\n| extend IP = tostring(IPE.IPAddress)\n| where isnotempty(IP) and IP !has ':'\n| summarize make_set(IP));\nDeviceNetworkEvents\n| where Timestamp {TimeRange}\n| where RemoteIP in (CamIPs) or LocalIP in (CamIPs)\n| summarize Count = count() by ActionType\n| order by Count desc",
+                    "size": 3,
+                    "title": "Camera Network Connection Action Breakdown",
+                    "timeContextFromParameter": "TimeRange",
+                    "queryType": 0,
+                    "resourceType": "microsoft.operationalinsights/workspaces",
+                    "visualization": "piechart",
+                    "noDataMessage": "No DeviceNetworkEvents observed for any camera IP in the selected Time Range."
+                  },
+                  "customWidth": "40",
+                  "name": "av-netactivity-actiontype"
+                },
+                {
+                  "type": 3,
+                  "content": {
+                    "version": "KqlItem/1.0",
+                    "query": "let _df = '{DeviceFilter}';\nlet CamMap = DeviceInfo\n| where Timestamp {TimeRange}\n| where (DeviceSubtype has 'camera') or (DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo'))\n| where _df == '' or DeviceName has _df\n| summarize arg_max(Timestamp, DeviceName, Vendor, Model) by DeviceId\n| join kind=inner (DeviceNetworkInfo | where Timestamp {TimeRange}) on DeviceId\n| mv-expand IPE = parse_json(IPAddresses)\n| extend IP = tostring(IPE.IPAddress)\n| where isnotempty(IP) and IP !has ':'\n| project CameraIP=IP, DeviceName, Vendor, Model;\nCamMap\n| extend IsRFC1918 = CameraIP startswith '10.' or CameraIP startswith '192.168.' or (CameraIP startswith '172.' and toint(split(CameraIP,'.')[1]) between (16 .. 31)) or CameraIP startswith '127.' or CameraIP startswith '169.254.'\n| where not(IsRFC1918)\n| summarize Cameras = make_set(DeviceName, 50), Vendors = make_set(Vendor, 25) by CameraIP\n| order by CameraIP asc",
+                    "size": 1,
+                    "title": "Cameras Reachable on Non-RFC1918 / Public IPs",
+                    "timeContextFromParameter": "TimeRange",
+                    "queryType": 0,
+                    "resourceType": "microsoft.operationalinsights/workspaces",
+                    "showExportToExcel": true,
+                    "exportToExcelOptions": "visible",
+                    "noDataMessage": "No cameras were observed on non-RFC1918 / public IP addresses in the selected Time Range.",
+                    "noDataMessageStyle": 3,
+                    "gridSettings": {
+                      "filter": true,
+                      "rowLimit": 1000
+                    }
+                  },
+                  "customWidth": "60",
+                  "name": "av-netactivity-public-cams"
+                },
+                {
+                  "type": 3,
+                  "content": {
+                    "version": "KqlItem/1.0",
+                    "query": "let _df = '{DeviceFilter}';\nlet CamIPs = toscalar(DeviceInfo\n| where Timestamp {TimeRange}\n| where (DeviceSubtype has 'camera') or (DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo'))\n| where _df == '' or DeviceName has _df\n| join kind=inner (DeviceNetworkInfo | where Timestamp {TimeRange}) on DeviceId\n| mv-expand IPE = parse_json(IPAddresses)\n| extend IP = tostring(IPE.IPAddress)\n| where isnotempty(IP) and IP !has ':'\n| summarize make_set(IP));\nDeviceNetworkEvents\n| where Timestamp {TimeRange}\n| where ActionType == 'ConnectionSuccess'\n| where LocalIP in (CamIPs)\n| extend IsExternal = not(RemoteIP startswith '10.' or RemoteIP startswith '192.168.' or RemoteIP startswith '172.' or RemoteIP startswith '127.' or RemoteIP startswith '169.254.' or RemoteIP has ':')\n| where IsExternal\n| summarize Connections = count(), Cameras = dcount(LocalIP), Ports = make_set(RemotePort, 20), FirstSeen = min(Timestamp), LastSeen = max(Timestamp) by RemoteIP, RemoteUrl\n| order by Connections desc\n| top 100 by Connections desc",
+                    "size": 1,
+                    "title": "Camera Outbound Traffic to External Destinations (Top 100)",
+                    "timeContextFromParameter": "TimeRange",
+                    "queryType": 0,
+                    "resourceType": "microsoft.operationalinsights/workspaces",
+                    "showExportToExcel": true,
+                    "exportToExcelOptions": "visible",
+                    "noDataMessage": "No outbound camera connections to external (non-RFC1918) destinations were observed in the selected Time Range.",
+                    "noDataMessageStyle": 3,
+                    "gridSettings": {
+                      "filter": true,
+                      "rowLimit": 1000,
+                      "formatters": [
+                        {
+                          "columnMatch": "Connections",
+                          "formatter": 4,
+                          "formatOptions": {
+                            "palette": "red",
+                            "min": 0
+                          }
+                        },
+                        {
+                          "columnMatch": "Cameras",
+                          "formatter": 4,
+                          "formatOptions": {
+                            "palette": "orange",
+                            "min": 0
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "customWidth": "100",
+                  "name": "av-netactivity-egress"
+                },
+                {
+                  "type": 3,
+                  "content": {
+                    "version": "KqlItem/1.0",
+                    "query": "let _df = '{DeviceFilter}';\nlet CamIPs = toscalar(DeviceInfo\n| where Timestamp {TimeRange}\n| where (DeviceSubtype has 'camera') or (DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo'))\n| where _df == '' or DeviceName has _df\n| join kind=inner (DeviceNetworkInfo | where Timestamp {TimeRange}) on DeviceId\n| mv-expand IPE = parse_json(IPAddresses)\n| extend IP = tostring(IPE.IPAddress)\n| where isnotempty(IP) and IP !has ':'\n| summarize make_set(IP));\nDeviceNetworkEvents\n| where Timestamp {TimeRange}\n| where ActionType == 'ConnectionSuccess'\n| where RemoteIP in (CamIPs)\n| extend ClientIsExternal = not(LocalIP startswith '10.' or LocalIP startswith '192.168.' or LocalIP startswith '172.' or LocalIP startswith '127.' or LocalIP startswith '169.254.' or LocalIP has ':')\n| where ClientIsExternal\n| summarize Connections = count(), Cameras = dcount(RemoteIP), LastSeen = max(Timestamp) by LocalIP, RemotePort\n| order by Connections desc\n| top 100 by Connections desc",
+                    "size": 1,
+                    "title": "External Clients Connecting INTO Cameras (Possible Exposure)",
+                    "timeContextFromParameter": "TimeRange",
+                    "queryType": 0,
+                    "resourceType": "microsoft.operationalinsights/workspaces",
+                    "showExportToExcel": true,
+                    "exportToExcelOptions": "visible",
+                    "noDataMessage": "No external clients were observed connecting into camera IPs in the selected Time Range.",
+                    "noDataMessageStyle": 3,
+                    "gridSettings": {
+                      "filter": true,
+                      "rowLimit": 1000,
+                      "formatters": [
+                        {
+                          "columnMatch": "Connections",
+                          "formatter": 4,
+                          "formatOptions": {
+                            "palette": "redBright",
+                            "min": 0
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "customWidth": "100",
+                  "name": "av-netactivity-inbound"
+                }
+              ]
+            },
+            "conditionalVisibility": {
+              "parameterName": "AVSection",
+              "comparison": "isEqualTo",
+              "value": "NetworkActivity"
+            },
+            "name": "av-sub-netactivity-group"
           }
         ]
       },

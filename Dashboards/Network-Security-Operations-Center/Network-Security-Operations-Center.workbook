@@ -2345,6 +2345,38 @@
           },
           {
             "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let TI = ThreatIntelIndicators | where TimeGenerated > ago(24h) and IsActive == true;\nlet TIip = TI | where ObservableKey in (\"network-traffic:src_ref.value\",\"network-traffic:dst_ref.value\",\"ipv4-addr:value\") | distinct ObservableValue;\nlet TIdom = TI | where ObservableKey == \"domain-name:value\" | distinct tolower(ObservableValue);\nlet ipHits = union\n  (NetFlow_CL | where TimeGenerated > ago(24h) | extend Ip = case(not(ipv4_is_private(srcaddr_s)), srcaddr_s, dstaddr_s) | where Ip in (TIip)),\n  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == \"conn\" | extend Ip = case(not(ipv4_is_private(src_ip_s)), src_ip_s, dest_ip_s) | where Ip in (TIip)),\n  (DeviceNetworkEvents | where TimeGenerated > ago(24h) | where RemoteIP in (TIip) | project Ip = RemoteIP)\n  | distinct Ip;\nlet domHits = union\n  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == \"dns\" | extend d = tolower(dns_query_s) | where d in (TIdom) | project d),\n  (PiholeDNS_CL | where TimeGenerated > ago(24h) | extend d = tolower(coalesce(extract(@'query\\[\\w+\\]\\s+(\\S+)\\s+from', 1, _raw_s), extract(@'(?:cached|forwarded|reply)\\s+(\\S+)\\s+(?:is|to)', 1, _raw_s))) | where d in (TIdom) | project d)\n  | distinct d;\nlet nonMdeDev = union\n  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == \"conn\" | extend Ext = case(not(ipv4_is_private(dest_ip_s)), dest_ip_s, src_ip_s), Int = case(ipv4_is_private(src_ip_s), src_ip_s, dest_ip_s) | where Ext in (TIip) | project Int),\n  (PiholeDNS_CL | where TimeGenerated > ago(24h) | extend d = tolower(coalesce(extract(@'query\\[\\w+\\]\\s+(\\S+)\\s+from', 1, _raw_s), extract(@'(?:cached|forwarded|reply)\\s+(\\S+)\\s+(?:is|to)', 1, _raw_s))), Int = extract(@'\\bfrom\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)', 1, _raw_s) | where d in (TIdom) | project Int)\n  | where isnotempty(Int) | distinct Int;\nunion\n  (print Column = \"Active TI Indicators (24h)\", Value = toscalar(TI | count)),\n  (print Column = \"TI IP Hits (24h)\", Value = toscalar(ipHits | count)),\n  (print Column = \"TI Domain Hits (24h)\", Value = toscalar(domHits | count)),\n  (print Column = \"Non-MDE Devices Touching TI (24h)\", Value = toscalar(nonMdeDev | count))",
+              "size": 3,
+              "title": "Threat Correlation KPIs (24h)",
+              "noDataMessage": "No TI activity in the last 24h",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "Column",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  }
+                },
+                "showBorder": true
+              },
+              "tileSettings_unused": "see chartSettings",
+              "chartSettings": {
+                "showDataPoints": true
+              }
+            },
+            "name": "correlation-kpi-tiles"
+          },
+          {
+            "type": 3,
             "name": "correlation-cross-source-ips",
             "content": {
               "version": "KqlItem/1.0",
@@ -2376,8 +2408,18 @@
                     "formatOptions": {
                       "thresholdsOptions": "icons",
                       "thresholdsGrid": [
-                        { "operator": "==", "thresholdValue": "Yes", "representation": "critical", "text": "Yes" },
-                        { "operator": "Default", "thresholdValue": null, "representation": "success", "text": "No" }
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Yes",
+                          "representation": "critical",
+                          "text": "Yes"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "success",
+                          "text": "No"
+                        }
                       ]
                     }
                   },
@@ -2394,8 +2436,18 @@
                     "formatOptions": {
                       "thresholdsOptions": "icons",
                       "thresholdsGrid": [
-                        { "operator": "==", "thresholdValue": "Yes", "representation": "warning", "text": "Yes" },
-                        { "operator": "Default", "thresholdValue": null, "representation": "success", "text": "No" }
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Yes",
+                          "representation": "warning",
+                          "text": "Yes"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "success",
+                          "text": "No"
+                        }
                       ]
                     }
                   },
@@ -2445,7 +2497,7 @@
             "name": "correlation-ti-ip-matches",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let TIIPs = ThreatIntelIndicators\n| where TimeGenerated > ago(30d) and IsActive == true\n| where ObservableKey in (\"network-traffic:src_ref.value\",\"network-traffic:dst_ref.value\",\"ipv4-addr:value\")\n| summarize arg_max(TimeGenerated, Confidence, Tags, Pattern, ValidUntil, Id, SourceSystem) by ObservableValue\n| project ThreatIP = ObservableValue, Confidence = toint(Confidence), Tags = tostring(Tags), Pattern = tostring(Pattern), ValidUntil, IndicatorId = tostring(Id), TISource = tostring(SourceSystem);\nlet AlertIPs = SecurityAlert\n| where TimeGenerated > ago(30d)\n| extend ents = parse_json(Entities)\n| mv-expand ent = ents\n| where tostring(ent.Type) == \"ip\"\n| extend ThreatIP = tostring(ent.Address)\n| where isnotempty(ThreatIP) and not(ipv4_is_private(ThreatIP))\n| summarize arg_max(TimeGenerated, AlertName, AlertSeverity, Description) by ThreatIP\n| extend Confidence = toint(case(AlertSeverity == \"High\", 90, AlertSeverity == \"Medium\", 70, 50))\n| project ThreatIP, Confidence, Tags = tostring(AlertName), Pattern = tostring(Description), ValidUntil = TimeGenerated, IndicatorId = \"\", TISource = \"SecurityAlert\";\nlet TI = union TIIPs, AlertIPs\n| summarize arg_max(Confidence, TISource, Tags, Pattern, ValidUntil, IndicatorId) by ThreatIP;\nlet NetFlowMatch = NetFlow_CL\n| extend s = tostring(SrcIP), d = tostring(DstIP)\n| extend ExternalIP = iff(not(ipv4_is_private(s)) and isnotempty(s), s, iff(not(ipv4_is_private(d)) and isnotempty(d), d, \"\"))\n| where isnotempty(ExternalIP)\n| summarize NetFlowHits = count(), LastNetFlow = max(TimeGenerated) by ThreatIP = ExternalIP;\nlet ZeekMatch = ZeekLogs_CL\n| extend s = tostring(src_ip_s), d = tostring(dst_ip_s)\n| extend ExternalIP = iff(not(ipv4_is_private(s)) and isnotempty(s) and s != \"-\", s, iff(not(ipv4_is_private(d)) and isnotempty(d) and d != \"-\", d, \"\"))\n| where isnotempty(ExternalIP)\n| summarize ZeekHits = count(), LastZeek = max(TimeGenerated) by ThreatIP = ExternalIP;\nlet FwMatch = Syslog\n| where Facility == \"kern\"\n| extend ThreatIP = extract(@\"SRC=(\\d+\\.\\d+\\.\\d+\\.\\d+)\", 1, SyslogMessage)\n| where isnotempty(ThreatIP)\n| summarize FirewallBlocks = count(), LastFirewall = max(TimeGenerated), Devices = make_set(Computer, 5) by ThreatIP;\nlet MdeMatch = DeviceNetworkEvents\n| extend ThreatIP = tostring(RemoteIP)\n| where isnotempty(ThreatIP) and not(ipv4_is_private(ThreatIP))\n| summarize MdeHits = count(), LastMde = max(TimeGenerated), MdeDevices = make_set(DeviceName, 5) by ThreatIP;\nlet DnsMatch = PiholeDNS_CL\n| extend ThreatIP = extract(@\"\\bis\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)\", 1, _raw_s)\n| where isnotempty(ThreatIP) and not(ipv4_is_private(ThreatIP))\n| summarize DnsResolves = count(), LastDns = max(TimeGenerated) by ThreatIP;\nTI\n| join kind=leftouter NetFlowMatch on ThreatIP\n| join kind=leftouter ZeekMatch on ThreatIP\n| join kind=leftouter FwMatch on ThreatIP\n| join kind=leftouter MdeMatch on ThreatIP\n| join kind=leftouter DnsMatch on ThreatIP\n| extend NetFlowHits = coalesce(NetFlowHits, 0), ZeekHits = coalesce(ZeekHits, 0), FirewallBlocks = coalesce(FirewallBlocks, 0), MdeHits = coalesce(MdeHits, 0), DnsResolves = coalesce(DnsResolves, 0)\n| where NetFlowHits > 0 or ZeekHits > 0 or FirewallBlocks > 0 or MdeHits > 0 or DnsResolves > 0\n| extend NonMdeHits = NetFlowHits + ZeekHits + FirewallBlocks + DnsResolves\n| extend NonMdeOnly = iff(NonMdeHits > 0 and MdeHits == 0, \"Yes\", \"No\")\n| extend Sources = strcat(iff(NetFlowHits>0,\"NetFlow \",\"\"), iff(ZeekHits>0,\"Zeek \",\"\"), iff(FirewallBlocks>0,\"Firewall \",\"\"), iff(MdeHits>0,\"MDE \",\"\"), iff(DnsResolves>0,\"DNS\",\"\"))\n| extend LastSeen = max_of(coalesce(LastNetFlow, datetime(1970-01-01)), coalesce(LastZeek, datetime(1970-01-01)), coalesce(LastFirewall, datetime(1970-01-01)), coalesce(LastMde, datetime(1970-01-01)), coalesce(LastDns, datetime(1970-01-01)))\n| project ThreatIP, TISource, Confidence, Tags, Sources, NonMdeOnly, NonMdeHits, NetFlowHits, ZeekHits, FirewallBlocks, MdeHits, DnsResolves, Devices, MdeDevices, LastSeen, ValidUntil, Pattern, IndicatorId\n| sort by Confidence desc, NonMdeHits desc\n| top 200 by Confidence",
+              "query": "let TIIPs = ThreatIntelIndicators\n| where TimeGenerated > ago(30d) and IsActive == true\n| where ObservableKey in (\"network-traffic:src_ref.value\",\"network-traffic:dst_ref.value\",\"ipv4-addr:value\")\n| summarize arg_max(TimeGenerated, Confidence, Tags, Pattern, ValidUntil, Id, SourceSystem) by ObservableValue\n| project ThreatIP = ObservableValue, Confidence = toint(Confidence), TISource = tostring(SourceSystem), Tags = tostring(Tags), Pattern = tostring(Pattern), ValidUntil, IndicatorId = tostring(Id);\nlet AlertIPs = SecurityAlert\n| where TimeGenerated > ago(30d)\n| mv-expand todynamic(Entities)\n| where tostring(Entities.Type) == \"ip\"\n| extend ThreatIP = tostring(Entities.Address)\n| where ThreatIP matches regex @'^\\d+\\.\\d+\\.\\d+\\.\\d+$' and not(ipv4_is_private(ThreatIP))\n| summarize Confidence = toint(case(AlertSeverity==\"High\",90,AlertSeverity==\"Medium\",70,AlertSeverity==\"Low\",50,30)), TISource = \"SecurityAlert\", Tags = strcat_array(make_set(AlertName,5), \" | \"), Pattern = \"\", ValidUntil = max(TimeGenerated), IndicatorId = \"\" by ThreatIP;\nlet TI = union TIIPs, AlertIPs | summarize arg_max(Confidence, *) by ThreatIP;\nlet NetFlowHits = NetFlow_CL\n| extend SrcIp = tostring(srcaddr_s), DstIp = tostring(dstaddr_s)\n| extend ThreatIP = case(not(ipv4_is_private(SrcIp)), SrcIp, not(ipv4_is_private(DstIp)), DstIp, \"\")\n| where isnotempty(ThreatIP)\n| extend InternalIP = case(ipv4_is_private(SrcIp), SrcIp, ipv4_is_private(DstIp), DstIp, \"\")\n| summarize NetFlowHits = count(), NetFlowClients = make_set(InternalIP, 10), LastNetFlow = max(TimeGenerated) by ThreatIP;\nlet ZeekConnHits = ZeekLogs_CL\n| where logType_s == \"conn\"\n| extend SrcIp = tostring(src_ip_s), DstIp = tostring(dest_ip_s)\n| extend ThreatIP = case(not(ipv4_is_private(SrcIp)), SrcIp, not(ipv4_is_private(DstIp)), DstIp, \"\")\n| where isnotempty(ThreatIP)\n| extend InternalIP = case(ipv4_is_private(SrcIp), SrcIp, ipv4_is_private(DstIp), DstIp, \"\")\n| summarize ZeekConnHits = count(), ZeekClients = make_set(InternalIP, 10), LastZeek = max(TimeGenerated) by ThreatIP;\nlet FwHits = Syslog\n| where Facility == \"kern\" and SyslogMessage has \"BLOCK\"\n| extend ThreatIP = extract(@'(?:DST|SRC)=([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)', 1, SyslogMessage)\n| extend InternalIP = extract(@'SRC=([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)', 1, SyslogMessage)\n| where isnotempty(ThreatIP) and not(ipv4_is_private(ThreatIP))\n| summarize FwHits = count(), FwClients = make_set(InternalIP, 10), LastFw = max(TimeGenerated) by ThreatIP;\nlet MdeHits = DeviceNetworkEvents\n| where isnotempty(RemoteIP) and not(ipv4_is_private(RemoteIP))\n| summarize MdeHits = count(), MdeDevices = make_set(DeviceName, 10), LastMde = max(TimeGenerated) by ThreatIP = RemoteIP;\nlet DnsResolveHits = ZeekLogs_CL\n| where logType_s == \"dns\" and isnotempty(dns_answers_s)\n| extend Answers = split(dns_answers_s, \",\")\n| mv-expand Answer = Answers\n| extend ThreatIP = trim(@\"\\s\", tostring(Answer))\n| where ThreatIP matches regex @'^\\d+\\.\\d+\\.\\d+\\.\\d+$' and not(ipv4_is_private(ThreatIP))\n| summarize DnsResolveHits = count(), DnsClients = make_set(src_ip_s, 10), LastDns = max(TimeGenerated) by ThreatIP;\nlet PiHoleHits = PiholeDNS_CL\n| extend ThreatIP = extract(@'\\b((?:\\d+\\.){3}\\d+)\\b', 1, _raw_s)\n| where isnotempty(ThreatIP) and not(ipv4_is_private(ThreatIP))\n| extend ClientIP = extract(@'\\bfrom\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)', 1, _raw_s)\n| summarize PiHoleHits = count(), PiHoleClients = make_set(ClientIP, 10), LastPiHole = max(TimeGenerated) by ThreatIP;\nlet MdeIdent = DeviceNetworkInfo\n| summarize arg_max(Timestamp, *) by IPAddresses\n| mv-expand todynamic(IPAddresses)\n| extend InternalIP = tostring(IPAddresses.IPAddress)\n| where ipv4_is_private(InternalIP)\n| project InternalIP, MdeDevice = DeviceName, MdeMac = MacAddress;\nlet DhcpIdent = ZeekLogs_CL\n| where logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend InternalIP = tostring(f[7]), DhcpHost = tostring(f[10]), DhcpMac = tostring(f[3])\n| where isnotempty(InternalIP) and ipv4_is_private(InternalIP)\n| summarize arg_max(TimeGenerated, *) by InternalIP\n| project InternalIP, DhcpHost, DhcpMac;\nlet Joined = TI\n| join kind=leftouter NetFlowHits on ThreatIP\n| join kind=leftouter ZeekConnHits on ThreatIP\n| join kind=leftouter FwHits on ThreatIP\n| join kind=leftouter MdeHits on ThreatIP\n| join kind=leftouter DnsResolveHits on ThreatIP\n| join kind=leftouter PiHoleHits on ThreatIP\n| extend NetFlowHits = coalesce(NetFlowHits,0), ZeekConnHits = coalesce(ZeekConnHits,0), FwHits = coalesce(FwHits,0), MdeHits = coalesce(MdeHits,0), DnsResolveHits = coalesce(DnsResolveHits,0), PiHoleHits = coalesce(PiHoleHits,0)\n| extend NonMdeHits = NetFlowHits + ZeekConnHits + FwHits + DnsResolveHits + PiHoleHits\n| extend NonMdeOnly = iff(MdeHits == 0 and NonMdeHits > 0, \"Yes\", \"No\")\n| where NonMdeHits > 0 or MdeHits > 0\n| extend AllClients = array_concat(coalesce(NetFlowClients, dynamic([])), coalesce(ZeekClients, dynamic([])), coalesce(FwClients, dynamic([])), coalesce(DnsClients, dynamic([])), coalesce(PiHoleClients, dynamic([])))\n| extend Sources = strcat(iff(NetFlowHits>0,\"NetFlow \",\"\"), iff(ZeekConnHits>0,\"ZeekConn \",\"\"), iff(FwHits>0,\"FW \",\"\"), iff(DnsResolveHits>0,\"ZeekDnsResolve \",\"\"), iff(PiHoleHits>0,\"DnsSinkhole \",\"\"), iff(MdeHits>0,\"MDE\",\"\"))\n| extend LastSeen = max_of(coalesce(LastNetFlow, datetime(1970-01-01)), coalesce(LastZeek, datetime(1970-01-01)), coalesce(LastFw, datetime(1970-01-01)), coalesce(LastMde, datetime(1970-01-01)), coalesce(LastDns, datetime(1970-01-01)), coalesce(LastPiHole, datetime(1970-01-01)));\nJoined\n| mv-expand InternalIP = AllClients to typeof(string)\n| where isnotempty(InternalIP)\n| join kind=leftouter MdeIdent on InternalIP\n| join kind=leftouter DhcpIdent on InternalIP\n| extend ClientName = coalesce(MdeDevice, DhcpHost, InternalIP)\n| extend ClientMac = coalesce(MdeMac, DhcpMac, \"\")\n| extend ClientType = case(isnotempty(MdeDevice), \"MDE Managed\", isnotempty(DhcpHost), \"Non-MDE (DHCP)\", \"Non-MDE (Unknown)\")\n| summarize Clients = make_set(strcat(ClientName, iff(isnotempty(ClientMac), strcat(\" [\",ClientMac,\"]\"), \"\")), 10), ClientTypes = make_set(ClientType, 5), ClientCount = dcount(InternalIP) by ThreatIP, Confidence, TISource, Tags, Sources, NonMdeOnly, NonMdeHits, MdeHits, NetFlowHits, ZeekConnHits, FwHits, DnsResolveHits, PiHoleHits, MdeDevices = tostring(MdeDevices), LastSeen, ValidUntil, Pattern, IndicatorId\n| extend MdeDevices = todynamic(MdeDevices)\n| project ThreatIP, Confidence, TISource, Tags, Sources, NonMdeOnly, NonMdeHits, MdeHits, ClientCount, Clients, ClientTypes, MdeDevices, NetFlowHits, ZeekConnHits, FwHits, DnsResolveHits, PiHoleHits, LastSeen, ValidUntil, Pattern, IndicatorId\n| sort by Confidence desc, NonMdeHits desc\n| top 200 by Confidence",
               "size": 0,
               "title": "TI IP Matches — TII + SecurityAlert IPs vs NetFlow + Zeek + Firewall + MDE + DNS (TI=30d)",
               "timeContextFromParameter": "TimeRange",
@@ -2501,8 +2553,18 @@
                     "formatOptions": {
                       "thresholdsOptions": "icons",
                       "thresholdsGrid": [
-                        { "operator": "==", "thresholdValue": "Yes", "representation": "warning", "text": "Yes" },
-                        { "operator": "Default", "thresholdValue": null, "representation": "success", "text": "No" }
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Yes",
+                          "representation": "warning",
+                          "text": "Yes"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "success",
+                          "text": "No"
+                        }
                       ]
                     }
                   }
@@ -2631,6 +2693,59 @@
               }
             },
             "customWidth": "100"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let TIip = ThreatIntelIndicators | where TimeGenerated > ago(24h) and IsActive == true | where ObservableKey in (\"network-traffic:src_ref.value\",\"network-traffic:dst_ref.value\",\"ipv4-addr:value\") | distinct ObservableValue;\nlet TIdom = ThreatIntelIndicators | where TimeGenerated > ago(24h) and IsActive == true | where ObservableKey == \"domain-name:value\" | distinct tolower(ObservableValue);\nlet zeekConn = ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == \"conn\" | extend Ext = case(not(ipv4_is_private(dest_ip_s)), dest_ip_s, src_ip_s), Int = case(ipv4_is_private(src_ip_s), src_ip_s, dest_ip_s) | where Ext in (TIip) and isnotempty(Int) | summarize IpHits = count() by Int;\nlet pihole = PiholeDNS_CL | where TimeGenerated > ago(24h) | extend d = tolower(coalesce(extract(@'query\\[\\w+\\]\\s+(\\S+)\\s+from', 1, _raw_s), extract(@'(?:cached|forwarded|reply)\\s+(\\S+)\\s+(?:is|to)', 1, _raw_s))), Int = extract(@'\\bfrom\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)', 1, _raw_s) | where d in (TIdom) and isnotempty(Int) | summarize DomainHits = count() by Int;\nlet zeekDns = ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == \"dns\" | extend d = tolower(dns_query_s), Int = src_ip_s | where d in (TIdom) and isnotempty(Int) | summarize ZeekDnsHits = count() by Int;\nlet MdeIdent = DeviceNetworkInfo | summarize arg_max(Timestamp, *) by IPAddresses | mv-expand todynamic(IPAddresses) | extend Int = tostring(IPAddresses.IPAddress) | where ipv4_is_private(Int) | project Int, MdeDevice = DeviceName, MdeMac = MacAddress;\nlet DhcpIdent = ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == \"dhcp\" | extend f = split(_raw_s, \"\\t\") | extend Int = tostring(f[7]), DhcpHost = tostring(f[10]), DhcpMac = tostring(f[3]) | where isnotempty(Int) | summarize arg_max(TimeGenerated, *) by Int | project Int, DhcpHost, DhcpMac;\nunion zeekConn, pihole, zeekDns\n| summarize IpHits = sum(coalesce(IpHits,0)), DomainHits = sum(coalesce(DomainHits,0)), ZeekDnsHits = sum(coalesce(ZeekDnsHits,0)) by Int\n| extend TotalHits = IpHits + DomainHits + ZeekDnsHits\n| join kind=leftouter MdeIdent on Int\n| join kind=leftouter DhcpIdent on Int\n| extend ClientName = coalesce(MdeDevice, DhcpHost, Int)\n| extend ClientMac = coalesce(MdeMac, DhcpMac, \"\")\n| extend ClientType = case(isnotempty(MdeDevice), \"MDE Managed\", isnotempty(DhcpHost), \"Non-MDE (DHCP)\", \"Non-MDE (Unknown)\")\n| project ClientType, ClientName, InternalIP = Int, ClientMac, IpHits, DomainHits, ZeekDnsHits, TotalHits\n| sort by TotalHits desc\n| top 50 by TotalHits",
+              "size": 0,
+              "title": "Top Threatened Internal Clients (24h) — TI hits attributed to MDE-managed and non-MDE devices",
+              "noDataMessage": "No internal clients touched TI in last 24h",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "ClientType",
+                    "formatter": 11,
+                    "formatOptions": {
+                      "palette": "categoricalGreen"
+                    }
+                  },
+                  {
+                    "columnMatch": "TotalHits",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "IpHits",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "coral"
+                    }
+                  },
+                  {
+                    "columnMatch": "DomainHits",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "coral"
+                    }
+                  },
+                  {
+                    "columnMatch": "ZeekDnsHits",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "coral"
+                    }
+                  }
+                ]
+              }
+            },
+            "name": "correlation-top-clients"
           }
         ]
       }

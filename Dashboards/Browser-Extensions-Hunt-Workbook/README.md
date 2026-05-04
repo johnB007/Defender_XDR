@@ -59,15 +59,80 @@ toint(KnownBad) * 5
 
 ---
 
-## Hardening Recommendations
+## Hardening Recommendations - Block Extensions via Intune
 
-When you find a malicious or unwanted extension, block it via Intune using `ExtensionSettings` policy. See:
+When you find a malicious or unwanted extension in this workbook, block it at the browser-policy layer. Both Microsoft Edge and Google Chrome share the Chromium policy schema, so the same three policies work for both browsers:
+
+- `ExtensionInstallBlocklist` - deny-list specific IDs (or `*` to block all)
+- `ExtensionInstallAllowlist` - allow-list specific IDs (used with a `*` blocklist)
+- `ExtensionInstallForcelist` - force-install / pin specific IDs
+- `ExtensionSettings` - JSON policy that combines all of the above per-ID with the most flexibility
+
+### Microsoft Edge - Official Docs
 
 - [Manage Microsoft Edge extensions in the enterprise](https://learn.microsoft.com/deployedge/microsoft-edge-manage-extensions)
-- [Use group policies to manage Microsoft Edge extensions](https://learn.microsoft.com/deployedge/microsoft-edge-manage-extensions-policies)
-- [Configure Edge with Intune](https://learn.microsoft.com/deployedge/configure-edge-with-intune)
+- [Use group policies to manage Microsoft Edge extensions](https://learn.microsoft.com/deployedge/microsoft-edge-manage-extensions-policies) - includes the JSON schema and block-by-update-URL examples
+- [Configure Edge with Intune (Settings Catalog)](https://learn.microsoft.com/deployedge/configure-edge-with-intune)
+- [Edge security baseline (Intune)](https://learn.microsoft.com/intune/device-security/security-baselines/ref-edge-settings)
 
-For Chrome, ingest the [Chrome Enterprise ADMX](https://chromeenterprise.google/browser/download/) into Intune and apply the same `ExtensionInstallBlocklist` / `ExtensionInstallForcelist` / `ExtensionSettings` policies.
+In Intune: **Devices > Configuration > Create > New Policy > Windows 10 and later > Settings Catalog**, search for `ExtensionSettings` (or `ExtensionInstallBlocklist` / `ExtensionInstallForcelist`) under **Microsoft Edge**.
+
+### Google Chrome - Via Intune
+
+Microsoft does not host a dedicated Chrome page (Chrome is third-party), but the same policies are deployable two ways:
+
+1. **Ingest Google's ADMX into Intune** ([Import custom ADMX/ADML](https://learn.microsoft.com/intune/configuration/administrative-templates-import-custom)) - download the templates from the [Chrome Enterprise Bundle](https://chromeenterprise.google/browser/download/). The relevant policies are identically named: `ExtensionInstallBlocklist`, `ExtensionInstallForcelist`, `ExtensionSettings`.
+2. **OMA-URI custom profile** targeting `./Device/Vendor/MSFT/Policy/Config/Chrome~Policy~googlechrome~Extensions/...` after ADMX ingestion.
+
+### Recipe 1 - Default-Deny All Extensions, Allow Specific IDs
+
+Most secure posture. Set `ExtensionSettings` (one policy value per browser):
+
+```json
+{
+  "*": { "installation_mode": "blocked" },
+  "ghbmnnjooekpmoecnnnilnnbdlolhkhi": {
+    "installation_mode": "force_installed",
+    "update_url": "https://clients2.google.com/service/update2/crx"
+  }
+}
+```
+
+- `"*"` is the default rule for all extensions
+- Per-ID overrides allow or force-install specific extensions
+- For **Edge**, set `update_url` to `https://edge.microsoft.com/extensionwebstorebase/v1/crx`
+- For **Chrome**, set `update_url` to `https://clients2.google.com/service/update2/crx`
+
+### Recipe 2 - Block Specific (Bad) Extensions
+
+Deny-list approach if you cannot move to default-deny yet. Useful for blocking the VPN / AI-sidebar / known-bad IDs surfaced in this workbook:
+
+```json
+{
+  "fjoaledfpmneenckfbpdfhkmimnjocfa": { "installation_mode": "blocked" },
+  "bihmplhobchoageeokmgbdihknkjbknd": { "installation_mode": "blocked" },
+  "poeojclicodamonabcabmapamjkkmnnk": { "installation_mode": "blocked" }
+}
+```
+
+`installation_mode: blocked` prevents new installs and **disables** the extension if it is already installed. The files remain on disk - which is exactly why this workbook may not see stable, long-installed extensions: they exist but generate no `DeviceFileEvents` activity.
+
+### Recipe 3 - Block an Entire Web Store
+
+Block the Chrome Web Store update URL while still allow-listing specific Chrome extensions you trust:
+
+```json
+{ "update_url:https://clients2.google.com/service/update2/crx": { "installation_mode": "blocked" } }
+```
+
+You can still use `ExtensionInstallForcelist` and `ExtensionInstallAllowlist` to allow / force-install specific extensions even when their store is blocked.
+
+### Verification
+
+After deploying the policy, on a managed device:
+- Edge: navigate to `edge://policy/` - confirm `ExtensionSettings` is listed under "Policies applied to this profile"
+- Chrome: navigate to `chrome://policy/` - confirm the same
+- Try installing a blocked extension from the web store - the install button should be disabled with a "Blocked by your administrator" message
 
 ---
 

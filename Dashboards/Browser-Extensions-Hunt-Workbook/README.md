@@ -2,7 +2,47 @@
 
 A Microsoft Sentinel workbook for hunting unusual, rare, and known-bad browser extensions across Chrome, Edge, Brave, and Firefox using **Microsoft Defender for Endpoint** telemetry (`DeviceFileEvents`).
 
-The workbook is built around recent supply-chain and malicious-extension threats including the **Cyberhaven December 2024** compromise, **SquareX Browser Syncjacking 2025**, **RedDirection 2025**, and **Koi Security GreedyBear 2025** patterns.
+---
+
+## What This Workbook Is Built Around
+
+Malicious browser extensions are one of the fastest-growing initial-access and data-theft vectors. Unlike traditional malware, extensions run with broad page-content permissions, persist across reboots, survive most EDR detection logic, and are trusted by users because they install from "official" web stores. This workbook is built around four recent threat patterns that publicly demonstrated how attackers abuse the extension ecosystem:
+
+| Threat / Campaign | What Happened | What This Workbook Catches |
+|---|---|---|
+| **Cyberhaven Supply-Chain Compromise (Dec 2024)** | Attacker phished a maintainer, pushed a trojanized update of the Cyberhaven extension to the Chrome Web Store, then pivoted to ~35 other extensions. Affected millions of installs. | The 7 publicly-disclosed Cyberhaven-cluster extension IDs are hardcoded in `KnownBadIDs` and surface with `KnownBad = 1` (suspicion +5). |
+| **SquareX Browser Syncjacking (2025)** | Malicious extension silently signs the victim into an attacker-controlled Chrome profile, exfiltrating browsing data, cookies, and saved credentials via Chrome Sync. | Tile 1 surfaces newly installed / out-of-profile extensions; pivot the `Devices` and `Accounts` columns to investigate. |
+| **RedDirection (2025)** | 18 malicious extensions across Chrome and Edge stores hijacked search results and redirected traffic to attacker-monetized destinations. | Tile 1 (rare extensions) + Tile 2 (`.crx` drops with IDs) catch installs that fall outside the curated `ExtensionWhitelist`. |
+| **Koi Security GreedyBear (2025)** | Bundled malicious extensions distributed through bundleware / fake installers; arrived as `.crx` files dropped by non-browser processes. | Tile 2 and Tile 3 score `.crx` drops where the dropper is not a browser process and the path is outside the normal browser profile. |
+
+The scoring model assumes attackers will violate at least one of these invariants: extension is on a known-bad list, the file lands outside a real browser profile, the dropper is not a browser process, or the file lands in a user-writable temp / download / public path. See the **Suspicion Score** below for the formula.
+
+---
+
+## How To Use This Workbook
+
+### Sysadmins / IT Operations
+
+- **Daily / weekly review** of Tile 1 to identify extensions installed outside the approved `ExtensionWhitelist`. Update the whitelist when you onboard new business-approved extensions so the noise floor stays clean.
+- **Onboarding new endpoints**: filter Tile 1 by `Devices` to confirm a freshly imaged device only has corporate-approved extensions installed.
+- **Inventory pivot**: use the Chrome / Edge Web Store / AMO `StoreLookup` and `AltStoreLookup` columns to verify a publisher and reach out to a user if an extension looks legitimate but unexpected.
+- **Hardening enforcement**: feed any blocked IDs into the Intune `ExtensionSettings` recipes at the bottom of this README, then re-run the workbook in 7 days to confirm the install count drops to zero.
+- **CSV export** is enabled on every grid (advanced setting `Show Export to CSV button when not editing`). Export inventories for vendor conversations, audit reviews, or asset-management ticket attachments.
+
+### SOC Analysts / Threat Hunters
+
+- **Triage workflow**: sort by `KnownBad` desc, then `MaxSuspicion` desc (heatmap red). Anything red on the left is your hottest lead.
+- **Cyberhaven check**: any row with `KnownBad = 1` is a publicly-known IOC. Open an incident immediately and isolate the device.
+- **Sideload / drop hunting**: Tile 2 surfaces `.crx` drops containing an extension ID. Pivot the `Droppers`, `DropperPaths`, and `InitiatingProcessFolderPath` columns - browser-by-browser drops are normal; `powershell.exe`, `curl.exe`, `7z.exe`, or paths under `\Users\Public\` or `\Temp\` are not.
+- **No-ID `.crx` hunting**: Tile 3 catches partial writes and fetcher activity. The `KnownBenign` column lets you keep visibility on legitimate Power Automate Desktop drops without losing sight of new noise.
+- **VirusTotal / MDTI pivot**: every grid exposes `SHA256s` as an array - paste any hash into VirusTotal or Microsoft Defender Threat Intelligence to enrich your investigation.
+- **Account compromise lead**: the `Accounts` column shows which user(s) had the extension under their profile. Combine with `IdentityLogonEvents` and `EmailEvents` to scope blast radius.
+- **Build a watch-list**: when a new public IOC drops (e.g. a fresh Koi Security or SquareX disclosure), add the extension IDs to the `KnownBadIDs` `dynamic([...])` block in each tile's KQL and the workbook will instantly retro-hunt that ID across your entire `DeviceFileEvents` retention window.
+
+### Compliance / Audit
+
+- **Browser extension inventory** is a frequent ask in CIS, NIST 800-53, and customer security questionnaires. Use the CSV export from Tile 1 as the system-of-record artifact.
+- The **OutOfProfile** and **NonBrowserDropper** flags map cleanly to "unauthorized software installation" findings.
 
 ---
 
@@ -12,11 +52,11 @@ A single tab group **Unusual & Known-Bad Browser Extensions** with three KQL gri
 
 | # | Tile | Purpose |
 |---|---|---|
-| 1 | **Installed Browser Extensions - Rare or Known-Bad** | Scans browser profile directories for installed extensions across Chrome, Edge, Brave, and Firefox. Surfaces extension ID, store-lookup links, droppers, accounts, SHA256s, and a suspicion score. |
-| 2 | **Known-Bad & Rare .crx Drops (with extension IDs)** | `.crx` files dropped to disk that include a 32-character extension ID prefix - catches sideload and update activity. |
-| 3 | **Suspicious No-ID .crx Drops (dropper + path scored)** | `.crx` files without an ID prefix - flags partial writes, fetcher activity, and unusual dropper paths. |
+| 1 | **Installed Browser Extensions - Rare or Known-Bad** | Authoritative inventory tile. Walks every Chrome, Edge, Brave, and Firefox profile directory across `DeviceFileEvents` to enumerate every installed extension by ID. Filters out the curated `ExtensionWhitelist` (~33 approved IDs) and tags any match against `KnownBadIDs` (Cyberhaven IOCs). For each surviving extension it surfaces: extension ID, browser, direct-click `StoreLookup` and `AltStoreLookup` URLs (Chrome Web Store + Edge Add-ons + Firefox AMO), `FirstSeen` / `LastSeen` timestamps, `DeviceCount`, every device that has it installed, full `FolderPaths`, the dropping process (`Droppers` + `DropperPaths`), `Accounts` that own the profile, all observed `SHA256s` for VT/MDTI pivot, and the four flag columns - `KnownBad`, `OutOfProfile`, `NonBrowserDropper`, `MaxSuspicion`. **Use this tile** to answer "what's installed in my fleet that I don't recognize?" |
+| 2 | **Known-Bad & Rare .crx Drops (with extension IDs)** | Drop / sideload tile. Watches `DeviceFileEvents` for `.crx` files whose filename begins with a 32-character lowercase extension ID prefix - the canonical Chrome / Edge install package. Catches every install, update, and policy push to the Chromium-based browsers, including those delivered by `msedge_url_fetcher_*` and `chromecrx_chrome_url_fetcher_*` helper processes (now classified as "in-profile" so they don't false-positive). Flags any drop where the dropper is not a browser process or the destination is outside a real browser `Extensions\` directory. **Use this tile** to catch supply-chain pushes (Cyberhaven-style auto-updates), malicious sideloads, and policy-deployed extensions. |
+| 3 | **Suspicious No-ID .crx Drops (dropper + path scored)** | Anomaly / bundleware tile. Watches `DeviceFileEvents` for `.crx` files **without** a 32-character ID prefix - these are non-canonical and almost always indicate one of: (a) a partial write captured mid-stream by Defender, (b) a renamed `.crx` from a malicious installer, (c) bundleware dropping a payload to disk before browser-side install, (d) legitimate enterprise tooling (e.g. Power Automate Desktop's `pad_extension_for_chrome.crx`). The `KnownBenign` flag lets PAD-style legit drops stay visible but score 0, while the `BenignFolderPaths` list suppresses `\WindowsApps\Microsoft.PowerAutomateDesktop` drops to score 0 as well. Filename-whitelisted (`pad_extension_for_chrome`, `msedge*`) drops are kept but neutralized. **Use this tile** to catch GreedyBear-style bundleware and any unusual-named `.crx` that doesn't fit the canonical install pattern. |
 
-Each grid produces a **MaxSuspicion** heatmap and three icon columns: `KnownBad`, `OutOfProfile`, `NonBrowserDropper`.
+Each grid produces a **MaxSuspicion** heatmap (red = hot) and three icon columns: `KnownBad` (cluster IOC), `OutOfProfile` (file landed outside a real browser profile), `NonBrowserDropper` (the writing process is not a known browser binary). Sort by `KnownBad` desc, then `MaxSuspicion` desc, then `DeviceCount` desc to triage.
 
 ### Suspicion Score
 

@@ -2251,7 +2251,10 @@
                   "OnboardedReporting"
                 ],
                 "group": "Kind",
-                "showLegend": true
+                "showLegend": true,
+                "ySettings": {},
+                "showMetrics": false,
+                "showDataPointsAsAxisLabels": false
               }
             },
             "name": "computers-onboarded-reporting"
@@ -2273,7 +2276,10 @@
                   "Delta"
                 ],
                 "group": "Kind",
-                "showLegend": true
+                "showLegend": true,
+                "ySettings": {},
+                "showMetrics": false,
+                "showDataPointsAsAxisLabels": false
               }
             },
             "name": "computers-onboarded-delta"

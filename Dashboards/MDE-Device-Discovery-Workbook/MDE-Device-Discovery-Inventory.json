@@ -2277,34 +2277,6 @@
               }
             },
             "name": "computers-onboarded-delta"
-          },
-          {
-            "type": 3,
-            "content": {
-              "version": "KqlItem/1.0",
-              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| where DeviceType in~ ('Workstation','Desktop','Laptop','Server') or (OSPlatform has_any ('Windows','Linux','macOS') and DeviceType !in~ ('NetworkDevice','Printer','Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo','IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer','MobilePhone','Smartphone','Tablet','Mobile'))\n| where _df == '' or DeviceName has _df\n| extend Kind = case(DeviceType =~ 'Server' or OSPlatform has 'WindowsServer' or OSPlatform has 'Server', 'Server', 'Workstation')\n| summarize arg_max(Timestamp, OnboardingStatus) by DeviceId, Day = startofday(Timestamp), Kind\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| summarize Unmanaged = dcount(DeviceId) by Day, Kind\n| order by Day asc",
-              "size": 0,
-              "title": "Unmanaged Computers & Servers Active per Day",
-              "timeContextFromParameter": "TimeRange",
-              "queryType": 0,
-              "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "timechart",
-              "chartSettings": {
-                "group": "Kind",
-                "createOtherGroup": 0,
-                "showLegend": true,
-                "ySettings": {
-                  "numberFormatSettings": {
-                    "unit": 17,
-                    "options": {
-                      "style": "decimal",
-                      "useGrouping": true
-                    }
-                  }
-                }
-              }
-            },
-            "name": "computers-unmanaged-trend"
           }
         ]
       },

@@ -1,35 +1,36 @@
 # MDE Device Discovery and Inventory Workbook
 
 ## Intro
-This workbook gives you an inventory of devices discovered by Microsoft Defender for Endpoint (MDE) Device Discovery.
+This workbook gives you an inventory of devices discovered by Microsoft Defender for Endpoint (MDE) Device Discovery, optimized for environments with very large device counts (hundreds of thousands of endpoints).
+
+The **All Devices** tab is full-scope (managed + unmanaged) so you can compare onboarded vs unmanaged side by side. **Every other category tab is scoped to unmanaged devices only** (devices where `OnboardingStatus` is empty or not `Onboarded`) so SOC and IT teams can focus directly on the onboarding gap.
 
 It includes:
-- KPI tiles for total devices, onboarding state, sensor health, and exposure level
-- Per-category tabs for Audio & Video, Network Infrastructure, Printers & MFPs, IoT/OT, Computers & Servers, and Mobile & Tablets
-- Device grids with OS, IP, last seen, onboarding status, and risk-related fields
-- Network and SSID views that show where discovered devices are connected
-- A Network Context tab that classifies devices as Corporate, Home, Public, or Unknown Private
-- A Risk Signals grid for non-mobile corporate assets seen on home or public networks
+- KPI tiles for unmanaged counts by category, onboarding readiness, exposure, and lifecycle
+- Per-category tabs for Audio & Video, Network Infrastructure, Printers & MFPs, IoT & OT, Computers & Servers, and Mobile & Tablets
+- Vendor and Model columns on every grid so unmanaged devices can be identified at a glance
+- IoT vendor risk heatmap and public-IP exposure grid for OT/IoT triage
+- Computers & Servers onboarding velocity KPI, OS-family stacked bar, and cumulative onboarding trend
 
 ## Summary For Sysadmin And Security
-This workbook gives IT and security teams one place to review MDE device discovery data across device categories.
+This workbook gives IT and security teams one place to review MDE device discovery data across device categories with an unmanaged-first lens.
 - Identify unmanaged or unenrolled devices in each category and prioritize onboarding.
-- Surface audio/video devices (cameras, conferencing endpoints, VoIP phones) and IoT devices on corporate SSIDs that have never been formally inventoried.
-- Flag endpoints seen on home or public networks that should only appear on corporate infrastructure.
+- Surface audio/video devices (cameras, conferencing endpoints, VoIP phones) and IoT/OT devices that have never been formally inventoried.
+- Spot OT/IoT devices reachable on public IPs and prioritize them for segmentation.
+- Track onboarding velocity (new onboardings over time) and remaining unmanaged active workstations and servers.
 - Export any device grid for vendor conversations, compliance reviews, or field technician work orders.
 
 ### Tab Breakdown
 | Tab | Sysadmin And Security Use |
 |---|---|
-| Overview | KPI summary of total discovered devices broken down by type, onboarding status, and sensor health. Includes a network / SSID chart showing device categories per network sorted by total device count. |
-| All Devices | Full inventory grid of every device MDE has discovered, with filters for type, OS, onboarding status, and risk level. Exportable to Excel. |
-| Audio & Video | Scoped inventory of devices XDR classifies as `AudioAndVideo` - cameras, webcams, video surveillance, and conferencing/AV equipment. Includes KPI tiles for total, onboarded, and unenrolled counts. |
-| Network Infrastructure | Scoped inventory of switches, routers, access points, and network devices. Shows onboarding posture and sensor health per device. |
-| Printers & MFPs | Scoped inventory of printers and multi-function printers (MFPs). Identify unmanaged print infrastructure and correlate with SSID context. |
-| IoT & OT Devices | Scoped inventory of IoT devices, smart appliances, VoIP phones, game consoles, and communication devices. |
-| Computers & Servers | Scoped inventory of workstations, desktops, laptops, and servers. Includes OS platform, onboarding status, and criticality. |
-| Mobile & Tablets | Scoped inventory of mobile phones, smartphones, and tablets discovered by MDE. |
-| Network Context | Classifies every device as Corporate (Domain Authenticated), Corporate (Private - Enterprise), Likely Home Network, or Public / Internet-Facing. Risk Signals grid below flags non-mobile corporate assets seen on home or public networks. |
+| Overview | KPI summary showing both Onboarded and Unmanaged device counts so coverage is visible at a glance. Includes device-type distribution and a network / SSID breakdown by category. |
+| All Devices | **Full-scope** inventory grid of every device MDE has discovered (managed and unmanaged), with filters for type, OS, onboarding status, and exposure. Used for managed-vs-unmanaged comparison. Exportable to Excel. |
+| Audio & Video | **Unmanaged only.** Scoped inventory of cameras, webcams, video surveillance, and conferencing/AV equipment. Camera Heartbeat and Camera Network Activity sub-tabs help identify silently failing cameras. |
+| Network Infrastructure | **Unmanaged only.** Scoped inventory of switches, routers, access points, and network devices with Vendor, Model, OS Version, FirstSeen, DefaultGateway, DnsServers, ConnectedNetworkName, DomainAuthenticated, and IsPublicIP columns. |
+| Printers & MFPs | **Unmanaged only.** Scoped inventory of printers and multi-function printers (MFPs). Identify unmanaged print infrastructure with Vendor and Model columns. |
+| IoT & OT Devices | **Unmanaged only.** Scoped inventory of IoT devices, smart appliances, VoIP phones, game consoles, and communications devices. Includes Top Vendors chart, Vendor Risk Heatmap (vendor x exposure), and a Public-IP exposure grid (top 100). |
+| Computers & Servers | **Unmanaged only.** Scoped inventory of workstations, desktops, laptops, and servers. Includes onboarding velocity KPI, OS-family stacked bar trend, cumulative onboarded line chart, and unmanaged-active line chart. |
+| Mobile & Tablets | **Unmanaged only.** Scoped inventory of mobile phones, smartphones, and tablets discovered by MDE. |
 
 ## Workbook Overview Screenshots
 
@@ -64,56 +65,47 @@ This workbook gives IT and security teams one place to review MDE device discove
 <img width="1890" height="812" alt="image" src="https://github.com/user-attachments/assets/008539a1-cb71-4a83-b080-566c24462103" />
 
 
-### Network Context Tab
-<img width="1864" height="713" alt="image" src="https://github.com/user-attachments/assets/8e9262c8-6b4e-4837-b7b7-f3137ec9aed2" />
-
-
 ## Section Details And What Each One Does
 
 ### Overview
-- What it does: pulls KPI counts from DeviceInfo for total discovered devices, onboarded devices, unenrolled devices, devices with sensor issues, and high, medium, and low exposure assets. Renders a stacked bar chart for device type distribution and a network or SSID breakdown chart sorted by total device count.
-- Primary visuals: KPI tiles row, device type donut chart, asset count bar chart, network SSID stacked bar chart (by category), network SSID detail grid.
-- Why it matters: gives the SOC and IT team a quick summary before drilling into the individual tabs.
+- What it does: pulls KPI counts from DeviceInfo broken into **Onboarded** vs **Unmanaged** so coverage is immediately obvious. Renders device-type distribution and a network / SSID breakdown chart by device category.
+- Primary visuals: dual-scope KPI tiles row, device type chart, asset count bar chart, network SSID stacked bar chart, network SSID detail grid.
+- Why it matters: gives the SOC and IT team a quick view of onboarding coverage and where unmanaged devices live before drilling into individual tabs.
 
 ### All Devices
-- What it does: queries DeviceInfo for every discovered device and joins with DeviceNetworkInfo to surface the last known IP and connected network. Renders a full filterable grid with DeviceName, DeviceType, OS, IP, SSID, OnboardingStatus, SensorHealthState, and RiskScore columns.
+- What it does: queries DeviceInfo for every discovered device (full scope - managed + unmanaged) and joins with DeviceNetworkInfo to surface the last known IP and connected network. Renders a filterable grid with DeviceName, DeviceType, OS, IP, SSID, OnboardingStatus, SensorHealthState, Vendor, Model, and ExposureLevel columns.
 - Primary visuals: full device inventory grid with column filters, Excel export button.
-- Why it matters: this is the main inventory view for exports, onboarding gap review, and quick lookup of specific devices.
+- Why it matters: the only tab that retains managed devices, used for quick lookup and managed-vs-unmanaged comparison.
 
-### Audio & Video
-- What it does: filters DeviceInfo to DeviceType in `AudioAndVideo` (the official XDR classification for this category), plus broader matches on `Camera`, `Webcam`, `AudioVideoEquipment`, and `VideoSurveillance` for legacy values. Shows KPI tiles for total count, onboarded, unenrolled, and sensor health, then a full device grid.
-- Primary visuals: four KPI tiles, filterable device grid with last seen timestamp and network context.
-- Why it matters: cameras, conferencing endpoints, and other AV gear are often unmanaged or undocumented. This tab helps identify them and shows which ones are not enrolled in MDE.
+### Audio & Video (Unmanaged)
+- What it does: filters DeviceInfo to `AudioAndVideo` plus legacy values (`Camera`, `Webcam`, `AudioVideoEquipment`, `VideoSurveillance`) and excludes onboarded devices. Includes Camera Heartbeat and Camera Network Activity sub-tabs for silent-failure detection.
+- Primary visuals: KPI tiles, filterable device grid with Vendor and Model, camera heartbeat and network activity sub-tabs.
+- Why it matters: cameras, conferencing endpoints, and AV gear are often unmanaged or silently offline. This tab shows what MDE sees and which devices need onboarding.
 
-### Network Infrastructure
-- What it does: filters DeviceInfo to NetworkDevice type. Shows KPI tiles and a full grid of all switches, routers, and access points discovered by MDE passive and active discovery.
-- Primary visuals: KPI tiles, device grid with OS and firmware context where available.
-- Why it matters: unmanaged network devices are common blind spots. This tab identifies what MDE can see and highlights coverage gaps.
+### Network Infrastructure (Unmanaged)
+- What it does: filters DeviceInfo to NetworkDevice type and excludes onboarded devices. Detail grid includes Vendor, Model, OSVersion, FirstSeen, DefaultGateway, DnsServers, ConnectedNetworkName, DomainAuthenticated, and IsPublicIP columns from DeviceNetworkInfo.
+- Primary visuals: KPI tiles, enriched device grid for switches, routers, and access points.
+- Why it matters: unmanaged network gear is a high-impact blind spot. The expanded columns help operations identify ownership and reachability quickly.
 
-### Printers & MFPs
-- What it does: filters DeviceInfo to `Printer` type plus common printer, copier, and MFP hostname patterns (HP, Xerox, Canon, Konica, Kyocera, Ricoh, Brother, Epson, Toshiba, Sharp). Shows KPI tiles for total, onboarded, and unenrolled counts, and a full grid with last seen IP and network association.
-- Primary visuals: KPI tiles, filterable device grid.
-- Why it matters: printers and multi-function printers are often unmanaged and can store sensitive data. This tab gives you a reviewable inventory of the print fleet.
+### Printers & MFPs (Unmanaged)
+- What it does: filters DeviceInfo to `Printer` type plus common printer/MFP hostname patterns (HP, Xerox, Canon, Konica, Kyocera, Ricoh, Brother, Epson, Toshiba, Sharp), excluding onboarded devices.
+- Primary visuals: KPI tiles, filterable device grid with Vendor and Model.
+- Why it matters: printers often hold sensitive data and rarely get onboarded. This tab gives a reviewable inventory of the unmanaged print fleet.
 
-### IoT & OT Devices
-- What it does: filters DeviceInfo to IoTDevice, SmartAppliance, CommunicationsDevice, VoIPPhone, GameConsole, and MediaPlayer types. Shows KPI tiles and a full inventory grid.
-- Primary visuals: KPI tiles, device grid with type, OS, and network context columns.
-- Why it matters: IoT and OT devices are commonly under-managed. This tab helps you review what MDE has discovered in those categories.
+### IoT & OT Devices (Unmanaged)
+- What it does: filters DeviceInfo to IoTDevice, SmartAppliance, CommunicationsDevice, VoIPPhone, GameConsole, MediaPlayer types and OT name patterns (thermostat, hvac, bms, plc, scada, hmi, kiosk, pos-, atm-, etc.), excluding onboarded devices and regular endpoints.
+- Primary visuals: KPI tiles (Total / Can Be Onboarded / Insufficient Info / Unsupported), Top Vendors bar chart, Vendor Risk Heatmap (vendor x exposure level), subtype/exposure/onboarding pie charts, full device grid, and Public-IP exposure grid (devices reachable on public IPs, derived from DeviceNetworkInfo).
+- Why it matters: IoT and OT devices are typically under-managed and high-risk. The vendor heatmap and public-IP grid provide direct triage signal for segmentation and onboarding decisions.
 
-### Computers & Servers
-- What it does: filters DeviceInfo to Workstation, Desktop, Laptop, and Server types. Shows KPI tiles for total count, onboarded, unenrolled, and by OS platform, then a full grid.
-- Primary visuals: KPI tiles, OS platform breakdown, filterable device grid with criticality and onboarding status.
-- Why it matters: this is the main endpoint coverage view for workstations and servers that are not yet onboarded to MDE.
+### Computers & Servers (Unmanaged)
+- What it does: filters DeviceInfo to Workstation, Desktop, Laptop, and Server types and excludes onboarded devices. Shows onboarding posture, OS-family trend, and active unmanaged endpoint count.
+- Primary visuals: KPI tiles, **Onboarding Velocity** (new onboardings over time), **OS-Family Stacked Bar** (Windows / WindowsServer / macOS / Linux), **Cumulative Onboarded** line chart, **Unmanaged Active** line chart, filterable device grid with Vendor and Model.
+- Why it matters: this is the main endpoint coverage view. The trend tiles let leadership track onboarding progress and identify regressions.
 
-### Mobile & Tablets
-- What it does: filters DeviceInfo to MobilePhone, Smartphone, and Tablet types. Shows KPI tiles and a full grid with last seen details.
-- Primary visuals: KPI tiles, filterable device grid.
-- Why it matters: mobile devices that access corporate resources should be enrolled or at least visible. This tab shows mobile devices MDE has observed on the network.
-
-### Network Context
-- What it does: joins DeviceNetworkInfo with DeviceInfo and classifies every device based on IP range and domain authentication status into Corporate (Domain Authenticated), Corporate (Private - Enterprise), Likely Home Network, or Public / Internet-Facing. A Risk Signals grid below filters to non-mobile corporate assets found on Home or Public networks.
-- Primary visuals: device classification grid with IP, gateway, network name, and domain auth columns; Risk Signals grid scoped to anomalous network placement.
-- Why it matters: highlights endpoints operating outside expected network boundaries, such as a workstation on a home SSID or a server with a public IP.
+### Mobile & Tablets (Unmanaged)
+- What it does: filters DeviceInfo to MobilePhone, Smartphone, and Tablet types and excludes onboarded devices.
+- Primary visuals: KPI tiles, filterable device grid with Vendor and Model.
+- Why it matters: mobile devices that access corporate resources should be enrolled or at least visible. This tab shows unmanaged mobile devices MDE has observed.
 
 ## Prerequisites
 - A Log Analytics workspace with MDE data connected (via Microsoft Defender XDR connector or direct MDE log forwarding)

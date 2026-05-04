@@ -1950,7 +1950,7 @@
           {
             "type": 1,
             "content": {
-              "json": "**Vendor / Model Vulnerability-Pattern Match (read-me)**  \\nWithout a sensor on these devices, MDE cannot pull live CVEs. The grid below flags devices whose `Vendor`, `Model`, `OSVersion`, or hostname matches a curated list of IoT/OT vendor / firmware families with **publicly disclosed CVEs / CISA KEV entries / ICS-CERT advisories**. This is a *risk-pattern* signal, not a per-device CVE confirmation. Every match should be followed by a manual firmware-version check against the referenced advisory before remediation."
+              "json": "**Vendor pattern match against publicly disclosed advisories** ([CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) | [CISA ICS Advisories](https://www.cisa.gov/news-events/cybersecurity-advisories?f%5B0%5D=advisory_type%3A95)) - verify firmware against the AdvisoryRef before action."
             },
             "name": "iot-risk-header"
           },

@@ -1950,7 +1950,7 @@
           {
             "type": 1,
             "content": {
-              "json": "**Vendor pattern match against publicly disclosed advisories** ([CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) | [CISA ICS Advisories](https://www.cisa.gov/news-events/cybersecurity-advisories?f%5B0%5D=advisory_type%3A95)) - verify firmware against the AdvisoryRef before action."
+              "json": "**Vendor pattern match against publicly disclosed advisories** ([CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog) | [CISA ICS Advisories](https://www.cisa.gov/news-events/cybersecurity-advisories?f%5B0%5D=advisory_type%3A95))"
             },
             "name": "iot-risk-header"
           },

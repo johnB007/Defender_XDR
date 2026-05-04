@@ -39,15 +39,18 @@ toint(KnownBad) * 5
 
 ### Tile 1 - Installed Browser Extensions
 
-![Installed Browser Extensions - Rare or Known-Bad](images/01-installed-extensions.png)
+<img width="2547" height="560" alt="image" src="https://github.com/user-attachments/assets/0a81bb09-9abe-4bb8-881e-9bf0c1017ad9" />
+
 
 ### Tile 2 - Known-Bad & Rare .crx Drops
 
-![Known-Bad & Rare .crx Drops](images/02-crx-id-drops.png)
+<img width="2549" height="442" alt="image" src="https://github.com/user-attachments/assets/3a454bec-1cd8-4d5c-b307-175ef9eb6209" />
+
 
 ### Tile 3 - Suspicious No-ID .crx Drops
 
-![Suspicious No-ID .crx Drops](images/03-crx-noid-drops.png)
+<img width="2539" height="488" alt="image" src="https://github.com/user-attachments/assets/43085562-3475-42f1-ac20-51a0e94e0107" />
+
 
 ---
 

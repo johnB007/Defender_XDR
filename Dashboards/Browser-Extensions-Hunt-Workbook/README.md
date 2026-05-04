@@ -58,15 +58,6 @@ A single tab group **Unusual & Known-Bad Browser Extensions** with three KQL gri
 
 Each grid produces a **MaxSuspicion** heatmap (red = hot) and three icon columns: `KnownBad` (cluster IOC), `OutOfProfile` (file landed outside a real browser profile), `NonBrowserDropper` (the writing process is not a known browser binary). Sort by `KnownBad` desc, then `MaxSuspicion` desc, then `DeviceCount` desc to triage.
 
-### Suspicion Score
-
-```
-toint(KnownBad) * 5
-+ toint(not InBrowserProfile)
-+ toint(not DropperIsBrowser)
-+ toint(InitiatingProcessFolderPath has_any (\Temp\, \Downloads\, \Public\))
-```
-
 ### Built-In Filters
 
 - **ExtensionWhitelist**: ~33 enterprise, SSO, conferencing, and consumer extensions excluded by ID.

@@ -4,9 +4,6 @@ A Microsoft Sentinel workbook for hunting unusual, rare, and known-bad browser e
 
 The workbook is built around recent supply-chain and malicious-extension threats including the **Cyberhaven December 2024** compromise, **SquareX Browser Syncjacking 2025**, **RedDirection 2025**, and **Koi Security GreedyBear 2025** patterns.
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FDashboards%2FBrowser-Extensions-Hunt-Workbook%2Fazuredeploy.json)
-[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FDashboards%2FBrowser-Extensions-Hunt-Workbook%2Fazuredeploy.json)
-
 ---
 
 ## What It Shows
@@ -38,40 +35,7 @@ toint(KnownBad) * 5
 
 ---
 
-## Deployment
-
-### Prerequisites
-
-- A Sentinel-enabled Log Analytics workspace
-- MDE / Defender for Endpoint streaming `DeviceFileEvents` to that workspace
-- Permission to deploy ARM templates to the resource group containing the workspace
-
-### Option A - Deploy to Azure button
-
-Click the **Deploy to Azure** button above. Provide:
-- `workspaceName` - the Log Analytics workspace name (default: `SOC-Central`)
-- `workbookDisplayName` - default: `Browser Extensions Hunt - Unusual & Known-Bad`
-- `workbookId` - leave the `newGuid()` default
-
-### Option B - Azure CLI
-
-```bash
-az deployment group create \
-  --resource-group <your-rg> \
-  --template-file azuredeploy.json \
-  --parameters workspaceName=<your-workspace>
-```
-
-### Option C - Import workbook JSON directly
-
-1. In Sentinel **Workbooks**, click **+ Add workbook**
-2. Click the **Edit** (pencil) icon, then **Advanced Editor**
-3. Paste the contents of [`Browser-Extensions-Hunt.json`](Browser-Extensions-Hunt.json)
-4. Click **Apply**, **Done Editing**, then **Save**
-
----
-
-## Screenshots
+## Workbook Screenshots
 
 ### Tile 1 - Installed Browser Extensions
 
@@ -107,14 +71,43 @@ For Chrome, ingest the [Chrome Enterprise ADMX](https://chromeenterprise.google/
 
 ---
 
+## Prerequisites
+
+- A Sentinel-enabled Log Analytics workspace
+- MDE / Defender for Endpoint streaming `DeviceFileEvents` to that workspace
+- Permissions to deploy ARM templates in the target resource group
+
 ## Files
 
-| File | Purpose |
-|---|---|
-| `azuredeploy.json` | ARM template for Deploy-to-Azure button |
-| `Browser-Extensions-Hunt.json` | Pretty-printed Sentinel workbook JSON (paste-into-advanced-editor friendly) |
-| `README.md` | This file |
-| `images/` | Screenshots referenced above |
+- `Browser-Extensions-Hunt.json`: Workbook JSON payload for manual import
+- `azuredeploy.json`: One-click ARM deployment template (Commercial + Gov)
+- `images/`: Screenshots referenced above
+
+## How To Deploy
+Use one of the deployment buttons below.
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FDashboards%2FBrowser-Extensions-Hunt-Workbook%2Fazuredeploy.json)
+
+[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FDashboards%2FBrowser-Extensions-Hunt-Workbook%2Fazuredeploy.json)
+
+### Deployment Inputs
+When the deployment blade opens, provide:
+- `workspaceName` - the Log Analytics workspace name (default: `SOC-Central`)
+- `workbookDisplayName` - default: `Browser Extensions Hunt - Unusual & Known-Bad`
+- `workbookId` - leave the `newGuid()` default to create a new workbook instance
+
+### Deployment Note
+- The workbook is deployed as `kind: shared` and is scoped to the selected Log Analytics workspace.
+- To import the workbook manually instead, open Sentinel **Workbooks** > **+ Add workbook**, click the pencil (Edit) icon, then **Advanced Editor**, and paste the contents of `Browser-Extensions-Hunt.json`.
+
+### CLI Deployment
+
+```bash
+az deployment group create \
+  --resource-group <your-rg> \
+  --template-file azuredeploy.json \
+  --parameters workspaceName=<your-workspace>
+```
 
 ---
 

@@ -10,14 +10,15 @@ It includes:
 - Per-category tabs for Audio & Video, Network Infrastructure, Printers & MFPs, IoT & OT, Computers & Servers, and Mobile & Tablets
 - Vendor and Model columns on every grid so unmanaged devices can be identified at a glance
 - IoT vendor risk heatmap and public-IP exposure grid for OT/IoT triage
-- Computers & Servers onboarding velocity KPI, OS-family stacked bar, and cumulative onboarding trend
+- IoT/OT **Vendor-Pattern Vulnerability Matches** section: KPI tiles + grid that pattern-match unmanaged device names against publicly disclosed advisories ([CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog), [CISA ICS Advisories](https://www.cisa.gov/news-events/cybersecurity-advisories?f%5B0%5D=advisory_type%3A95), vendor PSIRTs)
+- Computers & Servers onboarding range KPIs (1d / 7d / 30d / 90d) and daily onboarding-trend line
 
 ## Summary For Sysadmin And Security
 This workbook gives IT and security teams one place to review MDE device discovery data across device categories with an unmanaged-first lens.
 - Identify unmanaged or unenrolled devices in each category and prioritize onboarding.
 - Surface audio/video devices (cameras, conferencing endpoints, VoIP phones) and IoT/OT devices that have never been formally inventoried.
 - Spot OT/IoT devices reachable on public IPs and prioritize them for segmentation.
-- Track onboarding velocity (new onboardings over time) and remaining unmanaged active workstations and servers.
+- Track recent onboarding activity (1d / 7d / 30d / 90d range tiles + daily line chart).
 - Export any device grid for vendor conversations, compliance reviews, or field technician work orders.
 
 ### Tab Breakdown
@@ -28,8 +29,8 @@ This workbook gives IT and security teams one place to review MDE device discove
 | Audio & Video | **Unmanaged only.** Scoped inventory of cameras, webcams, video surveillance, and conferencing/AV equipment. Camera Heartbeat and Camera Network Activity sub-tabs help identify silently failing cameras. |
 | Network Infrastructure | **Unmanaged only.** Scoped inventory of switches, routers, access points, and network devices with Vendor, Model, OS Version, FirstSeen, DefaultGateway, DnsServers, ConnectedNetworkName, DomainAuthenticated, and IsPublicIP columns. |
 | Printers & MFPs | **Unmanaged only.** Scoped inventory of printers and multi-function printers (MFPs). Identify unmanaged print infrastructure with Vendor and Model columns. |
-| IoT & OT Devices | **Unmanaged only.** Scoped inventory of IoT devices, smart appliances, VoIP phones, game consoles, and communications devices. Includes Top Vendors chart, Vendor Risk Heatmap (vendor x exposure), and a Public-IP exposure grid (top 100). |
-| Computers & Servers | **Unmanaged only.** Scoped inventory of workstations, desktops, laptops, and servers. Includes onboarding velocity KPI, OS-family stacked bar trend, cumulative onboarded line chart, and unmanaged-active line chart. |
+| IoT & OT Devices | **Unmanaged only.** Scoped inventory of IoT devices, smart appliances, VoIP phones, game consoles, and communications devices. Includes Top Vendors chart, Vendor Risk Heatmap (vendor x exposure), Public-IP exposure grid (top 100), and **Vendor-Pattern Vulnerability Matches** (CISA KEV / ICS-CERT / vendor PSIRT pattern-match against unmanaged device names). |
+| Computers & Servers | **Unmanaged only.** Scoped inventory of workstations, desktops, laptops, and servers. Includes onboarding range KPIs (1d / 7d / 30d / 90d) and a daily onboarding-trend line chart. |
 | Mobile & Tablets | **Unmanaged only.** Scoped inventory of mobile phones, smartphones, and tablets discovered by MDE. |
 
 ## Workbook Overview Screenshots
@@ -94,13 +95,13 @@ This workbook gives IT and security teams one place to review MDE device discove
 
 ### IoT & OT Devices (Unmanaged)
 - What it does: filters DeviceInfo to IoTDevice, SmartAppliance, CommunicationsDevice, VoIPPhone, GameConsole, MediaPlayer types and OT name patterns (thermostat, hvac, bms, plc, scada, hmi, kiosk, pos-, atm-, etc.), excluding onboarded devices and regular endpoints.
-- Primary visuals: KPI tiles (Total / Can Be Onboarded / Insufficient Info / Unsupported), Top Vendors bar chart, Vendor Risk Heatmap (vendor x exposure level), subtype/exposure/onboarding pie charts, full device grid, and Public-IP exposure grid (devices reachable on public IPs, derived from DeviceNetworkInfo).
-- Why it matters: IoT and OT devices are typically under-managed and high-risk. The vendor heatmap and public-IP grid provide direct triage signal for segmentation and onboarding decisions.
+- Primary visuals: KPI tiles (Total / Can Be Onboarded / Insufficient Info / Unsupported), Top Vendors bar chart, Vendor Risk Heatmap (vendor x exposure level), subtype/exposure/onboarding pie charts, full device grid, Public-IP exposure grid (devices reachable on public IPs, derived from DeviceNetworkInfo), and a **Vendor-Pattern Vulnerability Matches** section with Critical/High/Medium/Total KPI tiles and a grid that pattern-matches unmanaged device names against publicly disclosed advisories (CISA KEV, CISA ICS Advisories, vendor PSIRTs).
+- Why it matters: IoT and OT devices are typically under-managed and high-risk. The vendor heatmap, public-IP grid, and CISA-anchored vulnerability pattern match provide direct triage signal for segmentation, onboarding, and CISO-level reporting.
 
 ### Computers & Servers (Unmanaged)
-- What it does: filters DeviceInfo to Workstation, Desktop, Laptop, and Server types and excludes onboarded devices. Shows onboarding posture, OS-family trend, and active unmanaged endpoint count.
-- Primary visuals: KPI tiles, **Onboarding Velocity** (new onboardings over time), **OS-Family Stacked Bar** (Windows / WindowsServer / macOS / Linux), **Cumulative Onboarded** line chart, **Unmanaged Active** line chart, filterable device grid with Vendor and Model.
-- Why it matters: this is the main endpoint coverage view. The trend tiles let leadership track onboarding progress and identify regressions.
+- What it does: filters DeviceInfo to Workstation, Desktop, Laptop, and Server types. Onboarded views are scoped to Windows OS + active sensor; Unmanaged views show all unmanaged Windows/Server endpoints.
+- Primary visuals: KPI tiles, OS distribution pie, sensor-health pie, exposure-level pie, filterable device grid with Vendor and Model, **Onboarding Activity** range KPI tiles (1d / 7d / 30d / 90d), and a **Daily Onboarding Trend** line chart.
+- Why it matters: this is the main endpoint coverage view. The range tiles and daily trend line let leadership see recent onboarding momentum and spot regressions without the noise of left-censored first-seen calculations.
 
 ### Mobile & Tablets (Unmanaged)
 - What it does: filters DeviceInfo to MobilePhone, Smartphone, and Tablet types and excludes onboarded devices.

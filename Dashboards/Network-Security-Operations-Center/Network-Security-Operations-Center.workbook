@@ -136,7 +136,7 @@
             "id": "tab-zeek",
             "cellValue": "Tab",
             "linkTarget": "parameter",
-            "linkLabel": "Zeek IDS",
+            "linkLabel": "Zeek & Suricata",
             "subTarget": "Zeek",
             "style": "link"
           },
@@ -170,6 +170,14 @@
             "linkTarget": "parameter",
             "linkLabel": "Investigation Portal",
             "subTarget": "Investigate",
+            "style": "link"
+          },
+          {
+            "id": "tab-unmanaged",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "Unmanaged & IoT",
+            "subTarget": "Unmanaged",
             "style": "link"
           }
         ]
@@ -237,9 +245,9 @@
             "name": "metric-firewall-blocks",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Syslog\n| where Facility == \"kern\" and (Computer == \"IPfreely\" or Computer == \"Switch\")\n| where SyslogMessage has \"[\" and SyslogMessage has \"]\"\n| extend MAC = extract(@\"\\[([0-9a-fA-F:]{17})\\]\", 1, SyslogMessage)\n| summarize Value = count(), UniqueDevices = dcountif(MAC, isnotempty(MAC)), Sources = dcount(Computer)\n| project Value, Subtitle = strcat(UniqueDevices, \" unique devices | \", Sources, \" network sources\")",
+              "query": "Suricata_CL\n| extend e = parse_json(_raw_s)\n| where tostring(e.event_type) == \"alert\"\n| extend a = e.alert, SrcIp = tostring(e.src_ip)\n| extend Sev = toint(a.severity)\n| summarize Value = count(), Critical = countif(Sev == 1), High = countif(Sev == 2), UniqueSigs = dcount(tostring(a.signature_id)), UniqueSrcs = dcount(SrcIp)\n| project Value, Subtitle = strcat(Critical, \" critical | \", High, \" high | \", UniqueSigs, \" sigs | \", UniqueSrcs, \" src IPs\")",
               "size": 4,
-              "title": "Firewall Blocks",
+              "title": "Suricata Blocks (IDS)",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -381,7 +389,7 @@
             "name": "chart-event-volume-timeline",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let NetFlowEvents = NetFlow_CL\n| summarize Count = count() by bin(TimeGenerated, 1h)\n| extend DataSource = \"NetFlow\";\nlet ZeekEvents = ZeekLogs_CL\n| summarize Count = count() by bin(TimeGenerated, 1h)\n| extend DataSource = \"Zeek IDS\";\nlet DNSEvents = PiholeDNS_CL\n| summarize Count = count() by bin(TimeGenerated, 1h)\n| extend DataSource = \"DNS Sinkhole\";\nlet FirewallEvents = Syslog\n| where Facility == \"kern\" and (Computer == \"IPfreely\" or Computer == \"Switch\")\n| summarize Count = count() by bin(TimeGenerated, 1h)\n| extend DataSource = \"Firewall\";\nNetFlowEvents\n| union ZeekEvents\n| union DNSEvents\n| union FirewallEvents\n| render areachart with (xtitle=\"Time\", ytitle=\"Event Count\", title=\"Multi-Source Event Volume\")",
+              "query": "let NetFlowEvents = NetFlow_CL\n| summarize Count = count() by bin(TimeGenerated, 1h)\n| extend DataSource = \"NetFlow\";\nlet ZeekEvents = ZeekLogs_CL\n| summarize Count = count() by bin(TimeGenerated, 1h)\n| extend DataSource = \"Zeek IDS\";\nlet SuricataEvents = Suricata_CL\n| summarize Count = count() by bin(TimeGenerated, 1h)\n| extend DataSource = \"Suricata IDS\";\nlet DNSEvents = PiholeDNS_CL\n| summarize Count = count() by bin(TimeGenerated, 1h)\n| extend DataSource = \"DNS Sinkhole\";\nlet SuricataAlerts = Suricata_CL\n| extend e = parse_json(_raw_s)\n| where tostring(e.event_type) == \"alert\"\n| summarize Count = count() by bin(TimeGenerated, 1h)\n| extend DataSource = \"Suricata Blocks\";\nNetFlowEvents\n| union ZeekEvents\n| union SuricataEvents\n| union DNSEvents\n| union SuricataAlerts\n| render areachart with (xtitle=\"Time\", ytitle=\"Event Count\", title=\"Multi-Source Event Volume\")",
               "size": 0,
               "title": "All Network Events - Multi-Source Volume Over Time",
               "timeContextFromParameter": "TimeRange",
@@ -396,7 +404,7 @@
             "name": "chart-data-source-pie",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let NetFlowData = NetFlow_CL | summarize EventCount = count() | extend DataSource = \"NetFlow\";\nlet ZeekData = ZeekLogs_CL | summarize EventCount = count() | extend DataSource = \"Zeek IDS\";\nlet DNSData = PiholeDNS_CL | summarize EventCount = count() | extend DataSource = \"DNS Sinkhole\";\nlet FirewallData = Syslog | where Facility == \"kern\" and (Computer == \"IPfreely\" or Computer == \"Switch\") | summarize EventCount = count() | extend DataSource = \"Firewall\";\nNetFlowData\n| union ZeekData\n| union DNSData\n| union FirewallData\n| where EventCount > 0\n| project DataSource, EventCount\n| render piechart with (title=\"Event Distribution by Source\")",
+              "query": "let NetFlowData = NetFlow_CL | summarize EventCount = count() | extend DataSource = \"NetFlow\";\nlet ZeekData = ZeekLogs_CL | summarize EventCount = count() | extend DataSource = \"Zeek IDS\";\nlet SuricataData = Suricata_CL | summarize EventCount = count() | extend DataSource = \"Suricata IDS\";\nlet DNSData = PiholeDNS_CL | summarize EventCount = count() | extend DataSource = \"DNS Sinkhole\";\nlet SuricataBlocks = Suricata_CL | extend e = parse_json(_raw_s) | where tostring(e.event_type) == \"alert\" | summarize EventCount = count() | extend DataSource = \"Suricata Blocks\";\nNetFlowData\n| union ZeekData\n| union SuricataData\n| union DNSData\n| union SuricataBlocks\n| where EventCount > 0\n| project DataSource, EventCount\n| render piechart with (title=\"Event Distribution by Source\")",
               "size": 1,
               "title": "Event Volume by Data Source",
               "timeContextFromParameter": "TimeRange",
@@ -423,12 +431,12 @@
           },
           {
             "type": 3,
-            "name": "grid-recent-security-events",
+            "name": "grid-suricata-top-threats",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let FirewallBlocks = Syslog\n| where Facility == \"kern\" and (Computer == \"IPfreely\" or Computer == \"Switch\")\n| where SyslogMessage has \"[\" and SyslogMessage has \"]\"\n| extend SrcIP = extract(@\"SRC=(\\d+\\.\\d+\\.\\d+\\.\\d+)\", 1, SyslogMessage)\n| extend DstIP = extract(@\"DST=(\\d+\\.\\d+\\.\\d+\\.\\d+)\", 1, SyslogMessage)\n| extend DstPort = extract(@\"DPT=(\\d+)\", 1, SyslogMessage)\n| extend RuleName = extract(@\"\\[([^\\]]+)\\]\", 1, SyslogMessage)\n| where isnotempty(SrcIP)\n| project TimeGenerated, EventType = \"Firewall Block\", SrcIP, DstIP, DstPort, Details = RuleName, Severity = \"Medium\", Computer;\nlet ZeekNotices = ZeekLogs_CL\n| where logType_s == \"notice\"\n| extend fields = split(_raw_s, \"\\t\")\n| extend Note = tostring(fields[10])\n| extend Msg = tostring(fields[11])\n| extend SrcIP = case(tostring(fields[2]) != \"-\" and isnotempty(tostring(fields[2])), tostring(fields[2]), tostring(fields[13]) != \"-\" and isnotempty(tostring(fields[13])), tostring(fields[13]), \"\")\n| extend DstIP = case(tostring(fields[4]) != \"-\" and isnotempty(tostring(fields[4])), tostring(fields[4]), tostring(fields[14]) != \"-\" and isnotempty(tostring(fields[14])), tostring(fields[14]), \"\")\n| extend DstPort = iff(tostring(fields[5]) != \"-\", tostring(fields[5]), \"\")\n| extend Details = iff(isnotempty(Msg) and Msg != \"-\", strcat(Note, \": \", Msg), Note)\n| project TimeGenerated, EventType = \"Zeek Notice\", SrcIP, DstIP, DstPort, Details, Severity = \"High\", Computer = tostring(fields[1]);\nFirewallBlocks\n| union ZeekNotices\n| sort by TimeGenerated desc\n| take 50\n| project TimeGenerated, EventType, SrcIP, DstIP, DstPort, Details, Severity, Computer",
+              "query": "// CISO view: Suricata IDS signature hits across the org \u2014 always populated, severity-ranked\nSuricata_CL\n| extend e = parse_json(_raw_s)\n| where tostring(e.event_type) == \"alert\"\n| extend a = e.alert\n| extend Sev = toint(a.severity)\n| extend Severity = case(Sev == 1, \"Critical\", Sev == 2, \"High\", Sev == 3, \"Medium\", Sev == 4, \"Low\", \"Informational\")\n| extend EventType = strcat(\"Suricata: \", tostring(a.category))\n| extend Details = tostring(a.signature)\n| extend SrcIP = tostring(e.src_ip), DstIP = tostring(e.dest_ip), DstPort = tostring(e.dest_port)\n| summarize Hits = count(), TimeGenerated = max(TimeGenerated), FirstSeen = min(TimeGenerated), Sources = make_set(SrcIP, 5), Targets = make_set(DstIP, 5) by EventType, Details, Severity, Sev, DstPort\n| sort by Sev asc, Hits desc\n| take 50\n| project TimeGenerated, EventType, Severity, Hits, Details, DstPort, Sources, Targets, FirstSeen",
               "size": 0,
-              "title": "Recent Security Events (Last 50)",
+              "title": "Top Suricata Threat Signatures (CISO View) \u2014 Severity-Ranked",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -442,8 +450,14 @@
                       "thresholdsGrid": [
                         {
                           "operator": "==",
-                          "thresholdValue": "High",
+                          "thresholdValue": "Critical",
                           "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "High",
+                          "representation": "red",
                           "text": "{0}{1}"
                         },
                         {
@@ -453,13 +467,38 @@
                           "text": "{0}{1}"
                         },
                         {
+                          "operator": "==",
+                          "thresholdValue": "Low",
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        },
+                        {
                           "operator": "Default",
                           "thresholdValue": null,
-                          "representation": "yellow",
+                          "representation": "blue",
                           "text": "{0}{1}"
                         }
                       ]
                     }
+                  },
+                  {
+                    "columnMatch": "Hits",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "Sev",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "Sources",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "Targets",
+                    "formatter": 1
                   }
                 ],
                 "filter": true,
@@ -1796,7 +1835,7 @@
           {
             "type": 1,
             "content": {
-              "json": "## Zeek IDS Deep Analysis\n\nProtocol analysis and behavioral IDS analytics from bridge-mode Zeek capture (Sinkhole \u2192 Cribl \u2192 Sentinel).",
+              "json": "## Zeek & Suricata Deep Analysis\n\nProtocol analysis (Zeek) and signature-based detection (Suricata) from bridge-mode capture on the Sinkhole \u2192 Cribl \u2192 Sentinel pipeline.",
               "style": "info"
             },
             "name": "text-zeek-header"
@@ -1859,27 +1898,131 @@
           },
           {
             "type": 3,
-            "name": "zeek-log-types",
+            "name": "suricata-alerts",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let KnownLogTypes = dynamic(['conn','dns','http','ssl','files','quic','dhcp','software','ntp','stats','ocsp','notice','weird','capture_loss','known_services','known_hosts','x509','tunnel','intel','smtp','ftp','ssh','smb','dpd','radius','rdp','irc','modbus','dce_rpc','kerberos','ntlm','mysql','snmp','sip','syslog','telemetry']);\nZeekLogs_CL\n| where TimeGenerated > ago(1d)\n| extend LogType = tostring(logType_s)\n| where isnotempty(LogType)\n| where LogType in (KnownLogTypes)\n| summarize EventCount = count() by LogType\n| top 20 by EventCount\n| render barchart",
-              "size": 1,
-              "title": "Zeek Log Types Distribution",
+              "query": "// Suricata signature hits (alerts) - exploit / malware / trojan rules firing\nSuricata_CL\n| extend e = parse_json(_raw_s)\n| where tostring(e.event_type) == 'alert'\n| extend a = e.alert\n| extend Signature = tostring(a.signature), Category = tostring(a.category), Severity = toint(a.severity), Sid = tolong(a.signature_id)\n| project TimeGenerated, Severity, Category, Signature, SrcIP=tostring(e.src_ip), SrcPort=toint(e.src_port), DstIP=tostring(e.dest_ip), DstPort=toint(e.dest_port), Proto=tostring(e.proto), Sid\n| summarize Hits=count(), FirstSeen=min(TimeGenerated), LastSeen=max(TimeGenerated), SrcIPs=make_set(SrcIP, 10), DstIPs=make_set(DstIP, 10) by Sid, Signature, Category, Severity\n| sort by Severity asc, Hits desc\n| top 100 by Hits",
+              "size": 0,
+              "title": "Suricata Alerts \u2014 Signature Hits (Exploit / Malware / Trojan)",
+              "noDataMessage": "No Suricata alerts in time range",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "barchart"
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Hits",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "Severity",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "1",
+                          "representation": "redBright",
+                          "text": "1 (High)"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "2",
+                          "representation": "orange",
+                          "text": "2 (Med)"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "3",
+                          "representation": "yellow",
+                          "text": "3 (Low)"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "gray",
+                          "text": "{0}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "SrcIPs",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "DstIPs",
+                    "formatter": 1
+                  }
+                ],
+                "filter": true,
+                "rowLimit": 200
+              }
             },
-            "customWidth": "100"
+            "customWidth": "50"
+          },
+          {
+            "type": 3,
+            "name": "suricata-ja3-ja4",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// Suricata JA3 / JA4 client TLS fingerprints\nSuricata_CL\n| extend e = parse_json(_raw_s)\n| where tostring(e.event_type) == 'tls'\n| extend t = e.tls, SrcIp = tostring(e.src_ip)\n| extend Sni = tostring(t.sni), Ja3 = tostring(t.ja3.hash), Ja3s = tostring(t.ja3s.hash), Ja4 = tostring(t.ja4), Version = tostring(t.version)\n| where isnotempty(Ja3) or isnotempty(Ja4)\n| summarize Conns=count(), DistinctSnis=dcount(Sni), DistinctClients=dcount(SrcIp), Snis=make_set(Sni, 10), Clients=make_set(SrcIp, 10) by Ja3, Ja4, Version\n| sort by Conns desc\n| top 100 by Conns",
+              "size": 0,
+              "title": "Suricata JA3 / JA4 \u2014 TLS Client Fingerprints",
+              "noDataMessage": "No Suricata TLS events in time range",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Conns",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "purple"
+                    }
+                  },
+                  {
+                    "columnMatch": "DistinctSnis",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "turquoise"
+                    }
+                  },
+                  {
+                    "columnMatch": "DistinctClients",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "blue"
+                    }
+                  },
+                  {
+                    "columnMatch": "Snis",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "Clients",
+                    "formatter": 1
+                  }
+                ],
+                "filter": true,
+                "rowLimit": 200
+              }
+            },
+            "customWidth": "50"
           },
           {
             "type": 3,
             "name": "zeek-event-timeline",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let KnownLogTypes = dynamic(['conn','dns','http','ssl','files','quic','dhcp','software','ntp','stats','ocsp','notice','weird','capture_loss','known_services','known_hosts','x509','tunnel','intel','smtp','ftp','ssh','smb','dpd','radius','rdp','irc','modbus','dce_rpc','kerberos','ntlm','mysql','snmp','sip','syslog','telemetry']);\nZeekLogs_CL\n| extend LogType = tostring(logType_s)\n| where isnotempty(LogType) and LogType in (KnownLogTypes)\n| summarize EventCount = count() by bin(TimeGenerated, {TimeRange:grain}), LogType\n| render timechart with (xtitle='Time', ytitle='Event Count', title='Zeek Event Volume by Log Type')",
+              "query": "let KnownLogTypes = dynamic(['conn','dns','http','ssl','files','quic','dhcp','software','ntp','stats','ocsp','notice','weird','capture_loss','known_services','known_hosts','x509','tunnel','intel','smtp','ftp','ssh','smb','dpd','radius','rdp','irc','modbus','dce_rpc','kerberos','ntlm','mysql','snmp','sip','syslog','telemetry']);\nlet Zeek = ZeekLogs_CL\n| extend LogType = tostring(logType_s)\n| where isnotempty(LogType) and LogType in (KnownLogTypes)\n| extend Source = strcat('Zeek:', LogType);\nlet Suricata = Suricata_CL\n| extend EvType = tostring(parse_json(_raw_s).event_type)\n| where isnotempty(EvType)\n| extend Source = strcat('Suricata:', EvType);\nunion Zeek, Suricata\n| summarize EventCount = count() by bin(TimeGenerated, {TimeRange:grain}), Source\n| render timechart with (xtitle='Time', ytitle='Event Count', title='Zeek + Suricata Event Volume by Type')",
               "size": 0,
-              "title": "Zeek Event Volume Over Time",
+              "title": "Zeek + Suricata Event Volume Over Time",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -2240,9 +2383,9 @@
             "name": "unified-domain-search",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let s = tolower(\"{SearchDomain}\");\nunion isfuzzy=true\n  (PiholeDNS_CL\n    | extend Domain = tolower(coalesce(extract(@'query\\[\\w+\\]\\s+(\\S+)\\s+from', 1, _raw_s), extract(@'(?:cached|cached-stale|forwarded|reply|gravity\\s+blocked|regex\\s+blacklisted|config)\\s+(\\S+)\\s+(?:is|to)', 1, _raw_s)))\n    | extend ClientIP = extract(@'\\bfrom\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)', 1, _raw_s)\n    | where isnotempty(Domain) and Domain !in ('<cname>','<ptr>','0.0.0.0','::')\n    | where isempty(s) or Domain has s\n    | project TimeGenerated, Source = 'DNS Sinkhole', Domain, ClientIP),\n  (ZeekLogs_CL\n    | where logType_s == 'dns' and isnotempty(dns_query_s) and dns_query_s != '-'\n    | where isempty(s) or tolower(dns_query_s) has s\n    | project TimeGenerated, Source = 'Zeek DNS', Domain = tolower(dns_query_s), ClientIP = tostring(src_ip_s)),\n  (ZeekLogs_CL\n    | where logType_s == 'ssl'\n    | extend f = split(_raw_s, '\\t')\n    | extend Domain = tolower(tostring(f[9]))\n    | where isnotempty(Domain) and Domain != '-'\n    | where isempty(s) or Domain has s\n    | project TimeGenerated, Source = 'Zeek SSL/SNI', Domain, ClientIP = tostring(src_ip_s)),\n  (ZeekLogs_CL\n    | where logType_s == 'http'\n    | extend f = split(_raw_s, '\\t')\n    | extend Domain = tolower(tostring(f[8]))\n    | where isnotempty(Domain) and Domain != '-'\n    | where isempty(s) or Domain has s\n    | project TimeGenerated, Source = 'Zeek HTTP', Domain, ClientIP = tostring(src_ip_s)),\n  (ZeekLogs_CL\n    | where logType_s == 'socks'\n    | extend f = split(_raw_s, '\\t')\n    | extend Domain = tolower(tostring(f[11]))\n    | where isnotempty(Domain) and Domain != '-'\n    | where isempty(s) or Domain has s\n    | project TimeGenerated, Source = 'Zeek SOCKS', Domain, ClientIP = tostring(src_ip_s)),\n  (DeviceNetworkEvents\n    | where isnotempty(RemoteUrl)\n    | where isempty(s) or tolower(RemoteUrl) has s\n    | project TimeGenerated, Source = 'MDE Network', Domain = tolower(RemoteUrl), ClientIP = tostring(LocalIP))\n| summarize Hits = count(), UniqueClients = dcount(ClientIP), Clients = make_set(ClientIP, 10), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by Source, Domain\n| top 500 by Hits",
+              "query": "let s = tolower(\"{SearchDomain}\");\nunion isfuzzy=true\n  (PiholeDNS_CL\n    | extend Domain = tolower(coalesce(extract(@'query\\[\\w+\\]\\s+(\\S+)\\s+from', 1, _raw_s), extract(@'(?:cached|cached-stale|forwarded|reply|gravity\\s+blocked|regex\\s+blacklisted|config)\\s+(\\S+)\\s+(?:is|to)', 1, _raw_s)))\n    | extend ClientIP = extract(@'\\bfrom\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)', 1, _raw_s)\n    | where isnotempty(Domain) and Domain !in ('<cname>','<ptr>','0.0.0.0','::')\n    | where isempty(s) or Domain has s\n    | project TimeGenerated, Source = 'DNS Sinkhole', Domain, ClientIP),\n  (ZeekLogs_CL\n    | where logType_s == 'dns' and isnotempty(dns_query_s) and dns_query_s != '-'\n    | where isempty(s) or tolower(dns_query_s) has s\n    | project TimeGenerated, Source = 'Zeek DNS', Domain = tolower(dns_query_s), ClientIP = tostring(src_ip_s)),\n  (ZeekLogs_CL\n    | where logType_s == 'ssl'\n    | extend f = split(_raw_s, '\\t')\n    | extend Domain = tolower(tostring(f[9]))\n    | where isnotempty(Domain) and Domain != '-'\n    | where isempty(s) or Domain has s\n    | project TimeGenerated, Source = 'Zeek SSL/SNI', Domain, ClientIP = tostring(src_ip_s)),\n  (ZeekLogs_CL\n    | where logType_s == 'http'\n    | extend f = split(_raw_s, '\\t')\n    | extend Domain = tolower(tostring(f[8]))\n    | where isnotempty(Domain) and Domain != '-'\n    | where isempty(s) or Domain has s\n    | project TimeGenerated, Source = 'Zeek HTTP', Domain, ClientIP = tostring(src_ip_s)),\n  (ZeekLogs_CL\n    | where logType_s == 'socks'\n    | extend f = split(_raw_s, '\\t')\n    | extend Domain = tolower(tostring(f[11]))\n    | where isnotempty(Domain) and Domain != '-'\n    | where isempty(s) or Domain has s\n    | project TimeGenerated, Source = 'Zeek SOCKS', Domain, ClientIP = tostring(src_ip_s)),\n  (DeviceNetworkEvents\n    | where isnotempty(RemoteUrl)\n    | where isempty(s) or tolower(RemoteUrl) has s\n    | project TimeGenerated, Source = 'MDE Network', Domain = tolower(RemoteUrl), ClientIP = tostring(LocalIP)),\n  (Suricata_CL\n    | extend e = parse_json(_raw_s)\n    | where tostring(e.event_type) == 'tls'\n    | extend Domain = tolower(tostring(e.tls.sni))\n    | where isnotempty(Domain)\n    | where isempty(s) or Domain has s\n    | project TimeGenerated, Source = 'Suricata SSL/SNI', Domain, ClientIP = tostring(e.src_ip)),\n  (Suricata_CL\n    | extend e = parse_json(_raw_s)\n    | where tostring(e.event_type) == 'http'\n    | extend Domain = tolower(tostring(e.http.hostname))\n    | where isnotempty(Domain)\n    | where isempty(s) or Domain has s\n    | project TimeGenerated, Source = 'Suricata HTTP', Domain, ClientIP = tostring(e.src_ip)),\n  (Suricata_CL\n    | extend e = parse_json(_raw_s)\n    | where tostring(e.event_type) == 'dns'\n    | extend Domain = tolower(tostring(e.dns.rrname))\n    | where isnotempty(Domain)\n    | where isempty(s) or Domain has s\n    | project TimeGenerated, Source = 'Suricata DNS', Domain, ClientIP = tostring(e.src_ip))\n| summarize Hits = count(), UniqueClients = dcount(ClientIP), Clients = make_set(ClientIP, 10), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by Source, Domain\n| top 500 by Hits",
               "size": 0,
-              "title": "Unified Domain Search - All Sources (DNS Sinkhole + Zeek DNS/SSL/HTTP/SOCKS + MDE)",
+              "title": "Unified Domain Search - All Sources (DNS Sinkhole + Zeek + Suricata + MDE)",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -2347,7 +2490,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let TI = ThreatIntelIndicators | where TimeGenerated > ago(30d) and IsActive == true;\nlet TIip_ind = TI | where ObservableKey in (\"network-traffic:src_ref.value\",\"network-traffic:dst_ref.value\",\"ipv4-addr:value\") | project Ip = tostring(ObservableValue), SourceSystem = tostring(SourceSystem);\nlet TIip_alert = SecurityAlert | where TimeGenerated > ago(30d) | mv-expand todynamic(Entities) | where tostring(Entities.Type) == \"ip\" | extend Ip = tostring(Entities.Address) | where isnotempty(Ip) | project Ip, SourceSystem = \"SecurityAlert\";\nlet TIipMap = union TIip_ind, TIip_alert | summarize SourceSystem = take_any(SourceSystem) by Ip;\nlet TIip = TIipMap | distinct Ip;\nlet TIdomMap = union\n  (TI | where ObservableKey == \"domain-name:value\" | extend d = tolower(tostring(ObservableValue)) | project d, SourceSystem = tostring(SourceSystem)),\n  (TI | where ObservableKey == \"url:value\" | extend d = tolower(extract(@\"^(?:https?://)?([^/:?]+)\", 1, tostring(ObservableValue))) | where isnotempty(d) | project d, SourceSystem = tostring(SourceSystem))\n| summarize SourceSystem = take_any(SourceSystem) by d;\nlet TIdom = TIdomMap | distinct d;\nlet TIurl = TI | where ObservableKey == \"url:value\" | extend u = tolower(tostring(ObservableValue)) | summarize SourceSystem = take_any(tostring(SourceSystem)) by u;\nlet TIhash = TI | where ObservableKey in (\"file:hashes.''SHA-256''\",\"file:hashes.''SHA-1''\",\"file:hashes.MD5\") | extend h = tolower(tostring(ObservableValue)) | summarize SourceSystem = take_any(tostring(SourceSystem)) by h;\nlet ipHits = union\n  (NetFlow_CL | where TimeGenerated > ago(24h) | extend Ip = case(not(ipv4_is_private(SrcIP)), SrcIP, DstIP), Int = case(ipv4_is_private(SrcIP), SrcIP, DstIP) | where Ip in (TIip) | project Ip, Int),\n  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == \"conn\" | extend Ip = case(not(ipv4_is_private(src_ip_s)), src_ip_s, dst_ip_s), Int = case(ipv4_is_private(src_ip_s), src_ip_s, dst_ip_s) | where Ip in (TIip) | project Ip, Int),\n  (DeviceNetworkEvents | where TimeGenerated > ago(24h) | where RemoteIP in (TIip) | project Ip = RemoteIP, Int = LocalIP);\nlet domHits = union\n  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == \"dns\" | extend d = tolower(dns_query_s) | where d in (TIdom) | project d),\n  (PiholeDNS_CL | where TimeGenerated > ago(24h) | extend d = tolower(coalesce(extract(@\"query\\[\\w+\\]\\s+(\\S+)\\s+from\", 1, _raw_s), extract(@\"(?:cached|forwarded|reply)\\s+(\\S+)\\s+(?:is|to)\", 1, _raw_s))) | where d in (TIdom) | project d),\n  (DeviceNetworkEvents | where TimeGenerated > ago(24h) and isnotempty(RemoteUrl) | extend d = tolower(extract(@\"^(?:https?://)?([^/:?]+)\", 1, RemoteUrl)) | where d in (TIdom) | project d);\nlet urlHits = DeviceNetworkEvents | where TimeGenerated > ago(24h) and isnotempty(RemoteUrl) | extend u = tolower(RemoteUrl) | where u in (TIurl) | project u;\nlet hashHits = DeviceFileEvents | where TimeGenerated > ago(24h) | extend h = tolower(coalesce(SHA256, SHA1, MD5)) | where h in (TIhash) | project h;\nlet nonMdeDev = union\n  (NetFlow_CL | where TimeGenerated > ago(24h) | extend Ext = case(not(ipv4_is_private(DstIP)), DstIP, SrcIP), Int = case(ipv4_is_private(SrcIP), SrcIP, DstIP) | where Ext in (TIip) and ipv4_is_private(Int) | project Int),\n  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == \"conn\" | extend Ext = case(not(ipv4_is_private(dst_ip_s)), dst_ip_s, src_ip_s), Int = case(ipv4_is_private(src_ip_s), src_ip_s, dst_ip_s) | where Ext in (TIip) and ipv4_is_private(Int) | project Int),\n  (PiholeDNS_CL | where TimeGenerated > ago(24h) | extend d = tolower(coalesce(extract(@\"query\\[\\w+\\]\\s+(\\S+)\\s+from\", 1, _raw_s), extract(@\"(?:cached|forwarded|reply)\\s+(\\S+)\\s+(?:is|to)\", 1, _raw_s))), Int = extract(@\"\\bfrom\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)\", 1, _raw_s) | where d in (TIdom) and isnotempty(Int) | project Int)\n  | distinct Int;\nlet topFeed = union\n  (ipHits | join kind=inner (TIipMap) on Ip | project SourceSystem),\n  (domHits | join kind=inner (TIdomMap) on d | project SourceSystem),\n  (urlHits | join kind=inner (TIurl) on u | project SourceSystem),\n  (hashHits | join kind=inner (TIhash) on h | project SourceSystem)\n  | summarize c = count() by SourceSystem | top 1 by c desc;\nlet topClient = ipHits | where ipv4_is_private(Int) | summarize c = count() by Int | top 1 by c desc;\nlet topCountry = ipHits | summarize c = count() by Ip | join kind=leftouter (ipHits | distinct Ip | extend Geo = geo_info_from_ip_address(Ip) | extend Country = tostring(Geo.country)) on Ip | summarize c = sum(c) by Country | where isnotempty(Country) | top 1 by c desc;\nunion\n  (print Column = \"Active TI Indicators (24h)\", Value = toscalar(TI | count), Detail = \"\"),\n  (print Column = \"TI IP Hits (24h)\", Value = toscalar(ipHits | distinct Ip | count), Detail = \"\"),\n  (print Column = \"TI Domain Hits (24h)\", Value = toscalar(domHits | distinct d | count), Detail = \"\"),\n  (print Column = \"TI URL Hits (24h)\", Value = toscalar(urlHits | distinct u | count), Detail = \"\"),\n  (print Column = \"TI File Hash Hits (24h)\", Value = toscalar(hashHits | distinct h | count), Detail = \"\"),\n  (print Column = \"Non-MDE Devices Touching TI (24h)\", Value = toscalar(nonMdeDev | count), Detail = \"\"),\n  (print Column = \"Top TI Feed (24h)\", Value = coalesce(toscalar(topFeed | project c), long(0)), Detail = coalesce(toscalar(topFeed | project SourceSystem), \"\u2014\")),\n  (print Column = \"Top Threatened Client (24h)\", Value = coalesce(toscalar(topClient | project c), long(0)), Detail = coalesce(toscalar(topClient | project Int), \"\u2014\")),\n  (print Column = \"Top Threat Country (24h)\", Value = coalesce(toscalar(topCountry | project c), long(0)), Detail = coalesce(toscalar(topCountry | project Country), \"\u2014\"))\n\n",
+              "query": "let TI = ThreatIntelIndicators | where TimeGenerated > ago(30d) and IsActive == true;\nlet TIip_ind = TI | where ObservableKey in (\"network-traffic:src_ref.value\",\"network-traffic:dst_ref.value\",\"ipv4-addr:value\") | project Ip = tostring(ObservableValue), SourceSystem = tostring(SourceSystem);\nlet TIip_alert = SecurityAlert | where TimeGenerated > ago(30d) | mv-expand todynamic(Entities) | where tostring(Entities.Type) == \"ip\" | extend Ip = tostring(Entities.Address) | where isnotempty(Ip) | project Ip, SourceSystem = \"SecurityAlert\";\nlet TIipMap = union TIip_ind, TIip_alert | summarize SourceSystem = take_any(SourceSystem) by Ip;\nlet TIip = TIipMap | distinct Ip;\nlet TIdomMap = union\n  (TI | where ObservableKey == \"domain-name:value\" | extend d = tolower(tostring(ObservableValue)) | project d, SourceSystem = tostring(SourceSystem)),\n  (TI | where ObservableKey == \"url:value\" | extend d = tolower(extract(@\"^(?:https?://)?([^/:?]+)\", 1, tostring(ObservableValue))) | where isnotempty(d) | project d, SourceSystem = tostring(SourceSystem))\n| summarize SourceSystem = take_any(SourceSystem) by d;\nlet TIdom = TIdomMap | distinct d;\nlet TIurl = TI | where ObservableKey == \"url:value\" | extend u = tolower(tostring(ObservableValue)) | summarize SourceSystem = take_any(tostring(SourceSystem)) by u;\nlet TIhash = TI | where ObservableKey in (\"file:hashes.''SHA-256''\",\"file:hashes.''SHA-1''\",\"file:hashes.MD5\") | extend h = tolower(tostring(ObservableValue)) | summarize SourceSystem = take_any(tostring(SourceSystem)) by h;\nlet ipHits = union\n  (NetFlow_CL | where TimeGenerated > ago(24h) | extend Ip = case(not(ipv4_is_private(SrcIP)), SrcIP, DstIP), Int = case(ipv4_is_private(SrcIP), SrcIP, DstIP) | where Ip in (TIip) | project Ip, Int),\n  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == \"conn\" | extend Ip = case(not(ipv4_is_private(src_ip_s)), src_ip_s, dst_ip_s), Int = case(ipv4_is_private(src_ip_s), src_ip_s, dst_ip_s) | where Ip in (TIip) | project Ip, Int),\n  (DeviceNetworkEvents | where TimeGenerated > ago(24h) | where RemoteIP in (TIip) | project Ip = RemoteIP, Int = LocalIP);\nlet domHits = union\n  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == \"dns\" | extend d = tolower(dns_query_s) | where d in (TIdom) | project d),\n  (PiholeDNS_CL | where TimeGenerated > ago(24h) | extend d = tolower(coalesce(extract(@\"query\\[\\w+\\]\\s+(\\S+)\\s+from\", 1, _raw_s), extract(@\"(?:cached|forwarded|reply)\\s+(\\S+)\\s+(?:is|to)\", 1, _raw_s))) | where d in (TIdom) | project d),\n  (DeviceNetworkEvents | where TimeGenerated > ago(24h) and isnotempty(RemoteUrl) | extend d = tolower(extract(@\"^(?:https?://)?([^/:?]+)\", 1, RemoteUrl)) | where d in (TIdom) | project d);\nlet urlHits = DeviceNetworkEvents | where TimeGenerated > ago(24h) and isnotempty(RemoteUrl) | extend u = tolower(RemoteUrl) | where u in (TIurl) | project u;\nlet hashHits = DeviceFileEvents | where TimeGenerated > ago(24h) | extend h = tolower(coalesce(SHA256, SHA1, MD5)) | where h in (TIhash) | project h;\nlet nonMdeDev = union\n  (NetFlow_CL | where TimeGenerated > ago(24h) | extend Ext = case(not(ipv4_is_private(DstIP)), DstIP, SrcIP), Int = case(ipv4_is_private(SrcIP), SrcIP, DstIP) | where Ext in (TIip) and ipv4_is_private(Int) | project Int),\n  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == \"conn\" | extend Ext = case(not(ipv4_is_private(dst_ip_s)), dst_ip_s, src_ip_s), Int = case(ipv4_is_private(src_ip_s), src_ip_s, dst_ip_s) | where Ext in (TIip) and ipv4_is_private(Int) | project Int),\n  (PiholeDNS_CL | where TimeGenerated > ago(24h) | extend d = tolower(coalesce(extract(@\"query\\[\\w+\\]\\s+(\\S+)\\s+from\", 1, _raw_s), extract(@\"(?:cached|forwarded|reply)\\s+(\\S+)\\s+(?:is|to)\", 1, _raw_s))), Int = extract(@\"\\bfrom\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)\", 1, _raw_s) | where d in (TIdom) and isnotempty(Int) | project Int)\n  | distinct Int;\nlet topFeed = union\n  (ipHits | join kind=inner (TIipMap) on Ip | project SourceSystem),\n  (domHits | join kind=inner (TIdomMap) on d | project SourceSystem),\n  (urlHits | join kind=inner (TIurl) on u | project SourceSystem),\n  (hashHits | join kind=inner (TIhash) on h | project SourceSystem)\n  | summarize c = count() by SourceSystem | top 1 by c desc;\nlet topCountry = ipHits | summarize c = count() by Ip | join kind=leftouter (ipHits | distinct Ip | extend Geo = geo_info_from_ip_address(Ip) | extend Country = tostring(Geo.country)) on Ip | summarize c = sum(c) by Country | where isnotempty(Country) and Country != \"United States\" | top 1 by c desc;\nlet suriAlerts = Suricata_CL | where TimeGenerated > ago(24h) | extend e = parse_json(_raw_s) | where tostring(e.event_type) == \"alert\";\nlet topSuriSig = suriAlerts | extend Sig = tostring(e.alert.signature) | where isnotempty(Sig) | summarize c = count() by Sig | top 1 by c desc;\nunion\n  (print Column = \"Active TI Indicators (24h)\", Value = toscalar(TI | count), Detail = \"\"),\n  (print Column = \"TI IP Hits (24h)\", Value = toscalar(ipHits | distinct Ip | count), Detail = \"\"),\n  (print Column = \"TI Domain Hits (24h)\", Value = toscalar(domHits | distinct d | count), Detail = \"\"),\n  (print Column = \"TI URL Hits (24h)\", Value = toscalar(urlHits | distinct u | count), Detail = \"\"),\n  (print Column = \"TI File Hash Hits (24h)\", Value = toscalar(hashHits | distinct h | count), Detail = \"\"),\n  (print Column = \"Non-MDE Devices Touching TI (24h)\", Value = toscalar(nonMdeDev | count), Detail = \"\"),\n  (print Column = \"Top TI Feed (24h)\", Value = coalesce(toscalar(topFeed | project c), long(0)), Detail = coalesce(toscalar(topFeed | project SourceSystem), \"\u2014\")),\n  (print Column = \"Suricata Alerts (24h)\", Value = toscalar(suriAlerts | count), Detail = \"\"),\n  (print Column = \"Top Suricata Signature (24h)\", Value = coalesce(toscalar(topSuriSig | project c), long(0)), Detail = coalesce(toscalar(topSuriSig | project Sig), \"\u2014\")),\n  (print Column = \"Top Threat Country (24h, ex-US)\", Value = coalesce(toscalar(topCountry | project c), long(0)), Detail = coalesce(toscalar(topCountry | project Country), \"\u2014\"))\n\n",
               "size": 3,
               "title": "Threat Correlation KPIs (24h)",
               "noDataMessage": "No TI activity in the last 24h",
@@ -2384,7 +2527,7 @@
             "name": "correlation-cross-source-ips",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let TIIPs = ThreatIntelIndicators\n| where TimeGenerated > ago(30d) and IsActive == true\n| where ObservableKey in (\"network-traffic:src_ref.value\",\"network-traffic:dst_ref.value\",\"ipv4-addr:value\")\n| summarize arg_max(TimeGenerated, Confidence, Tags, Pattern, ValidUntil, Id, SourceSystem) by ObservableValue\n| project IP = ObservableValue, TI_Confidence = toint(Confidence), TI_Tags = tostring(Tags), TI_Pattern = tostring(Pattern), TI_ValidUntil = ValidUntil, TI_IndicatorId = tostring(Id), TI_Source = tostring(SourceSystem);\nlet AlertIPs = SecurityAlert\n| where TimeGenerated > ago(30d)\n| extend ents = parse_json(Entities)\n| mv-expand ent = ents\n| where tostring(ent.Type) == \"ip\"\n| extend IP = tostring(ent.Address)\n| where isnotempty(IP) and not(ipv4_is_private(IP))\n| summarize arg_max(TimeGenerated, AlertName, AlertSeverity, Description) by IP\n| project IP, TI_Confidence = toint(case(AlertSeverity == \"High\", 90, AlertSeverity == \"Medium\", 70, 50)), TI_Tags = tostring(AlertName), TI_Pattern = tostring(Description), TI_ValidUntil = TimeGenerated, TI_IndicatorId = \"\", TI_Source = \"SecurityAlert\";\nlet TI = union TIIPs, AlertIPs\n| summarize arg_max(TI_Confidence, TI_Source, TI_Tags, TI_Pattern, TI_ValidUntil, TI_IndicatorId) by IP;\nlet NetFlowIPs = NetFlow_CL\n| extend SrcIPStr = tostring(SrcIP), DstIPStr = tostring(DstIP)\n| extend ExternalIP = iff(not(ipv4_is_private(SrcIPStr)) and isnotempty(SrcIPStr), SrcIPStr, iff(not(ipv4_is_private(DstIPStr)) and isnotempty(DstIPStr), DstIPStr, \"\"))\n| where isnotempty(ExternalIP)\n| summarize NetFlowHits = count() by IP = ExternalIP;\nlet FirewallIPs = Syslog\n| where Facility == \"kern\"\n| extend SrcIP = extract(@\"SRC=(\\d+\\.\\d+\\.\\d+\\.\\d+)\", 1, SyslogMessage)\n| where isnotempty(SrcIP) and not(ipv4_is_private(SrcIP))\n| summarize FirewallBlocks = count() by IP = SrcIP;\nlet ZeekIPs = ZeekLogs_CL\n| extend s = tostring(src_ip_s), d = tostring(dst_ip_s)\n| extend ExternalIP = iff(not(ipv4_is_private(s)) and isnotempty(s) and s != \"-\", s, iff(not(ipv4_is_private(d)) and isnotempty(d) and d != \"-\", d, \"\"))\n| where isnotempty(ExternalIP)\n| summarize ZeekHits = count() by IP = ExternalIP;\nlet MdeIPs = DeviceNetworkEvents\n| extend IP = tostring(RemoteIP)\n| where isnotempty(IP) and not(ipv4_is_private(IP))\n| summarize MdeHits = count() by IP;\nNetFlowIPs\n| join kind=fullouter FirewallIPs on IP\n| join kind=fullouter ZeekIPs on IP\n| join kind=fullouter MdeIPs on IP\n| extend IP = coalesce(IP, IP1, IP2, IP3)\n| extend NetFlowHits = coalesce(NetFlowHits, 0), FirewallBlocks = coalesce(FirewallBlocks, 0), ZeekHits = coalesce(ZeekHits, 0), MdeHits = coalesce(MdeHits, 0)\n| project IP, NetFlowHits, FirewallBlocks, ZeekHits, MdeHits\n| join kind=leftouter TI on IP\n| project-away IP1\n| extend TI_Match = iff(isnotempty(TI_Confidence), \"Yes\", \"No\")\n| extend NonMdeHits = NetFlowHits + FirewallBlocks + ZeekHits\n| extend SourceCount = toint(NetFlowHits > 0) + toint(FirewallBlocks > 0) + toint(ZeekHits > 0) + toint(MdeHits > 0)\n| extend NonMdeOnly = iff(NonMdeHits > 0 and MdeHits == 0, \"Yes\", \"No\")\n| where SourceCount >= 2 or TI_Match == \"Yes\"\n| extend ThreatScore = (NetFlowHits * 0.5) + (FirewallBlocks * 3) + (ZeekHits * 2) + (MdeHits * 2) + iff(TI_Match == \"Yes\", 1000.0 + todouble(coalesce(TI_Confidence, 0)) * 10, 0.0)\n| extend TiPriority = iff(TI_Match == \"Yes\", 1, 0)\n| sort by TiPriority desc, ThreatScore desc\n| take 250\n| project IP, TI_Source, TI_Match, TI_Confidence, SourceCount, ThreatScore, NonMdeOnly, NonMdeHits, NetFlowHits, FirewallBlocks, ZeekHits, MdeHits, TI_Tags, TI_ValidUntil, TI_Pattern, TI_IndicatorId\n",
+              "query": "let TIIPs = ThreatIntelIndicators\n| where TimeGenerated > ago(30d) and IsActive == true\n| where ObservableKey in (\"network-traffic:src_ref.value\",\"network-traffic:dst_ref.value\",\"ipv4-addr:value\")\n| summarize arg_max(TimeGenerated, Confidence, Tags, Pattern, ValidUntil, Id, SourceSystem) by ObservableValue\n| project IP = ObservableValue, TI_Confidence = toint(Confidence), TI_Tags = tostring(Tags), TI_Pattern = tostring(Pattern), TI_ValidUntil = ValidUntil, TI_IndicatorId = tostring(Id), TI_Source = tostring(SourceSystem);\nlet AlertIPs = SecurityAlert\n| where TimeGenerated > ago(30d)\n| extend ents = parse_json(Entities)\n| mv-expand ent = ents\n| where tostring(ent.Type) == \"ip\"\n| extend IP = tostring(ent.Address)\n| where isnotempty(IP) and not(ipv4_is_private(IP))\n| summarize arg_max(TimeGenerated, AlertName, AlertSeverity, Description) by IP\n| project IP, TI_Confidence = toint(case(AlertSeverity == \"High\", 90, AlertSeverity == \"Medium\", 70, 50)), TI_Tags = tostring(AlertName), TI_Pattern = tostring(Description), TI_ValidUntil = TimeGenerated, TI_IndicatorId = \"\", TI_Source = \"SecurityAlert\";\nlet TI = union TIIPs, AlertIPs\n| summarize arg_max(TI_Confidence, TI_Source, TI_Tags, TI_Pattern, TI_ValidUntil, TI_IndicatorId) by IP;\nlet NetFlowIPs = NetFlow_CL\n| extend SrcIPStr = tostring(SrcIP), DstIPStr = tostring(DstIP)\n| extend ExternalIP = iff(not(ipv4_is_private(SrcIPStr)) and isnotempty(SrcIPStr), SrcIPStr, iff(not(ipv4_is_private(DstIPStr)) and isnotempty(DstIPStr), DstIPStr, \"\"))\n| where isnotempty(ExternalIP)\n| summarize NetFlowHits = count() by IP = ExternalIP;\nlet ZeekIPs = ZeekLogs_CL\n| extend s = tostring(src_ip_s), d = tostring(dst_ip_s)\n| extend ExternalIP = iff(not(ipv4_is_private(s)) and isnotempty(s) and s != \"-\", s, iff(not(ipv4_is_private(d)) and isnotempty(d) and d != \"-\", d, \"\"))\n| where isnotempty(ExternalIP)\n| summarize ZeekHits = count() by IP = ExternalIP;\nlet MdeIPs = DeviceNetworkEvents\n| extend IP = tostring(RemoteIP)\n| where isnotempty(IP) and not(ipv4_is_private(IP))\n| summarize MdeHits = count() by IP;\nlet SuricataIPs = Suricata_CL\n| extend e = parse_json(_raw_s)\n| extend s = tostring(e.src_ip), d = tostring(e.dest_ip)\n| extend ExternalIP = iff(not(ipv4_is_private(s)) and isnotempty(s) and s != \"-\", s, iff(not(ipv4_is_private(d)) and isnotempty(d) and d != \"-\", d, \"\"))\n| where isnotempty(ExternalIP)\n| summarize SuricataHits = count() by IP = ExternalIP;\nlet SuricataBlocks = Suricata_CL\n| extend e = parse_json(_raw_s)\n| where tostring(e.event_type) == \"alert\"\n| extend s = tostring(e.src_ip), d = tostring(e.dest_ip)\n| extend ExternalIP = iff(not(ipv4_is_private(s)) and isnotempty(s) and s != \"-\", s, iff(not(ipv4_is_private(d)) and isnotempty(d) and d != \"-\", d, \"\"))\n| where isnotempty(ExternalIP)\n| summarize SuricataBlocks = count() by IP = ExternalIP;\nNetFlowIPs\n| join kind=fullouter ZeekIPs on IP\n| join kind=fullouter MdeIPs on IP\n| join kind=fullouter SuricataIPs on IP\n| join kind=fullouter SuricataBlocks on IP\n| extend IP = coalesce(IP, IP1, IP2, IP3, IP4)\n| extend NetFlowHits = coalesce(NetFlowHits, 0), ZeekHits = coalesce(ZeekHits, 0), MdeHits = coalesce(MdeHits, 0), SuricataHits = coalesce(SuricataHits, 0), SuricataBlocks = coalesce(SuricataBlocks, 0)\n| project IP, NetFlowHits, ZeekHits, MdeHits, SuricataHits, SuricataBlocks\n| join kind=leftouter TI on IP\n| project-away IP1\n| extend TI_Match = iff(isnotempty(TI_Confidence), \"Yes\", \"No\")\n| extend NonMdeHits = NetFlowHits + ZeekHits + SuricataHits\n| extend SourceCount = toint(NetFlowHits > 0) + toint(ZeekHits > 0) + toint(MdeHits > 0) + toint(SuricataHits > 0)\n| extend NonMdeOnly = iff(NonMdeHits > 0 and MdeHits == 0, \"Yes\", \"No\")\n| where SourceCount >= 2 or TI_Match == \"Yes\" or SuricataBlocks > 0\n| extend ThreatScore = (NetFlowHits * 0.5) + (ZeekHits * 2) + (MdeHits * 2) + (SuricataHits * 4) + (SuricataBlocks * 8) + iff(TI_Match == \"Yes\", 1000.0 + todouble(coalesce(TI_Confidence, 0)) * 10, 0.0)\n| extend TiPriority = iff(TI_Match == \"Yes\", 1, 0)\n| sort by TiPriority desc, ThreatScore desc\n| take 250\n| project IP, TI_Source, TI_Match, TI_Confidence, SourceCount, ThreatScore, NonMdeOnly, NonMdeHits, NetFlowHits, ZeekHits, MdeHits, SuricataHits, SuricataBlocks, TI_Tags, TI_ValidUntil, TI_Pattern, TI_IndicatorId\n",
               "size": 0,
               "title": "Cross-Source IP Correlation \u2014 IPs in 2+ sources OR matched by TI/SecurityAlert (TI=30d, includes non-MDE devices)",
               "timeContextFromParameter": "TimeRange",
@@ -2477,17 +2620,24 @@
                     }
                   },
                   {
-                    "columnMatch": "FirewallBlocks",
-                    "formatter": 8,
-                    "formatOptions": {
-                      "palette": "orange"
-                    }
-                  },
-                  {
                     "columnMatch": "MdeHits",
                     "formatter": 8,
                     "formatOptions": {
                       "palette": "coral"
+                    }
+                  },
+                  {
+                    "columnMatch": "SuricataHits",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "SuricataBlocks",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "red"
                     }
                   }
                 ],
@@ -2501,9 +2651,9 @@
             "name": "correlation-ti-ip-matches",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let TIIPs = ThreatIntelIndicators\n| where TimeGenerated > ago(30d) and IsActive == true\n| where ObservableKey in (\"network-traffic:src_ref.value\",\"network-traffic:dst_ref.value\",\"ipv4-addr:value\")\n| summarize arg_max(TimeGenerated, Confidence, Tags, Pattern, ValidUntil, Id, SourceSystem) by ObservableValue\n| project ThreatIP = ObservableValue, Confidence = toint(Confidence), TISource = tostring(SourceSystem), Tags = tostring(Tags), Pattern = tostring(Pattern), ValidUntil, IndicatorId = tostring(Id);\nlet AlertIPs = SecurityAlert\n| where TimeGenerated > ago(30d)\n| mv-expand todynamic(Entities)\n| where tostring(Entities.Type) == \"ip\"\n| extend ThreatIP = tostring(Entities.Address)\n| where ThreatIP matches regex @'^\\d+\\.\\d+\\.\\d+\\.\\d+$' and not(ipv4_is_private(ThreatIP))\n| extend Confidence = toint(case(AlertSeverity==\"High\",90,AlertSeverity==\"Medium\",70,AlertSeverity==\"Low\",50,30))\n| summarize Confidence = max(Confidence), TISource = take_any(\"SecurityAlert\"), Tags = strcat_array(make_set(AlertName,5), \" | \"), Pattern = take_any(\"\"), ValidUntil = max(TimeGenerated), IndicatorId = take_any(\"\") by ThreatIP;\nlet TI = union TIIPs, AlertIPs | summarize arg_max(Confidence, *) by ThreatIP;\nlet NetFlowHits = NetFlow_CL\n| extend SrcIp = tostring(SrcIP), DstIp = tostring(DstIP)\n| extend ThreatIP = case(not(ipv4_is_private(SrcIp)), SrcIp, not(ipv4_is_private(DstIp)), DstIp, \"\")\n| where isnotempty(ThreatIP)\n| extend InternalIP = case(ipv4_is_private(SrcIp), SrcIp, ipv4_is_private(DstIp), DstIp, \"\")\n| summarize NetFlowHits = count(), NetFlowClients = make_set(InternalIP, 10), LastNetFlow = max(TimeGenerated) by ThreatIP;\nlet ZeekConnHits = ZeekLogs_CL\n| where logType_s == \"conn\"\n| extend SrcIp = tostring(src_ip_s), DstIp = tostring(dst_ip_s)\n| extend ThreatIP = case(not(ipv4_is_private(SrcIp)), SrcIp, not(ipv4_is_private(DstIp)), DstIp, \"\")\n| where isnotempty(ThreatIP)\n| extend InternalIP = case(ipv4_is_private(SrcIp), SrcIp, ipv4_is_private(DstIp), DstIp, \"\")\n| summarize ZeekConnHits = count(), ZeekClients = make_set(InternalIP, 10), LastZeek = max(TimeGenerated) by ThreatIP;\nlet FwHits = Syslog\n| where Facility == \"kern\" and SyslogMessage has \"BLOCK\"\n| extend ThreatIP = extract(@'(?:DST|SRC)=([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)', 1, SyslogMessage)\n| extend InternalIP = extract(@'SRC=([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)', 1, SyslogMessage)\n| where isnotempty(ThreatIP) and not(ipv4_is_private(ThreatIP))\n| summarize FwHits = count(), FwClients = make_set(InternalIP, 10), LastFw = max(TimeGenerated) by ThreatIP;\nlet MdeHits = DeviceNetworkEvents\n| where isnotempty(RemoteIP) and not(ipv4_is_private(RemoteIP))\n| summarize MdeHits = count(), MdeDevices = make_set(DeviceName, 10), LastMde = max(TimeGenerated) by ThreatIP = RemoteIP;\nlet PiHoleHits = PiholeDNS_CL\n| extend ThreatIP = extract(@'\b((?:\\d+\\.){3}\\d+)\b', 1, _raw_s)\n| where isnotempty(ThreatIP) and not(ipv4_is_private(ThreatIP))\n| extend ClientIP = extract(@'\bfrom\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)', 1, _raw_s)\n| summarize PiHoleHits = count(), PiHoleClients = make_set(ClientIP, 10), LastPiHole = max(TimeGenerated) by ThreatIP;\nlet MdeIdent = DeviceNetworkInfo\n| extend IPArr = todynamic(IPAddresses)\n| mv-expand IPArr\n| extend InternalIP = tostring(IPArr.IPAddress)\n| where ipv4_is_private(InternalIP)\n| summarize arg_max(Timestamp, MacAddress, DeviceName) by InternalIP\n| project InternalIP, MdeDevice = DeviceName, MdeMac = MacAddress;\nlet DhcpIdent = ZeekLogs_CL\n| where logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\t\")\n| extend InternalIP = tostring(f[7]), DhcpHost = tostring(f[10]), DhcpMac = tostring(f[3])\n| where isnotempty(InternalIP) and ipv4_is_private(InternalIP)\n| summarize arg_max(TimeGenerated, *) by InternalIP\n| project InternalIP, DhcpHost, DhcpMac;\nlet Joined = TI\n| join kind=leftouter NetFlowHits on ThreatIP\n| join kind=leftouter ZeekConnHits on ThreatIP\n| join kind=leftouter FwHits on ThreatIP\n| join kind=leftouter MdeHits on ThreatIP\n| join kind=leftouter PiHoleHits on ThreatIP\n| extend NetFlowHits = coalesce(NetFlowHits,0), ZeekConnHits = coalesce(ZeekConnHits,0), FwHits = coalesce(FwHits,0), MdeHits = coalesce(MdeHits,0), PiHoleHits = coalesce(PiHoleHits,0)\n| extend NonMdeHits = NetFlowHits + ZeekConnHits + FwHits + PiHoleHits\n| extend NonMdeOnly = iff(MdeHits == 0 and NonMdeHits > 0, \"Yes\", \"No\")\n| where NonMdeHits > 0 or MdeHits > 0\n| extend AllClients = array_concat(coalesce(NetFlowClients, dynamic([])), coalesce(ZeekClients, dynamic([])), coalesce(FwClients, dynamic([])), coalesce(PiHoleClients, dynamic([])))\n| extend Sources = strcat(iff(NetFlowHits>0,\"NetFlow \",\"\"), iff(ZeekConnHits>0,\"ZeekConn \",\"\"), iff(FwHits>0,\"FW \",\"\"), iff(PiHoleHits>0,\"DnsSinkhole \",\"\"), iff(MdeHits>0,\"MDE\",\"\"))\n| extend LastSeen = max_of(coalesce(LastNetFlow, datetime(1970-01-01)), coalesce(LastZeek, datetime(1970-01-01)), coalesce(LastFw, datetime(1970-01-01)), coalesce(LastMde, datetime(1970-01-01)), coalesce(LastPiHole, datetime(1970-01-01)));\nJoined\n| mv-expand InternalIP = AllClients to typeof(string)\n| where isnotempty(InternalIP)\n| join kind=leftouter MdeIdent on InternalIP\n| join kind=leftouter DhcpIdent on InternalIP\n| extend ClientName = coalesce(MdeDevice, DhcpHost, InternalIP)\n| extend ClientMac = coalesce(MdeMac, DhcpMac, \"\")\n| extend ClientType = case(isnotempty(MdeDevice), \"MDE Managed\", isnotempty(DhcpHost), \"Non-MDE (DHCP)\", \"Non-MDE (Unknown)\")\n| summarize Clients = make_set(strcat(ClientName, iff(isnotempty(ClientMac), strcat(\" [\",ClientMac,\"]\"), \"\")), 10), ClientTypes = make_set(ClientType, 5), ClientCount = dcount(InternalIP) by ThreatIP, Confidence, TISource, Tags, Sources, NonMdeOnly, NonMdeHits, MdeHits, NetFlowHits, ZeekConnHits, FwHits, PiHoleHits, MdeDevices = tostring(MdeDevices), LastSeen, ValidUntil, Pattern, IndicatorId\n| extend MdeDevices = todynamic(MdeDevices)\n| project ThreatIP, Confidence, TISource, Tags, Sources, NonMdeOnly, NonMdeHits, MdeHits, ClientCount, Clients, ClientTypes, MdeDevices, NetFlowHits, ZeekConnHits, FwHits, PiHoleHits, LastSeen, ValidUntil, Pattern, IndicatorId\n| sort by Confidence desc, NonMdeHits desc\n| top 200 by Confidence",
+              "query": "let TIIPs = ThreatIntelIndicators\n| where TimeGenerated > ago(30d) and IsActive == true\n| where ObservableKey in (\"network-traffic:src_ref.value\",\"network-traffic:dst_ref.value\",\"ipv4-addr:value\")\n| summarize arg_max(TimeGenerated, Confidence, Tags, Pattern, ValidUntil, Id, SourceSystem) by ObservableValue\n| project ThreatIP = ObservableValue, Confidence = toint(Confidence), TISource = tostring(SourceSystem), Tags = tostring(Tags), Pattern = tostring(Pattern), ValidUntil, IndicatorId = tostring(Id);\nlet AlertIPs = SecurityAlert\n| where TimeGenerated > ago(30d)\n| mv-expand todynamic(Entities)\n| where tostring(Entities.Type) == \"ip\"\n| extend ThreatIP = tostring(Entities.Address)\n| where ThreatIP matches regex @'^\\d+\\.\\d+\\.\\d+\\.\\d+$' and not(ipv4_is_private(ThreatIP))\n| extend Confidence = toint(case(AlertSeverity==\"High\",90,AlertSeverity==\"Medium\",70,AlertSeverity==\"Low\",50,30))\n| summarize Confidence = max(Confidence), TISource = take_any(\"SecurityAlert\"), Tags = strcat_array(make_set(AlertName,5), \" | \"), Pattern = take_any(\"\"), ValidUntil = max(TimeGenerated), IndicatorId = take_any(\"\") by ThreatIP;\nlet TI = union TIIPs, AlertIPs | summarize arg_max(Confidence, *) by ThreatIP;\nlet NetFlowHits = NetFlow_CL\n| extend SrcIp = tostring(SrcIP), DstIp = tostring(DstIP)\n| extend ThreatIP = case(not(ipv4_is_private(SrcIp)), SrcIp, not(ipv4_is_private(DstIp)), DstIp, \"\")\n| where isnotempty(ThreatIP)\n| extend InternalIP = case(ipv4_is_private(SrcIp), SrcIp, ipv4_is_private(DstIp), DstIp, \"\")\n| summarize NetFlowHits = count(), NetFlowClients = make_set(InternalIP, 10), LastNetFlow = max(TimeGenerated) by ThreatIP;\nlet ZeekConnHits = ZeekLogs_CL\n| where logType_s == \"conn\"\n| extend SrcIp = tostring(src_ip_s), DstIp = tostring(dst_ip_s)\n| extend ThreatIP = case(not(ipv4_is_private(SrcIp)), SrcIp, not(ipv4_is_private(DstIp)), DstIp, \"\")\n| where isnotempty(ThreatIP)\n| extend InternalIP = case(ipv4_is_private(SrcIp), SrcIp, ipv4_is_private(DstIp), DstIp, \"\")\n| summarize ZeekConnHits = count(), ZeekClients = make_set(InternalIP, 10), LastZeek = max(TimeGenerated) by ThreatIP;\nlet FwHits = Suricata_CL\n| extend e = parse_json(_raw_s)\n| where tostring(e.event_type) == \"alert\"\n| extend SrcIp = tostring(e.src_ip), DstIp = tostring(e.dest_ip)\n| extend ThreatIP = case(not(ipv4_is_private(SrcIp)) and isnotempty(SrcIp), SrcIp, not(ipv4_is_private(DstIp)) and isnotempty(DstIp), DstIp, \"\")\n| extend InternalIP = case(ipv4_is_private(SrcIp), SrcIp, ipv4_is_private(DstIp), DstIp, \"\")\n| where isnotempty(ThreatIP)\n| summarize FwHits = count(), FwClients = make_set(InternalIP, 10), LastFw = max(TimeGenerated) by ThreatIP;\nlet MdeHits = DeviceNetworkEvents\n| where isnotempty(RemoteIP) and not(ipv4_is_private(RemoteIP))\n| summarize MdeHits = count(), MdeDevices = make_set(DeviceName, 10), LastMde = max(TimeGenerated) by ThreatIP = RemoteIP;\nlet SuricataConnHits = Suricata_CL\n| extend e = parse_json(_raw_s)\n| extend SrcIp = tostring(e.src_ip), DstIp = tostring(e.dest_ip)\n| extend ThreatIP = case(not(ipv4_is_private(SrcIp)) and isnotempty(SrcIp), SrcIp, not(ipv4_is_private(DstIp)) and isnotempty(DstIp), DstIp, \"\")\n| where isnotempty(ThreatIP)\n| extend InternalIP = case(ipv4_is_private(SrcIp), SrcIp, ipv4_is_private(DstIp), DstIp, \"\")\n| summarize SuricataHits = count(), SuricataClients = make_set(InternalIP, 10), LastSuricata = max(TimeGenerated) by ThreatIP;\nlet PiHoleHits = PiholeDNS_CL\n| extend ThreatIP = extract(@'\b((?:\\d+\\.){3}\\d+)\b', 1, _raw_s)\n| where isnotempty(ThreatIP) and not(ipv4_is_private(ThreatIP))\n| extend ClientIP = extract(@'\bfrom\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)', 1, _raw_s)\n| summarize PiHoleHits = count(), PiHoleClients = make_set(ClientIP, 10), LastPiHole = max(TimeGenerated) by ThreatIP;\nlet MdeIdent = DeviceNetworkInfo\n| extend IPArr = todynamic(IPAddresses)\n| mv-expand IPArr\n| extend InternalIP = tostring(IPArr.IPAddress)\n| where ipv4_is_private(InternalIP)\n| summarize arg_max(Timestamp, MacAddress, DeviceName) by InternalIP\n| project InternalIP, MdeDevice = DeviceName, MdeMac = MacAddress;\nlet DhcpIdent = ZeekLogs_CL\n| where logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\t\")\n| extend InternalIP = tostring(f[7]), DhcpHost = tostring(f[10]), DhcpMac = tostring(f[3])\n| where isnotempty(InternalIP) and ipv4_is_private(InternalIP)\n| summarize arg_max(TimeGenerated, *) by InternalIP\n| project InternalIP, DhcpHost, DhcpMac;\nlet Joined = TI\n| join kind=leftouter NetFlowHits on ThreatIP\n| join kind=leftouter ZeekConnHits on ThreatIP\n| join kind=leftouter FwHits on ThreatIP\n| join kind=leftouter MdeHits on ThreatIP\n| join kind=leftouter PiHoleHits on ThreatIP\n| join kind=leftouter SuricataConnHits on ThreatIP\n| extend NetFlowHits = coalesce(NetFlowHits,0), ZeekConnHits = coalesce(ZeekConnHits,0), FwHits = coalesce(FwHits,0), MdeHits = coalesce(MdeHits,0), PiHoleHits = coalesce(PiHoleHits,0), SuricataHits = coalesce(SuricataHits,0)\n| extend NonMdeHits = NetFlowHits + ZeekConnHits + FwHits + PiHoleHits + SuricataHits\n| extend NonMdeOnly = iff(MdeHits == 0 and NonMdeHits > 0, \"Yes\", \"No\")\n| where NonMdeHits > 0 or MdeHits > 0\n| extend AllClients = array_concat(coalesce(NetFlowClients, dynamic([])), coalesce(ZeekClients, dynamic([])), coalesce(FwClients, dynamic([])), coalesce(PiHoleClients, dynamic([])), coalesce(SuricataClients, dynamic([])))\n| extend Sources = strcat(iff(NetFlowHits>0,\"NetFlow \",\"\"), iff(ZeekConnHits>0,\"ZeekConn \",\"\"), iff(SuricataHits>0,\"Suricata \",\"\"), iff(FwHits>0,\"FW \",\"\"), iff(PiHoleHits>0,\"DnsSinkhole \",\"\"), iff(MdeHits>0,\"MDE\",\"\"))\n| extend LastSeen = max_of(coalesce(LastNetFlow, datetime(1970-01-01)), coalesce(LastZeek, datetime(1970-01-01)), coalesce(LastFw, datetime(1970-01-01)), coalesce(LastMde, datetime(1970-01-01)), coalesce(LastPiHole, datetime(1970-01-01)), coalesce(LastSuricata, datetime(1970-01-01)));\nJoined\n| mv-expand InternalIP = AllClients to typeof(string)\n| where isnotempty(InternalIP)\n| join kind=leftouter MdeIdent on InternalIP\n| join kind=leftouter DhcpIdent on InternalIP\n| extend ClientName = coalesce(MdeDevice, DhcpHost, InternalIP)\n| extend ClientMac = coalesce(MdeMac, DhcpMac, \"\")\n| extend ClientType = case(isnotempty(MdeDevice), \"MDE Managed\", isnotempty(DhcpHost), \"Non-MDE (DHCP)\", \"Non-MDE (Unknown)\")\n| summarize Clients = make_set(strcat(ClientName, iff(isnotempty(ClientMac), strcat(\" [\",ClientMac,\"]\"), \"\")), 10), ClientTypes = make_set(ClientType, 5), ClientCount = dcount(InternalIP) by ThreatIP, Confidence, TISource, Tags, Sources, NonMdeOnly, NonMdeHits, MdeHits, NetFlowHits, ZeekConnHits, SuricataHits, FwHits, PiHoleHits, MdeDevices = tostring(MdeDevices), LastSeen, ValidUntil, Pattern, IndicatorId\n| extend MdeDevices = todynamic(MdeDevices)\n| project ThreatIP, Confidence, TISource, Tags, Sources, NonMdeOnly, NonMdeHits, MdeHits, ClientCount, Clients, ClientTypes, MdeDevices, NetFlowHits, ZeekConnHits, SuricataHits, FwHits, PiHoleHits, LastSeen, ValidUntil, Pattern, IndicatorId\n| sort by Confidence desc, NonMdeHits desc\n| top 200 by Confidence",
               "size": 0,
-              "title": "TI IP Matches \u2014 TII + SecurityAlert IPs vs NetFlow + Zeek + Firewall + MDE + DNS (TI=30d)",
+              "title": "TI IP Matches \u2014 TII + SecurityAlert IPs vs NetFlow + Zeek + Suricata + MDE + DNS (TI=30d)",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -2528,13 +2678,6 @@
                     "formatter": 8,
                     "formatOptions": {
                       "palette": "purple"
-                    }
-                  },
-                  {
-                    "columnMatch": "FirewallBlocks",
-                    "formatter": 8,
-                    "formatOptions": {
-                      "palette": "orange"
                     }
                   },
                   {
@@ -3031,6 +3174,52 @@
               }
             },
             "customWidth": "100"
+          },
+          {
+            "type": 3,
+            "name": "worldmap-city-non-us",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let Events = union isfuzzy=true\n  (NetFlow_CL\n    | extend SrcIPStr = tostring(SrcIP), DstIPStr = tostring(DstIP)\n    | extend ExternalIP = iff(not(ipv4_is_private(SrcIPStr)) and isnotempty(SrcIPStr), SrcIPStr, iff(not(ipv4_is_private(DstIPStr)) and isnotempty(DstIPStr), DstIPStr, \"\"))\n    | where isnotempty(ExternalIP)\n    | extend SourceType = \"NetFlow\"),\n  (Syslog\n    | where Facility == \"kern\"\n    | extend ExternalIP = extract(@\"SRC=(\\d+\\.\\d+\\.\\d+\\.\\d+)\", 1, SyslogMessage)\n    | where isnotempty(ExternalIP) and not(ipv4_is_private(ExternalIP))\n    | extend SourceType = \"Firewall\"),\n  (DeviceNetworkEvents\n    | extend ExternalIP = tostring(RemoteIP)\n    | where isnotempty(ExternalIP) and not(ipv4_is_private(ExternalIP))\n    | extend SourceType = \"MDE\"),\n  (Suricata_CL\n    | extend e = parse_json(_raw_s)\n    | extend Src = tostring(e.src_ip), Dst = tostring(e.dest_ip)\n    | extend ExternalIP = iff(not(ipv4_is_private(Src)) and isnotempty(Src), Src, iff(not(ipv4_is_private(Dst)) and isnotempty(Dst), Dst, \"\"))\n    | where isnotempty(ExternalIP)\n    | extend SourceType = \"Suricata\"),\n  (ZeekLogs_CL\n    | extend Src = tostring(src_ip_s), Dst = tostring(dst_ip_s)\n    | extend ExternalIP = iff(not(ipv4_is_private(Src)) and isnotempty(Src), Src, iff(not(ipv4_is_private(Dst)) and isnotempty(Dst), Dst, \"\"))\n    | where isnotempty(ExternalIP)\n    | extend SourceType = \"Zeek\");\nEvents\n| extend Geo = geo_info_from_ip_address(ExternalIP)\n| extend Country = tostring(Geo.country), City = tostring(Geo.city), Lat = todouble(Geo.latitude), Lon = todouble(Geo.longitude)\n| where isnotempty(Country) and Country !in (\"United States\", \"United States of America\", \"USA\", \"US\")\n| where isnotempty(City)\n| summarize Events = count(), UniqueIPs = dcount(ExternalIP), Sources = make_set(SourceType, 8), Lat = any(Lat), Lon = any(Lon) by Country, City\n| extend Location = strcat(City, \", \", Country)\n| extend SizeScore = round(log10(Events + 1) * 10, 2)\n| project Country, City, Location, Events, UniqueIPs, Sources, Lat, Lon, SizeScore\n| sort by Events desc\n| take 500",
+              "size": 0,
+              "title": "Top External Threat Cities (Non-US) \u2014 Country / City Heatmap",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "map",
+              "mapSettings": {
+                "locInfo": "LatLong",
+                "locInfoColumn": "Country",
+                "latitude": "Lat",
+                "longitude": "Lon",
+                "sizeSettings": "SizeScore",
+                "sizeAggregation": "Sum",
+                "minSize": 6,
+                "maxSize": 50,
+                "opacity": 0.85,
+                "defaultZoom": 2,
+                "autoZoom": true,
+                "labelSettings": "Location",
+                "legendMetric": "Events",
+                "legendAggregation": "Sum",
+                "numberFormatSettings": {
+                  "unit": 0,
+                  "options": {
+                    "style": "decimal",
+                    "useGrouping": true,
+                    "maximumFractionDigits": 0
+                  }
+                },
+                "itemColorSettings": {
+                  "nodeColorField": "Events",
+                  "colorAggregation": "Sum",
+                  "type": "heatmap",
+                  "heatmapPalette": "yellowOrangeRed"
+                }
+              }
+            },
+            "customWidth": "100",
+            "customHeight": "700"
           }
         ]
       }
@@ -3060,7 +3249,7 @@
             "name": "investigate-timeline",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let searchIP = \"{SearchIP}\";\nlet searchDomain = tolower(\"{SearchDomain}\");\nlet searchMAC = tolower(\"{SearchMAC}\");\nunion isfuzzy=true\n    (NetFlow_CL\n        | where (isempty(searchIP)) or (SrcIP has searchIP or DstIP has searchIP)\n        | where (isempty(searchMAC)) or (tolower(SrcMac) has searchMAC or tolower(DstMac) has searchMAC)\n        | extend Source = \"NetFlow\"\n        | project TimeGenerated, Source),\n    (PiholeDNS_CL\n        | where logType_s == \"pihole-dns\" and isnotempty(_raw_s)\n        | extend Domain = tolower(coalesce(extract(@\"query\\[[\\w/]+\\]\\s+(\\S+)\\s+from\", 1, _raw_s), extract(@\"(?:cached|cached-stale|forwarded|reply|gravity\\s+blocked)\\s+(\\S+)\\s+(?:is|to)\", 1, _raw_s)))\n        | extend ClientIP = extract(@\"\\bfrom\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)\", 1, _raw_s)\n        | where (isempty(searchIP)) or (ClientIP has searchIP)\n        | where (isempty(searchDomain)) or (Domain contains searchDomain)\n        | extend Source = \"PiholeDNS\"\n        | project TimeGenerated, Source),\n    (ZeekLogs_CL\n        | where (isempty(searchIP)) or (src_ip_s has searchIP or dst_ip_s has searchIP)\n        | where (isempty(searchDomain)) or (tolower(coalesce(dns_query_s, \"\")) contains searchDomain)\n        | extend Source = \"Zeek\"\n        | project TimeGenerated, Source),\n    (Syslog\n        | where Computer in (\"IPfreely\", \"Switch\")\n        | where SyslogMessage has \"SRC=\" and SyslogMessage has \"DST=\"\n        | extend SrcIP = extract(@\"SRC=(\\d+\\.\\d+\\.\\d+\\.\\d+)\", 1, SyslogMessage)\n        | extend DstIP = extract(@\"DST=(\\d+\\.\\d+\\.\\d+\\.\\d+)\", 1, SyslogMessage)\n        | where (isempty(searchIP)) or (SrcIP has searchIP or DstIP has searchIP)\n        | extend Source = \"FirewallBlock\"\n        | project TimeGenerated, Source),\n    (DeviceNetworkEvents\n        | where (isempty(searchIP)) or (RemoteIP has searchIP or LocalIP has searchIP)\n        | where (isempty(searchDomain)) or (tolower(coalesce(RemoteUrl, \"\")) contains searchDomain)\n        | extend Source = \"MDE_Network\"\n        | project TimeGenerated, Source)\n| summarize Events = count() by bin(TimeGenerated, 15m), Source\n| sort by TimeGenerated asc",
+              "query": "let searchIP = \"{SearchIP}\";\nlet searchDomain = tolower(\"{SearchDomain}\");\nlet searchMAC = tolower(\"{SearchMAC}\");\nunion isfuzzy=true\n    (NetFlow_CL\n        | where (isempty(searchIP)) or (SrcIP has searchIP or DstIP has searchIP)\n        | where (isempty(searchMAC)) or (tolower(SrcMac) has searchMAC or tolower(DstMac) has searchMAC)\n        | extend Source = \"NetFlow\"\n        | project TimeGenerated, Source),\n    (PiholeDNS_CL\n        | where logType_s == \"pihole-dns\" and isnotempty(_raw_s)\n        | extend Domain = tolower(coalesce(extract(@\"query\\[[\\w/]+\\]\\s+(\\S+)\\s+from\", 1, _raw_s), extract(@\"(?:cached|cached-stale|forwarded|reply|gravity\\s+blocked)\\s+(\\S+)\\s+(?:is|to)\", 1, _raw_s)))\n        | extend ClientIP = extract(@\"\\bfrom\\s+(\\d+\\.\\d+\\.\\d+\\.\\d+)\", 1, _raw_s)\n        | where (isempty(searchIP)) or (ClientIP has searchIP)\n        | where (isempty(searchDomain)) or (Domain contains searchDomain)\n        | extend Source = \"PiholeDNS\"\n        | project TimeGenerated, Source),\n    (ZeekLogs_CL\n        | where (isempty(searchIP)) or (src_ip_s has searchIP or dst_ip_s has searchIP)\n        | where (isempty(searchDomain)) or (tolower(coalesce(dns_query_s, \"\")) contains searchDomain)\n        | extend Source = \"Zeek\"\n        | project TimeGenerated, Source),\n    (Syslog\n        | where Computer in (\"IPfreely\", \"Switch\")\n        | where Facility == \"kern\" and SyslogMessage has \"[\" and SyslogMessage has \"]\"\n        | extend EventCategory = case(SyslogMessage has \"auth\", \"Authentication\", SyslogMessage has \"assoc\", \"Association\", SyslogMessage has \"link\", \"Link\", \"\")\n        | where EventCategory != \"\"\n        | extend Source = \"WiFi/LAN\"\n        | project TimeGenerated, Source),\n    (DeviceNetworkEvents\n        | where (isempty(searchIP)) or (RemoteIP has searchIP or LocalIP has searchIP)\n        | where (isempty(searchDomain)) or (tolower(coalesce(RemoteUrl, \"\")) contains searchDomain)\n        | extend Source = \"MDE_Network\"\n        | project TimeGenerated, Source),\n    (Suricata_CL\n        | extend e = parse_json(_raw_s)\n        | extend SrcIp = tostring(e.src_ip), DstIp = tostring(e.dest_ip), Sni = tolower(tostring(e.tls.sni)), Hostname = tolower(tostring(e.http.hostname)), Rrname = tolower(tostring(e.dns.rrname))\n        | where (isempty(searchIP)) or (SrcIp has searchIP or DstIp has searchIP)\n        | where (isempty(searchDomain)) or (Sni contains searchDomain or Hostname contains searchDomain or Rrname contains searchDomain)\n        | extend Source = \"Suricata\"\n        | project TimeGenerated, Source)\n| summarize Events = count() by bin(TimeGenerated, 15m), Source\n| sort by TimeGenerated asc",
               "size": 0,
               "title": "Unified Event Timeline (All Sources)",
               "timeContextFromParameter": "TimeRange",
@@ -3140,9 +3329,9 @@
             "name": "investigate-firewall",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let searchIP = \"{SearchIP}\";\nSyslog\n| where Computer in (\"IPfreely\", \"Switch\")\n| where SyslogMessage has \"SRC=\" and SyslogMessage has \"DST=\"\n| extend SrcIP = extract(@\"SRC=(\\d+\\.\\d+\\.\\d+\\.\\d+)\", 1, SyslogMessage)\n| extend DstIP = extract(@\"DST=(\\d+\\.\\d+\\.\\d+\\.\\d+)\", 1, SyslogMessage)\n| extend SrcPort = extract(@\"SPT=(\\d+)\", 1, SyslogMessage)\n| extend DstPort = extract(@\"DPT=(\\d+)\", 1, SyslogMessage)\n| extend Proto = extract(@\"PROTO=(\\w+)\", 1, SyslogMessage)\n| extend RuleName = extract(@\"\\[([^\\]]+)\\]\", 1, SyslogMessage)\n| extend InIface = extract(@\"IN=(\\S+)\", 1, SyslogMessage)\n| extend OutIface = extract(@\"OUT=(\\S*)\", 1, SyslogMessage)\n| where isnotempty(SrcIP)\n| where (isempty(searchIP)) or (SrcIP has searchIP or DstIP has searchIP)\n| summarize \n    BlockCount = count(),\n    FirstBlocked = min(TimeGenerated),\n    LastBlocked = max(TimeGenerated),\n    Facilities = make_set(Facility, 5)\n    by Computer, SrcIP, DstIP, DstPort, Protocol = Proto, RuleName, InIface, OutIface\n| sort by BlockCount desc\n| take 200\n| project Computer, SrcIP, DstIP, DstPort, Protocol, RuleName, InIface, OutIface, Facilities, BlockCount, FirstBlocked, LastBlocked",
+              "query": "let searchIP = \"{SearchIP}\";\nSuricata_CL\n| extend e = parse_json(_raw_s)\n| where tostring(e.event_type) == \"alert\"\n| extend a = e.alert\n| extend SrcIP = tostring(e.src_ip), DstIP = tostring(e.dest_ip), DstPort = toint(e.dest_port), SrcPort = toint(e.src_port), Proto = tostring(e.proto)\n| extend Signature = tostring(a.signature), Category = tostring(a.category), Severity = toint(a.severity), Sid = tolong(a.signature_id), Action = tostring(a.action)\n| where isnotempty(SrcIP)\n| where (isempty(searchIP)) or (SrcIP has searchIP or DstIP has searchIP)\n| summarize\n    BlockCount = count(),\n    FirstBlocked = min(TimeGenerated),\n    LastBlocked = max(TimeGenerated),\n    Severities = make_set(Severity, 5),\n    Actions = make_set(Action, 5)\n    by SrcIP, DstIP, DstPort, Protocol = Proto, Signature, Category, Sid\n| sort by BlockCount desc\n| take 200\n| project SrcIP, DstIP, DstPort, Protocol, Signature, Category, Sid, Severities, Actions, BlockCount, FirstBlocked, LastBlocked",
               "size": 0,
-              "title": "Firewall Blocks (Filtered by Search)",
+              "title": "Suricata Blocks (Filtered by Search)",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -3317,6 +3506,436 @@
               }
             },
             "customWidth": "100"
+          }
+        ]
+      }
+    },
+    {
+      "type": 12,
+      "name": "group-unmanaged",
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "Unmanaged"
+      },
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "**Unmanaged & IoT** \u2014 every device on your WiFi/LAN not in MDE (IoT, IoT-style, BYOD); pick a device from the dropdown to focus the tab.",
+              "style": "info"
+            },
+            "name": "unmanaged-header"
+          },
+          {
+            "type": 9,
+            "content": {
+              "version": "KqlParameterItem/1.0",
+              "parameters": [
+                {
+                  "id": "param-unmanaged-device",
+                  "version": "KqlParameterItem/1.0",
+                  "name": "UnmanagedDevice",
+                  "label": "Unmanaged Device",
+                  "type": 2,
+                  "isRequired": false,
+                  "multiSelect": false,
+                  "quote": "'",
+                  "delimiter": ",",
+                  "query": "let MDEMacSet = DeviceNetworkInfo\n| where TimeGenerated > ago(30d) and isnotempty(MacAddress)\n| extend MACNorm = tolower(replace_string(replace_string(tostring(MacAddress),\"-\",\"\"),\":\",\"\"))\n| summarize by MACNorm;\nlet MacFromUnifi = Syslog\n| where Facility == \"kern\" and Computer == \"IPfreely\"\n| extend MAC = extract(@\"\\[([0-9a-fA-F:]{17})\\]\", 1, SyslogMessage)\n| where isnotempty(MAC)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet MacFromDhcp = ZeekLogs_CL\n| where logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend MAC = tostring(f[4])\n| where isnotempty(MAC) and MAC != \"-\" and MAC matches regex @\"^[0-9a-fA-F:]{17}$\"\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet MacFromNetFlow = NetFlow_CL\n| extend SrcIPStr = tostring(SrcIP)\n| where isnotempty(SrcMac) and ipv4_is_private(SrcIPStr)\n| extend MAC = tostring(SrcMac)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet UnmanagedMacsRaw = union MacFromUnifi, MacFromDhcp, MacFromNetFlow\n| summarize FirstSeen = min(FirstSeen), LastSeen = max(LastSeen), Events = sum(Events), MAC = take_any(MAC) by MACNorm\n| join kind=leftanti MDEMacSet on MACNorm;\nlet DhcpHostMap = ZeekLogs_CL\n| where TimeGenerated > ago(30d) and logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend M = tostring(f[4]), HostName = tostring(f[5])\n| where isnotempty(M) and M != \"-\" and isnotempty(HostName) and HostName != \"-\"\n| extend MACNorm = tolower(replace_string(M, \":\", \"\"))\n| summarize arg_max(TimeGenerated, HostName) by MACNorm\n| project MACNorm, DhcpHost = HostName;\nlet UnifiHostMap = Syslog\n| where TimeGenerated > ago(30d) and Facility == \"kern\" and Computer == \"IPfreely\"\n| extend MAC = extract(@\"\\[([0-9a-fA-F:]{17})\\]\", 1, SyslogMessage)\n| where isnotempty(MAC)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| extend UnifiName = extract(@\"hostname[:= ]+(\\S+)\", 1, SyslogMessage)\n| where isnotempty(UnifiName)\n| summarize arg_max(TimeGenerated, UnifiName) by MACNorm\n| project MACNorm, UnifiName;\nlet DhcpIpHistory = ZeekLogs_CL\n| where TimeGenerated > ago(30d) and logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend M = tostring(f[4]), IP = tostring(f[9])\n| where isnotempty(M) and M != \"-\" and isnotempty(IP) and IP != \"-\"\n| extend MACNorm = tolower(replace_string(M, \":\", \"\"))\n| distinct MACNorm, IP;\nlet NetFlowIpHistory = NetFlow_CL\n| extend SrcIPStr = tostring(SrcIP)\n| where isnotempty(SrcMac) and ipv4_is_private(SrcIPStr)\n| extend MACNorm = tolower(replace_string(SrcMac, \":\", \"\"))\n| distinct MACNorm, IP = SrcIPStr;\nlet MacIpAll = union DhcpIpHistory, NetFlowIpHistory | distinct MACNorm, IP;\nlet Unmanaged = UnmanagedMacsRaw\n| join kind=leftouter DhcpHostMap on MACNorm\n| join kind=leftouter UnifiHostMap on MACNorm\n| extend SecondNibble = substring(MACNorm, 1, 1)\n| extend IsRandomMAC = SecondNibble in (\"2\",\"3\",\"6\",\"7\",\"a\",\"b\",\"e\",\"f\")\n| extend FallbackName = iff(IsRandomMAC, strcat(\"Random-MAC-\", substring(MACNorm, 6, 6)), strcat(\"Unidentified-\", substring(MACNorm, 6, 6)))\n| extend DeviceName = coalesce(DhcpHost, UnifiName, FallbackName)\n| project MAC, MACNorm, DeviceName, FirstSeen, LastSeen, Events;\nlet DeviceByIP = Unmanaged\n| join kind=inner MacIpAll on MACNorm\n| project IP, DeviceName, MAC, MACNorm;\nlet UnmanagedSel = Unmanaged\n| where (isempty('')) or (DeviceName == '');\nlet SelMacs = UnmanagedSel | distinct MACNorm;\nlet SelIPs = DeviceByIP | where MACNorm in (SelMacs) | distinct IP;\nUnmanaged | distinct DeviceName | order by DeviceName asc",
+                  "value": "",
+                  "typeSettings": {
+                    "additionalResourceOptions": [],
+                    "showDefault": false
+                  },
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "timeContextFromParameter": "TimeRange"
+                }
+              ],
+              "style": "pills",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "name": "unmanaged-params"
+          },
+          {
+            "type": 3,
+            "name": "unmanaged-worldmap",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let MDEMacSet = DeviceNetworkInfo\n| where TimeGenerated > ago(30d) and isnotempty(MacAddress)\n| extend MACNorm = tolower(replace_string(replace_string(tostring(MacAddress),\"-\",\"\"),\":\",\"\"))\n| summarize by MACNorm;\nlet MacFromUnifi = Syslog\n| where Facility == \"kern\" and Computer == \"IPfreely\"\n| extend MAC = extract(@\"\\[([0-9a-fA-F:]{17})\\]\", 1, SyslogMessage)\n| where isnotempty(MAC)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet MacFromDhcp = ZeekLogs_CL\n| where logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend MAC = tostring(f[4])\n| where isnotempty(MAC) and MAC != \"-\" and MAC matches regex @\"^[0-9a-fA-F:]{17}$\"\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet MacFromNetFlow = NetFlow_CL\n| extend SrcIPStr = tostring(SrcIP)\n| where isnotempty(SrcMac) and ipv4_is_private(SrcIPStr)\n| extend MAC = tostring(SrcMac)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet UnmanagedMacsRaw = union MacFromUnifi, MacFromDhcp, MacFromNetFlow\n| summarize FirstSeen = min(FirstSeen), LastSeen = max(LastSeen), Events = sum(Events), MAC = take_any(MAC) by MACNorm\n| join kind=leftanti MDEMacSet on MACNorm;\nlet DhcpHostMap = ZeekLogs_CL\n| where TimeGenerated > ago(30d) and logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend M = tostring(f[4]), HostName = tostring(f[5])\n| where isnotempty(M) and M != \"-\" and isnotempty(HostName) and HostName != \"-\"\n| extend MACNorm = tolower(replace_string(M, \":\", \"\"))\n| summarize arg_max(TimeGenerated, HostName) by MACNorm\n| project MACNorm, DhcpHost = HostName;\nlet UnifiHostMap = Syslog\n| where TimeGenerated > ago(30d) and Facility == \"kern\" and Computer == \"IPfreely\"\n| extend MAC = extract(@\"\\[([0-9a-fA-F:]{17})\\]\", 1, SyslogMessage)\n| where isnotempty(MAC)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| extend UnifiName = extract(@\"hostname[:= ]+(\\S+)\", 1, SyslogMessage)\n| where isnotempty(UnifiName)\n| summarize arg_max(TimeGenerated, UnifiName) by MACNorm\n| project MACNorm, UnifiName;\nlet DhcpIpHistory = ZeekLogs_CL\n| where TimeGenerated > ago(30d) and logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend M = tostring(f[4]), IP = tostring(f[9])\n| where isnotempty(M) and M != \"-\" and isnotempty(IP) and IP != \"-\"\n| extend MACNorm = tolower(replace_string(M, \":\", \"\"))\n| distinct MACNorm, IP;\nlet NetFlowIpHistory = NetFlow_CL\n| extend SrcIPStr = tostring(SrcIP)\n| where isnotempty(SrcMac) and ipv4_is_private(SrcIPStr)\n| extend MACNorm = tolower(replace_string(SrcMac, \":\", \"\"))\n| distinct MACNorm, IP = SrcIPStr;\nlet MacIpAll = union DhcpIpHistory, NetFlowIpHistory | distinct MACNorm, IP;\nlet Unmanaged = UnmanagedMacsRaw\n| join kind=leftouter DhcpHostMap on MACNorm\n| join kind=leftouter UnifiHostMap on MACNorm\n| extend SecondNibble = substring(MACNorm, 1, 1)\n| extend IsRandomMAC = SecondNibble in (\"2\",\"3\",\"6\",\"7\",\"a\",\"b\",\"e\",\"f\")\n| extend FallbackName = iff(IsRandomMAC, strcat(\"Random-MAC-\", substring(MACNorm, 6, 6)), strcat(\"Unidentified-\", substring(MACNorm, 6, 6)))\n| extend DeviceName = coalesce(DhcpHost, UnifiName, FallbackName)\n| project MAC, MACNorm, DeviceName, FirstSeen, LastSeen, Events;\nlet DeviceByIP = Unmanaged\n| join kind=inner MacIpAll on MACNorm\n| project IP, DeviceName, MAC, MACNorm;\nlet UnmanagedSel = Unmanaged\n| where (isempty('{UnmanagedDevice}')) or (DeviceName == '{UnmanagedDevice}');\nlet SelMacs = UnmanagedSel | distinct MACNorm;\nlet SelIPs = DeviceByIP | where MACNorm in (SelMacs) | distinct IP;\nunion isfuzzy=true\n  (NetFlow_CL\n    | extend SrcIPStr = tostring(SrcIP), DstIPStr = tostring(DstIP)\n    | where SrcIPStr in (SelIPs)\n    | extend ExternalIP = iff(not(ipv4_is_private(DstIPStr)) and isnotempty(DstIPStr), DstIPStr, \"\")\n    | where isnotempty(ExternalIP)\n    | extend Source = \"NetFlow\", Weight = 1.0),\n  (Suricata_CL\n    | extend e = parse_json(_raw_s)\n    | extend SrcIp = tostring(e.src_ip), DstIp = tostring(e.dest_ip)\n    | where SrcIp in (SelIPs)\n    | extend ExternalIP = iff(not(ipv4_is_private(DstIp)) and isnotempty(DstIp), DstIp, \"\")\n    | where isnotempty(ExternalIP)\n    | extend Source = \"Suricata\", Weight = iff(tostring(e.event_type) == \"alert\", 5.0, 2.0)),\n  (ZeekLogs_CL\n    | where logType_s in (\"ssl\",\"http\",\"conn\")\n    | extend f = split(_raw_s, \"\t\")\n    | extend SrcIPZ = tostring(f[2]), DstIPZ = tostring(f[4])\n    | where SrcIPZ in (SelIPs)\n    | extend ExternalIP = iff(not(ipv4_is_private(DstIPZ)) and isnotempty(DstIPZ), DstIPZ, \"\")\n    | where isnotempty(ExternalIP)\n    | extend Source = \"Zeek\", Weight = 2.0)\n| extend Geo = geo_info_from_ip_address(ExternalIP)\n| extend Country = tostring(Geo.country)\n| where isnotempty(Country)\n| where Country !in (\"United States\", \"United States of America\", \"USA\", \"US\")\n| summarize Events = count(), UniqueDestIPs = dcount(ExternalIP), TotalActivity = sum(Weight), Sources = make_set(Source, 6) by Country\n| extend HeatScore = log10(TotalActivity + 1)\n| extend SizeScore = round(log10(Events + 1) * 10, 2)\n| project Country, Events, UniqueDestIPs, TotalActivity, HeatScore, SizeScore, Sources\n| sort by TotalActivity desc",
+              "size": 3,
+              "title": "IoT Phone-Home Map \u2014 Where Unmanaged Devices Connect (US Excluded, Heat-Scaled)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "map",
+              "mapSettings": {
+                "locInfo": "CountryRegion",
+                "locInfoColumn": "Country",
+                "sizeSettings": "SizeScore",
+                "sizeAggregation": "Sum",
+                "minSize": 10,
+                "maxSize": 60,
+                "opacity": 0.85,
+                "defaultZoom": 1,
+                "autoZoom": false,
+                "centerLat": 20,
+                "centerLong": 0,
+                "labelSettings": "Country",
+                "legendMetric": "TotalActivity",
+                "legendAggregation": "Sum",
+                "numberFormatSettings": {
+                  "unit": 0,
+                  "options": {
+                    "style": "decimal",
+                    "useGrouping": true,
+                    "maximumFractionDigits": 2,
+                    "maximumSignificantDigits": 4
+                  }
+                },
+                "itemColorSettings": {
+                  "nodeColorField": "HeatScore",
+                  "colorAggregation": "Sum",
+                  "type": "heatmap",
+                  "heatmapPalette": "yellowOrangeRed"
+                }
+              },
+              "chartSettings": {
+                "showMetrics": true,
+                "showLegend": true,
+                "ySettings": {
+                  "min": 0
+                }
+              }
+            },
+            "customWidth": "100",
+            "customHeight": "1600"
+          },
+          {
+            "type": 3,
+            "name": "unmanaged-timeline",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let MDEMacSet = DeviceNetworkInfo\n| where TimeGenerated > ago(30d) and isnotempty(MacAddress)\n| extend MACNorm = tolower(replace_string(replace_string(tostring(MacAddress),\"-\",\"\"),\":\",\"\"))\n| summarize by MACNorm;\nlet MacFromUnifi = Syslog\n| where Facility == \"kern\" and Computer == \"IPfreely\"\n| extend MAC = extract(@\"\\[([0-9a-fA-F:]{17})\\]\", 1, SyslogMessage)\n| where isnotempty(MAC)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet MacFromDhcp = ZeekLogs_CL\n| where logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend MAC = tostring(f[4])\n| where isnotempty(MAC) and MAC != \"-\" and MAC matches regex @\"^[0-9a-fA-F:]{17}$\"\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet MacFromNetFlow = NetFlow_CL\n| extend SrcIPStr = tostring(SrcIP)\n| where isnotempty(SrcMac) and ipv4_is_private(SrcIPStr)\n| extend MAC = tostring(SrcMac)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet UnmanagedMacsRaw = union MacFromUnifi, MacFromDhcp, MacFromNetFlow\n| summarize FirstSeen = min(FirstSeen), LastSeen = max(LastSeen), Events = sum(Events), MAC = take_any(MAC) by MACNorm\n| join kind=leftanti MDEMacSet on MACNorm;\nlet DhcpHostMap = ZeekLogs_CL\n| where TimeGenerated > ago(30d) and logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend M = tostring(f[4]), HostName = tostring(f[5])\n| where isnotempty(M) and M != \"-\" and isnotempty(HostName) and HostName != \"-\"\n| extend MACNorm = tolower(replace_string(M, \":\", \"\"))\n| summarize arg_max(TimeGenerated, HostName) by MACNorm\n| project MACNorm, DhcpHost = HostName;\nlet UnifiHostMap = Syslog\n| where TimeGenerated > ago(30d) and Facility == \"kern\" and Computer == \"IPfreely\"\n| extend MAC = extract(@\"\\[([0-9a-fA-F:]{17})\\]\", 1, SyslogMessage)\n| where isnotempty(MAC)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| extend UnifiName = extract(@\"hostname[:= ]+(\\S+)\", 1, SyslogMessage)\n| where isnotempty(UnifiName)\n| summarize arg_max(TimeGenerated, UnifiName) by MACNorm\n| project MACNorm, UnifiName;\nlet DhcpIpHistory = ZeekLogs_CL\n| where TimeGenerated > ago(30d) and logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend M = tostring(f[4]), IP = tostring(f[9])\n| where isnotempty(M) and M != \"-\" and isnotempty(IP) and IP != \"-\"\n| extend MACNorm = tolower(replace_string(M, \":\", \"\"))\n| distinct MACNorm, IP;\nlet NetFlowIpHistory = NetFlow_CL\n| extend SrcIPStr = tostring(SrcIP)\n| where isnotempty(SrcMac) and ipv4_is_private(SrcIPStr)\n| extend MACNorm = tolower(replace_string(SrcMac, \":\", \"\"))\n| distinct MACNorm, IP = SrcIPStr;\nlet MacIpAll = union DhcpIpHistory, NetFlowIpHistory | distinct MACNorm, IP;\nlet Unmanaged = UnmanagedMacsRaw\n| join kind=leftouter DhcpHostMap on MACNorm\n| join kind=leftouter UnifiHostMap on MACNorm\n| extend SecondNibble = substring(MACNorm, 1, 1)\n| extend IsRandomMAC = SecondNibble in (\"2\",\"3\",\"6\",\"7\",\"a\",\"b\",\"e\",\"f\")\n| extend FallbackName = iff(IsRandomMAC, strcat(\"Random-MAC-\", substring(MACNorm, 6, 6)), strcat(\"Unidentified-\", substring(MACNorm, 6, 6)))\n| extend DeviceName = coalesce(DhcpHost, UnifiName, FallbackName)\n| project MAC, MACNorm, DeviceName, FirstSeen, LastSeen, Events;\nlet DeviceByIP = Unmanaged\n| join kind=inner MacIpAll on MACNorm\n| project IP, DeviceName, MAC, MACNorm;\nlet UnmanagedSel = Unmanaged\n| where (isempty('{UnmanagedDevice}')) or (DeviceName == '{UnmanagedDevice}');\nlet SelMacs = UnmanagedSel | distinct MACNorm;\nlet SelIPs = DeviceByIP | where MACNorm in (SelMacs) | distinct IP;\nlet TopDevices = (\n    union isfuzzy=true\n      (NetFlow_CL\n        | extend SrcIPStr = tostring(SrcIP)\n        | where SrcIPStr in (SelIPs)\n        | project TimeGenerated, IP = SrcIPStr),\n      (Suricata_CL\n        | extend e = parse_json(_raw_s)\n        | extend SrcIp = tostring(e.src_ip)\n        | where SrcIp in (SelIPs)\n        | project TimeGenerated, IP = SrcIp),\n      (ZeekLogs_CL\n        | extend f = split(_raw_s, \"\t\")\n        | extend SrcIPZ = tostring(f[2])\n        | where SrcIPZ in (SelIPs)\n        | project TimeGenerated, IP = SrcIPZ),\n      (PiholeDNS_CL\n        | extend ClientIP = tostring(src_ip_s)\n        | where ClientIP in (SelIPs)\n        | project TimeGenerated, IP = ClientIP)\n    | join kind=inner DeviceByIP on IP\n    | summarize Events = count() by DeviceName\n    | top 10 by Events desc\n    | project DeviceName);\nunion isfuzzy=true\n  (NetFlow_CL\n    | extend SrcIPStr = tostring(SrcIP)\n    | where SrcIPStr in (SelIPs)\n    | project TimeGenerated, IP = SrcIPStr),\n  (Suricata_CL\n    | extend e = parse_json(_raw_s)\n    | extend SrcIp = tostring(e.src_ip)\n    | where SrcIp in (SelIPs)\n    | project TimeGenerated, IP = SrcIp),\n  (ZeekLogs_CL\n    | extend f = split(_raw_s, \"\t\")\n    | extend SrcIPZ = tostring(f[2])\n    | where SrcIPZ in (SelIPs)\n    | project TimeGenerated, IP = SrcIPZ),\n  (PiholeDNS_CL\n    | extend ClientIP = tostring(src_ip_s)\n    | where ClientIP in (SelIPs)\n    | project TimeGenerated, IP = ClientIP)\n| join kind=inner DeviceByIP on IP\n| where DeviceName in (TopDevices)\n| summarize Events = count() by bin(TimeGenerated, 15m), DeviceName\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Activity Timeline \u2014 Top 10 Unmanaged Devices (All Sources)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "areachart",
+              "chartSettings": {
+                "group": "DeviceName",
+                "createOtherGroup": 0,
+                "showLegend": true,
+                "ySettings": {
+                  "numberFormatSettings": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 0
+                    }
+                  }
+                }
+              }
+            },
+            "customWidth": "100"
+          },
+          {
+            "type": 3,
+            "name": "unmanaged-destinations",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let MDEMacSet = DeviceNetworkInfo\n| where TimeGenerated > ago(30d) and isnotempty(MacAddress)\n| extend MACNorm = tolower(replace_string(replace_string(tostring(MacAddress),\"-\",\"\"),\":\",\"\"))\n| summarize by MACNorm;\nlet MacFromUnifi = Syslog\n| where Facility == \"kern\" and Computer == \"IPfreely\"\n| extend MAC = extract(@\"\\[([0-9a-fA-F:]{17})\\]\", 1, SyslogMessage)\n| where isnotempty(MAC)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet MacFromDhcp = ZeekLogs_CL\n| where logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend MAC = tostring(f[4])\n| where isnotempty(MAC) and MAC != \"-\" and MAC matches regex @\"^[0-9a-fA-F:]{17}$\"\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet MacFromNetFlow = NetFlow_CL\n| extend SrcIPStr = tostring(SrcIP)\n| where isnotempty(SrcMac) and ipv4_is_private(SrcIPStr)\n| extend MAC = tostring(SrcMac)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet UnmanagedMacsRaw = union MacFromUnifi, MacFromDhcp, MacFromNetFlow\n| summarize FirstSeen = min(FirstSeen), LastSeen = max(LastSeen), Events = sum(Events), MAC = take_any(MAC) by MACNorm\n| join kind=leftanti MDEMacSet on MACNorm;\nlet DhcpHostMap = ZeekLogs_CL\n| where TimeGenerated > ago(30d) and logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend M = tostring(f[4]), HostName = tostring(f[5])\n| where isnotempty(M) and M != \"-\" and isnotempty(HostName) and HostName != \"-\"\n| extend MACNorm = tolower(replace_string(M, \":\", \"\"))\n| summarize arg_max(TimeGenerated, HostName) by MACNorm\n| project MACNorm, DhcpHost = HostName;\nlet UnifiHostMap = Syslog\n| where TimeGenerated > ago(30d) and Facility == \"kern\" and Computer == \"IPfreely\"\n| extend MAC = extract(@\"\\[([0-9a-fA-F:]{17})\\]\", 1, SyslogMessage)\n| where isnotempty(MAC)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| extend UnifiName = extract(@\"hostname[:= ]+(\\S+)\", 1, SyslogMessage)\n| where isnotempty(UnifiName)\n| summarize arg_max(TimeGenerated, UnifiName) by MACNorm\n| project MACNorm, UnifiName;\nlet DhcpIpHistory = ZeekLogs_CL\n| where TimeGenerated > ago(30d) and logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend M = tostring(f[4]), IP = tostring(f[9])\n| where isnotempty(M) and M != \"-\" and isnotempty(IP) and IP != \"-\"\n| extend MACNorm = tolower(replace_string(M, \":\", \"\"))\n| distinct MACNorm, IP;\nlet NetFlowIpHistory = NetFlow_CL\n| extend SrcIPStr = tostring(SrcIP)\n| where isnotempty(SrcMac) and ipv4_is_private(SrcIPStr)\n| extend MACNorm = tolower(replace_string(SrcMac, \":\", \"\"))\n| distinct MACNorm, IP = SrcIPStr;\nlet MacIpAll = union DhcpIpHistory, NetFlowIpHistory | distinct MACNorm, IP;\nlet Unmanaged = UnmanagedMacsRaw\n| join kind=leftouter DhcpHostMap on MACNorm\n| join kind=leftouter UnifiHostMap on MACNorm\n| extend SecondNibble = substring(MACNorm, 1, 1)\n| extend IsRandomMAC = SecondNibble in (\"2\",\"3\",\"6\",\"7\",\"a\",\"b\",\"e\",\"f\")\n| extend FallbackName = iff(IsRandomMAC, strcat(\"Random-MAC-\", substring(MACNorm, 6, 6)), strcat(\"Unidentified-\", substring(MACNorm, 6, 6)))\n| extend DeviceName = coalesce(DhcpHost, UnifiName, FallbackName)\n| project MAC, MACNorm, DeviceName, FirstSeen, LastSeen, Events;\nlet DeviceByIP = Unmanaged\n| join kind=inner MacIpAll on MACNorm\n| project IP, DeviceName, MAC, MACNorm;\nlet UnmanagedSel = Unmanaged\n| where (isempty('{UnmanagedDevice}')) or (DeviceName == '{UnmanagedDevice}');\nlet SelMacs = UnmanagedSel | distinct MACNorm;\nlet SelIPs = DeviceByIP | where MACNorm in (SelMacs) | distinct IP;\nlet HttpRows = ZeekLogs_CL\n  | where logType_s == \"http\"\n  | extend f = split(_raw_s, \"\t\")\n  | extend SrcIPZ = tostring(f[2]), DstIPZ = tostring(f[4]), Host = tostring(f[8]), URI = tostring(f[9])\n  | where SrcIPZ in (SelIPs)\n  | extend ExternalIP = iff(not(ipv4_is_private(DstIPZ)), DstIPZ, \"\"), HostStr = iff(Host != \"-\" and isnotempty(Host), Host, \"\")\n  | project TimeGenerated, IP = SrcIPZ, ExternalIP, Host = HostStr, URL = iff(isnotempty(HostStr), strcat(\"http://\", HostStr, URI), \"\"), Port = tolong(80), Proto = \"TCP\", Source = \"HTTP\";\nlet SslRows = ZeekLogs_CL\n  | where logType_s == \"ssl\"\n  | extend f = split(_raw_s, \"\t\")\n  | extend SrcIPZ = tostring(f[2]), DstIPZ = tostring(f[4]), Host = tostring(f[9])\n  | where SrcIPZ in (SelIPs)\n  | extend ExternalIP = iff(not(ipv4_is_private(DstIPZ)), DstIPZ, \"\"), HostStr = iff(Host != \"-\" and isnotempty(Host), Host, \"\")\n  | project TimeGenerated, IP = SrcIPZ, ExternalIP, Host = HostStr, URL = iff(isnotempty(HostStr), strcat(\"https://\", HostStr), \"\"), Port = tolong(443), Proto = \"TCP\", Source = \"TLS-SNI\";\nlet DnsRows = PiholeDNS_CL\n  | extend ClientIP = tostring(src_ip_s), Host = tostring(dns_query_s), ReplyIP = tostring(reply_ip_s)\n  | where ClientIP in (SelIPs) and isnotempty(Host)\n  | extend ExternalIP = iff(isnotempty(ReplyIP) and not(ipv4_is_private(ReplyIP)), ReplyIP, \"\")\n  | project TimeGenerated, IP = ClientIP, ExternalIP, Host, URL = strcat(\"dns://\", Host), Port = tolong(53), Proto = \"UDP\", Source = \"DNS\";\nlet NetflowRows = NetFlow_CL\n  | extend SrcIPStr = tostring(SrcIP), DstIPStr = tostring(DstIP)\n  | where SrcIPStr in (SelIPs)\n  | where not(ipv4_is_private(DstIPStr)) and isnotempty(DstIPStr)\n  | project TimeGenerated, IP = SrcIPStr, ExternalIP = DstIPStr, Host = \"\", URL = \"\", Port = tolong(DstPort), Proto = tostring(Protocol), Source = \"NetFlow\";\nlet SuriRows = Suricata_CL\n  | extend e = parse_json(_raw_s)\n  | extend SrcIp = tostring(e.src_ip), DstIp = tostring(e.dest_ip), SuriHost = coalesce(tostring(e.tls.sni), tostring(e.http.hostname), tostring(e.dns.rrname), \"\")\n  | where SrcIp in (SelIPs)\n  | extend ExternalIP = iff(not(ipv4_is_private(DstIp)), DstIp, \"\")\n  | project TimeGenerated, IP = SrcIp, ExternalIP, Host = SuriHost, URL = \"\", Port = tolong(e.dest_port), Proto = tostring(e.proto), Source = strcat(\"Suricata-\", tostring(e.event_type));\nunion isfuzzy=true HttpRows, SslRows, DnsRows, NetflowRows, SuriRows\n| where isnotempty(Host) or isnotempty(ExternalIP)\n| extend Country = iff(isnotempty(ExternalIP), tostring(geo_info_from_ip_address(ExternalIP).country), \"\"),\n         City    = iff(isnotempty(ExternalIP), tostring(geo_info_from_ip_address(ExternalIP).city), \"\")\n| join kind=leftouter DeviceByIP on IP\n| extend DeviceName = coalesce(DeviceName, IP)\n| summarize Events = count(),\n            Sources  = make_set(Source, 8),\n            Ports    = make_set(Port, 10),\n            URLs     = make_set_if(URL, isnotempty(URL), 10),\n            FirstSeen = min(TimeGenerated),\n            LastSeen  = max(TimeGenerated)\n    by DeviceName, MAC, InternalIP = IP, ExternalIP, Host, Country, City, Proto\n| extend HasContext = iff(isnotempty(Host) or array_length(URLs) > 0, 1, 0)\n| project DeviceName, InternalIP, MAC, ExternalIP, Country, City, Host, URLs, Ports, Proto, Sources, Events, FirstSeen, LastSeen, HasContext\n| sort by HasContext desc, Events desc\n| project-away HasContext\n| take 10000",
+              "size": 0,
+              "title": "Device Destinations \u2014 Every IP, Host, URL, Port (per Unmanaged Device)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "DeviceName",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "InternalIP",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "MAC",
+                    "formatter": 5
+                  },
+                  {
+                    "columnMatch": "ExternalIP",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "Country",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "City",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "Host",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "URLs",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "Ports",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "Sources",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "Events",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "FirstSeen",
+                    "formatter": 6
+                  },
+                  {
+                    "columnMatch": "LastSeen",
+                    "formatter": 6
+                  }
+                ],
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "Events",
+                    "sortOrder": 2
+                  }
+                ],
+                "rowLimit": 10000,
+                "labelSettings": []
+              },
+              "sortBy": [
+                {
+                  "itemKey": "Events",
+                  "sortOrder": 2
+                }
+              ]
+            },
+            "customWidth": "100"
+          },
+          {
+            "type": 3,
+            "name": "unmanaged-countries",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let MDEMacSet = DeviceNetworkInfo\n| where TimeGenerated > ago(30d) and isnotempty(MacAddress)\n| extend MACNorm = tolower(replace_string(replace_string(tostring(MacAddress),\"-\",\"\"),\":\",\"\"))\n| summarize by MACNorm;\nlet MacFromUnifi = Syslog\n| where Facility == \"kern\" and Computer == \"IPfreely\"\n| extend MAC = extract(@\"\\[([0-9a-fA-F:]{17})\\]\", 1, SyslogMessage)\n| where isnotempty(MAC)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet MacFromDhcp = ZeekLogs_CL\n| where logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend MAC = tostring(f[4])\n| where isnotempty(MAC) and MAC != \"-\" and MAC matches regex @\"^[0-9a-fA-F:]{17}$\"\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet MacFromNetFlow = NetFlow_CL\n| extend SrcIPStr = tostring(SrcIP)\n| where isnotempty(SrcMac) and ipv4_is_private(SrcIPStr)\n| extend MAC = tostring(SrcMac)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet UnmanagedMacsRaw = union MacFromUnifi, MacFromDhcp, MacFromNetFlow\n| summarize FirstSeen = min(FirstSeen), LastSeen = max(LastSeen), Events = sum(Events), MAC = take_any(MAC) by MACNorm\n| join kind=leftanti MDEMacSet on MACNorm;\nlet DhcpHostMap = ZeekLogs_CL\n| where TimeGenerated > ago(30d) and logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend M = tostring(f[4]), HostName = tostring(f[5])\n| where isnotempty(M) and M != \"-\" and isnotempty(HostName) and HostName != \"-\"\n| extend MACNorm = tolower(replace_string(M, \":\", \"\"))\n| summarize arg_max(TimeGenerated, HostName) by MACNorm\n| project MACNorm, DhcpHost = HostName;\nlet UnifiHostMap = Syslog\n| where TimeGenerated > ago(30d) and Facility == \"kern\" and Computer == \"IPfreely\"\n| extend MAC = extract(@\"\\[([0-9a-fA-F:]{17})\\]\", 1, SyslogMessage)\n| where isnotempty(MAC)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| extend UnifiName = extract(@\"hostname[:= ]+(\\S+)\", 1, SyslogMessage)\n| where isnotempty(UnifiName)\n| summarize arg_max(TimeGenerated, UnifiName) by MACNorm\n| project MACNorm, UnifiName;\nlet DhcpIpHistory = ZeekLogs_CL\n| where TimeGenerated > ago(30d) and logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend M = tostring(f[4]), IP = tostring(f[9])\n| where isnotempty(M) and M != \"-\" and isnotempty(IP) and IP != \"-\"\n| extend MACNorm = tolower(replace_string(M, \":\", \"\"))\n| distinct MACNorm, IP;\nlet NetFlowIpHistory = NetFlow_CL\n| extend SrcIPStr = tostring(SrcIP)\n| where isnotempty(SrcMac) and ipv4_is_private(SrcIPStr)\n| extend MACNorm = tolower(replace_string(SrcMac, \":\", \"\"))\n| distinct MACNorm, IP = SrcIPStr;\nlet MacIpAll = union DhcpIpHistory, NetFlowIpHistory | distinct MACNorm, IP;\nlet Unmanaged = UnmanagedMacsRaw\n| join kind=leftouter DhcpHostMap on MACNorm\n| join kind=leftouter UnifiHostMap on MACNorm\n| extend SecondNibble = substring(MACNorm, 1, 1)\n| extend IsRandomMAC = SecondNibble in (\"2\",\"3\",\"6\",\"7\",\"a\",\"b\",\"e\",\"f\")\n| extend FallbackName = iff(IsRandomMAC, strcat(\"Random-MAC-\", substring(MACNorm, 6, 6)), strcat(\"Unidentified-\", substring(MACNorm, 6, 6)))\n| extend DeviceName = coalesce(DhcpHost, UnifiName, FallbackName)\n| project MAC, MACNorm, DeviceName, FirstSeen, LastSeen, Events;\nlet DeviceByIP = Unmanaged\n| join kind=inner MacIpAll on MACNorm\n| project IP, DeviceName, MAC, MACNorm;\nlet UnmanagedSel = Unmanaged\n| where (isempty('{UnmanagedDevice}')) or (DeviceName == '{UnmanagedDevice}');\nlet SelMacs = UnmanagedSel | distinct MACNorm;\nlet SelIPs = DeviceByIP | where MACNorm in (SelMacs) | distinct IP;\nunion isfuzzy=true\n  (NetFlow_CL\n    | extend SrcIPStr = tostring(SrcIP), DstIPStr = tostring(DstIP)\n    | where SrcIPStr in (SelIPs)\n    | extend ExternalIP = iff(not(ipv4_is_private(DstIPStr)) and isnotempty(DstIPStr), DstIPStr, \"\")\n    | where isnotempty(ExternalIP)),\n  (Suricata_CL\n    | extend e = parse_json(_raw_s)\n    | extend SrcIp = tostring(e.src_ip), DstIp = tostring(e.dest_ip)\n    | where SrcIp in (SelIPs)\n    | extend ExternalIP = iff(not(ipv4_is_private(DstIp)) and isnotempty(DstIp), DstIp, \"\")\n    | where isnotempty(ExternalIP)),\n  (ZeekLogs_CL\n    | where logType_s in (\"ssl\",\"http\",\"conn\")\n    | extend f = split(_raw_s, \"\t\")\n    | extend SrcIPZ = tostring(f[2]), DstIPZ = tostring(f[4])\n    | where SrcIPZ in (SelIPs)\n    | extend ExternalIP = iff(not(ipv4_is_private(DstIPZ)) and isnotempty(DstIPZ), DstIPZ, \"\")\n    | where isnotempty(ExternalIP))\n| extend Country = tostring(geo_info_from_ip_address(ExternalIP).country)\n| where isnotempty(Country)\n| where Country !in (\"United States\", \"United States of America\", \"USA\", \"US\")\n| summarize Events = count(), UniqueIPs = dcount(ExternalIP) by Country\n| top 20 by Events desc",
+              "size": 0,
+              "title": "Top 20 Destination Countries (US Excluded)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart",
+              "chartSettings": {
+                "xAxis": "Country",
+                "yAxis": [
+                  "Events"
+                ],
+                "group": null,
+                "showLegend": true,
+                "ySettings": {
+                  "numberFormatSettings": {
+                    "unit": 17,
+                    "options": {
+                      "style": "decimal",
+                      "maximumFractionDigits": 0
+                    }
+                  }
+                }
+              }
+            },
+            "customWidth": "50"
+          },
+          {
+            "type": 3,
+            "name": "unmanaged-ports",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let MDEMacSet = DeviceNetworkInfo\n| where TimeGenerated > ago(30d) and isnotempty(MacAddress)\n| extend MACNorm = tolower(replace_string(replace_string(tostring(MacAddress),\"-\",\"\"),\":\",\"\"))\n| summarize by MACNorm;\nlet MacFromUnifi = Syslog\n| where Facility == \"kern\" and Computer == \"IPfreely\"\n| extend MAC = extract(@\"\\[([0-9a-fA-F:]{17})\\]\", 1, SyslogMessage)\n| where isnotempty(MAC)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet MacFromDhcp = ZeekLogs_CL\n| where logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend MAC = tostring(f[4])\n| where isnotempty(MAC) and MAC != \"-\" and MAC matches regex @\"^[0-9a-fA-F:]{17}$\"\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet MacFromNetFlow = NetFlow_CL\n| extend SrcIPStr = tostring(SrcIP)\n| where isnotempty(SrcMac) and ipv4_is_private(SrcIPStr)\n| extend MAC = tostring(SrcMac)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet UnmanagedMacsRaw = union MacFromUnifi, MacFromDhcp, MacFromNetFlow\n| summarize FirstSeen = min(FirstSeen), LastSeen = max(LastSeen), Events = sum(Events), MAC = take_any(MAC) by MACNorm\n| join kind=leftanti MDEMacSet on MACNorm;\nlet DhcpHostMap = ZeekLogs_CL\n| where TimeGenerated > ago(30d) and logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend M = tostring(f[4]), HostName = tostring(f[5])\n| where isnotempty(M) and M != \"-\" and isnotempty(HostName) and HostName != \"-\"\n| extend MACNorm = tolower(replace_string(M, \":\", \"\"))\n| summarize arg_max(TimeGenerated, HostName) by MACNorm\n| project MACNorm, DhcpHost = HostName;\nlet UnifiHostMap = Syslog\n| where TimeGenerated > ago(30d) and Facility == \"kern\" and Computer == \"IPfreely\"\n| extend MAC = extract(@\"\\[([0-9a-fA-F:]{17})\\]\", 1, SyslogMessage)\n| where isnotempty(MAC)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| extend UnifiName = extract(@\"hostname[:= ]+(\\S+)\", 1, SyslogMessage)\n| where isnotempty(UnifiName)\n| summarize arg_max(TimeGenerated, UnifiName) by MACNorm\n| project MACNorm, UnifiName;\nlet DhcpIpHistory = ZeekLogs_CL\n| where TimeGenerated > ago(30d) and logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend M = tostring(f[4]), IP = tostring(f[9])\n| where isnotempty(M) and M != \"-\" and isnotempty(IP) and IP != \"-\"\n| extend MACNorm = tolower(replace_string(M, \":\", \"\"))\n| distinct MACNorm, IP;\nlet NetFlowIpHistory = NetFlow_CL\n| extend SrcIPStr = tostring(SrcIP)\n| where isnotempty(SrcMac) and ipv4_is_private(SrcIPStr)\n| extend MACNorm = tolower(replace_string(SrcMac, \":\", \"\"))\n| distinct MACNorm, IP = SrcIPStr;\nlet MacIpAll = union DhcpIpHistory, NetFlowIpHistory | distinct MACNorm, IP;\nlet Unmanaged = UnmanagedMacsRaw\n| join kind=leftouter DhcpHostMap on MACNorm\n| join kind=leftouter UnifiHostMap on MACNorm\n| extend SecondNibble = substring(MACNorm, 1, 1)\n| extend IsRandomMAC = SecondNibble in (\"2\",\"3\",\"6\",\"7\",\"a\",\"b\",\"e\",\"f\")\n| extend FallbackName = iff(IsRandomMAC, strcat(\"Random-MAC-\", substring(MACNorm, 6, 6)), strcat(\"Unidentified-\", substring(MACNorm, 6, 6)))\n| extend DeviceName = coalesce(DhcpHost, UnifiName, FallbackName)\n| project MAC, MACNorm, DeviceName, FirstSeen, LastSeen, Events;\nlet DeviceByIP = Unmanaged\n| join kind=inner MacIpAll on MACNorm\n| project IP, DeviceName, MAC, MACNorm;\nlet UnmanagedSel = Unmanaged\n| where (isempty('{UnmanagedDevice}')) or (DeviceName == '{UnmanagedDevice}');\nlet SelMacs = UnmanagedSel | distinct MACNorm;\nlet SelIPs = DeviceByIP | where MACNorm in (SelMacs) | distinct IP;\nNetFlow_CL\n| extend SrcIPStr = tostring(SrcIP), DstIPStr = tostring(DstIP), Port = toint(DstPort)\n| where SrcIPStr in (SelIPs)\n| where not(ipv4_is_private(DstIPStr)) and isnotempty(DstIPStr)\n| extend Service = case(\n    Port == 53, \"53/DNS\",\n    Port == 80, \"80/HTTP\",\n    Port == 443, \"443/HTTPS\",\n    Port == 22, \"22/SSH\",\n    Port == 23, \"23/Telnet\",\n    Port == 25, \"25/SMTP\",\n    Port == 123, \"123/NTP\",\n    Port == 1883, \"1883/MQTT\",\n    Port == 5060, \"5060/SIP\",\n    Port == 5228, \"5228/GCM\",\n    Port == 8080, \"8080/HTTP-Alt\",\n    Port == 8443, \"8443/HTTPS-Alt\",\n    Port == 8883, \"8883/MQTT-TLS\",\n    Port == 9999, \"9999/RAT?\",\n    Port == 4444, \"4444/RAT?\",\n    strcat(tostring(Port), \"/\", tostring(Protocol)))\n| summarize Events = count(), UniqueDests = dcount(DstIPStr) by Service\n| top 15 by Events desc",
+              "size": 0,
+              "title": "Top 15 Destination Ports / Services",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart",
+              "chartSettings": {
+                "xAxis": "Service",
+                "yAxis": [
+                  "Events"
+                ],
+                "group": null,
+                "showLegend": true
+              }
+            },
+            "customWidth": "50"
+          },
+          {
+            "type": 3,
+            "name": "unmanaged-ti-hits",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let MDEMacSet = DeviceNetworkInfo\n| where TimeGenerated > ago(30d) and isnotempty(MacAddress)\n| extend MACNorm = tolower(replace_string(replace_string(tostring(MacAddress),\"-\",\"\"),\":\",\"\"))\n| summarize by MACNorm;\nlet MacFromUnifi = Syslog\n| where Facility == \"kern\" and Computer == \"IPfreely\"\n| extend MAC = extract(@\"\\[([0-9a-fA-F:]{17})\\]\", 1, SyslogMessage)\n| where isnotempty(MAC)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet MacFromDhcp = ZeekLogs_CL\n| where logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend MAC = tostring(f[4])\n| where isnotempty(MAC) and MAC != \"-\" and MAC matches regex @\"^[0-9a-fA-F:]{17}$\"\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet MacFromNetFlow = NetFlow_CL\n| extend SrcIPStr = tostring(SrcIP)\n| where isnotempty(SrcMac) and ipv4_is_private(SrcIPStr)\n| extend MAC = tostring(SrcMac)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet UnmanagedMacsRaw = union MacFromUnifi, MacFromDhcp, MacFromNetFlow\n| summarize FirstSeen = min(FirstSeen), LastSeen = max(LastSeen), Events = sum(Events), MAC = take_any(MAC) by MACNorm\n| join kind=leftanti MDEMacSet on MACNorm;\nlet DhcpHostMap = ZeekLogs_CL\n| where TimeGenerated > ago(30d) and logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend M = tostring(f[4]), HostName = tostring(f[5])\n| where isnotempty(M) and M != \"-\" and isnotempty(HostName) and HostName != \"-\"\n| extend MACNorm = tolower(replace_string(M, \":\", \"\"))\n| summarize arg_max(TimeGenerated, HostName) by MACNorm\n| project MACNorm, DhcpHost = HostName;\nlet UnifiHostMap = Syslog\n| where TimeGenerated > ago(30d) and Facility == \"kern\" and Computer == \"IPfreely\"\n| extend MAC = extract(@\"\\[([0-9a-fA-F:]{17})\\]\", 1, SyslogMessage)\n| where isnotempty(MAC)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| extend UnifiName = extract(@\"hostname[:= ]+(\\S+)\", 1, SyslogMessage)\n| where isnotempty(UnifiName)\n| summarize arg_max(TimeGenerated, UnifiName) by MACNorm\n| project MACNorm, UnifiName;\nlet DhcpIpHistory = ZeekLogs_CL\n| where TimeGenerated > ago(30d) and logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend M = tostring(f[4]), IP = tostring(f[9])\n| where isnotempty(M) and M != \"-\" and isnotempty(IP) and IP != \"-\"\n| extend MACNorm = tolower(replace_string(M, \":\", \"\"))\n| distinct MACNorm, IP;\nlet NetFlowIpHistory = NetFlow_CL\n| extend SrcIPStr = tostring(SrcIP)\n| where isnotempty(SrcMac) and ipv4_is_private(SrcIPStr)\n| extend MACNorm = tolower(replace_string(SrcMac, \":\", \"\"))\n| distinct MACNorm, IP = SrcIPStr;\nlet MacIpAll = union DhcpIpHistory, NetFlowIpHistory | distinct MACNorm, IP;\nlet Unmanaged = UnmanagedMacsRaw\n| join kind=leftouter DhcpHostMap on MACNorm\n| join kind=leftouter UnifiHostMap on MACNorm\n| extend SecondNibble = substring(MACNorm, 1, 1)\n| extend IsRandomMAC = SecondNibble in (\"2\",\"3\",\"6\",\"7\",\"a\",\"b\",\"e\",\"f\")\n| extend FallbackName = iff(IsRandomMAC, strcat(\"Random-MAC-\", substring(MACNorm, 6, 6)), strcat(\"Unidentified-\", substring(MACNorm, 6, 6)))\n| extend DeviceName = coalesce(DhcpHost, UnifiName, FallbackName)\n| project MAC, MACNorm, DeviceName, FirstSeen, LastSeen, Events;\nlet DeviceByIP = Unmanaged\n| join kind=inner MacIpAll on MACNorm\n| project IP, DeviceName, MAC, MACNorm;\nlet UnmanagedSel = Unmanaged\n| where (isempty('{UnmanagedDevice}')) or (DeviceName == '{UnmanagedDevice}');\nlet SelMacs = UnmanagedSel | distinct MACNorm;\nlet SelIPs = DeviceByIP | where MACNorm in (SelMacs) | distinct IP;\n// Threat Intel from ThreatIntelIndicators (active, last 30d) \u2014 IPv4 + Domain + URL\nlet TIIPs = ThreatIntelIndicators\n| where TimeGenerated > ago(30d) and IsActive == true\n| where ObservableKey in (\"network-traffic:src_ref.value\", \"network-traffic:dst_ref.value\", \"ipv4-addr:value\", \"ipv6-addr:value\")\n| extend Indicator = tostring(ObservableValue)\n| where isnotempty(Indicator)\n| summarize TISources = make_set(tostring(SourceSystem), 5), TILast = max(TimeGenerated) by Indicator\n| extend Kind = \"IP\";\nlet TIDomains = ThreatIntelIndicators\n| where TimeGenerated > ago(30d) and IsActive == true\n| where ObservableKey in (\"domain-name:value\")\n| extend Indicator = tolower(tostring(ObservableValue))\n| where isnotempty(Indicator)\n| summarize TISources = make_set(tostring(SourceSystem), 5), TILast = max(TimeGenerated) by Indicator\n| extend Kind = \"Domain\";\nlet TIDomainsFromUrl = ThreatIntelIndicators\n| where TimeGenerated > ago(30d) and IsActive == true\n| where ObservableKey == \"url:value\"\n| extend Indicator = tolower(extract(@\"^(?:https?://)?([^/:?]+)\", 1, tostring(ObservableValue)))\n| where isnotempty(Indicator)\n| summarize TISources = make_set(tostring(SourceSystem), 5), TILast = max(TimeGenerated) by Indicator\n| extend Kind = \"Domain (from URL)\";\nlet TIAll = union TIIPs, TIDomains, TIDomainsFromUrl;\nlet UnmanagedExtIPs = union isfuzzy=true\n  (NetFlow_CL\n    | extend SrcIPStr = tostring(SrcIP), DstIPStr = tostring(DstIP)\n    | where SrcIPStr in (SelIPs)\n    | extend ExternalIP = iff(not(ipv4_is_private(DstIPStr)) and isnotempty(DstIPStr), DstIPStr, \"\")\n    | where isnotempty(ExternalIP)\n    | project TimeGenerated, IP = SrcIPStr, Indicator = ExternalIP, Source = \"NetFlow\"),\n  (Suricata_CL\n    | extend e = parse_json(_raw_s)\n    | extend SrcIp = tostring(e.src_ip), DstIp = tostring(e.dest_ip)\n    | where SrcIp in (SelIPs)\n    | extend ExternalIP = iff(not(ipv4_is_private(DstIp)) and isnotempty(DstIp), DstIp, \"\")\n    | where isnotempty(ExternalIP)\n    | project TimeGenerated, IP = SrcIp, Indicator = ExternalIP, Source = \"Suricata\"),\n  (ZeekLogs_CL\n    | where logType_s in (\"ssl\",\"http\",\"conn\")\n    | extend f = split(_raw_s, \"\t\")\n    | extend SrcIPZ = tostring(f[2]), DstIPZ = tostring(f[4])\n    | where SrcIPZ in (SelIPs)\n    | extend ExternalIP = iff(not(ipv4_is_private(DstIPZ)) and isnotempty(DstIPZ), DstIPZ, \"\")\n    | where isnotempty(ExternalIP)\n    | project TimeGenerated, IP = SrcIPZ, Indicator = ExternalIP, Source = \"Zeek\");\nlet UnmanagedDomains = union isfuzzy=true\n  (PiholeDNS_CL\n    | extend ClientIP = tostring(src_ip_s), Domain = tolower(tostring(dns_query_s))\n    | where ClientIP in (SelIPs) and isnotempty(Domain)\n    | project TimeGenerated, IP = ClientIP, Indicator = Domain, Source = \"DNS\"),\n  (ZeekLogs_CL\n    | where logType_s == \"ssl\"\n    | extend f = split(_raw_s, \"\t\")\n    | extend SrcIPZ = tostring(f[2]), Host = tolower(tostring(f[9]))\n    | where SrcIPZ in (SelIPs) and isnotempty(Host) and Host != \"-\"\n    | project TimeGenerated, IP = SrcIPZ, Indicator = Host, Source = \"TLS-SNI\"),\n  (ZeekLogs_CL\n    | where logType_s == \"http\"\n    | extend f = split(_raw_s, \"\t\")\n    | extend SrcIPZ = tostring(f[2]), Host = tolower(tostring(f[8]))\n    | where SrcIPZ in (SelIPs) and isnotempty(Host) and Host != \"-\"\n    | project TimeGenerated, IP = SrcIPZ, Indicator = Host, Source = \"HTTP-Host\");\nlet AllUnmanaged = union UnmanagedExtIPs, UnmanagedDomains;\nAllUnmanaged\n| join kind=inner TIAll on Indicator\n| join kind=leftouter DeviceByIP on IP\n| extend DeviceName = coalesce(DeviceName, IP)\n| summarize Hits = count(),\n            LastSeen = max(TimeGenerated),\n            Devices  = make_set(DeviceName, 5),\n            DeviceIPs = make_set(IP, 5),\n            TelemetrySources = make_set(Source, 5),\n            TISources = take_any(TISources)\n    by Indicator, Kind\n| project Indicator, Kind, Hits, Devices, DeviceIPs, TelemetrySources, TISources, LastSeen\n| sort by Hits desc",
+              "size": 0,
+              "title": "Threat Intel Hits on Unmanaged Devices (Last 30d TI \u00d7 Today's Activity)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Indicator",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "Kind",
+                    "formatter": 11
+                  },
+                  {
+                    "columnMatch": "Hits",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "Devices",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "DeviceIPs",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "TelemetrySources",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "TISources",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "LastSeen",
+                    "formatter": 6
+                  }
+                ],
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "Hits",
+                    "sortOrder": 2
+                  }
+                ],
+                "rowLimit": 10000
+              },
+              "sortBy": [
+                {
+                  "itemKey": "Hits",
+                  "sortOrder": 2
+                }
+              ]
+            },
+            "customWidth": "50"
+          },
+          {
+            "type": 3,
+            "name": "unmanaged-suricata-alerts",
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let MDEMacSet = DeviceNetworkInfo\n| where TimeGenerated > ago(30d) and isnotempty(MacAddress)\n| extend MACNorm = tolower(replace_string(replace_string(tostring(MacAddress),\"-\",\"\"),\":\",\"\"))\n| summarize by MACNorm;\nlet MacFromUnifi = Syslog\n| where Facility == \"kern\" and Computer == \"IPfreely\"\n| extend MAC = extract(@\"\\[([0-9a-fA-F:]{17})\\]\", 1, SyslogMessage)\n| where isnotempty(MAC)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet MacFromDhcp = ZeekLogs_CL\n| where logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend MAC = tostring(f[4])\n| where isnotempty(MAC) and MAC != \"-\" and MAC matches regex @\"^[0-9a-fA-F:]{17}$\"\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet MacFromNetFlow = NetFlow_CL\n| extend SrcIPStr = tostring(SrcIP)\n| where isnotempty(SrcMac) and ipv4_is_private(SrcIPStr)\n| extend MAC = tostring(SrcMac)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| summarize FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated), Events = count() by MACNorm, MAC;\nlet UnmanagedMacsRaw = union MacFromUnifi, MacFromDhcp, MacFromNetFlow\n| summarize FirstSeen = min(FirstSeen), LastSeen = max(LastSeen), Events = sum(Events), MAC = take_any(MAC) by MACNorm\n| join kind=leftanti MDEMacSet on MACNorm;\nlet DhcpHostMap = ZeekLogs_CL\n| where TimeGenerated > ago(30d) and logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend M = tostring(f[4]), HostName = tostring(f[5])\n| where isnotempty(M) and M != \"-\" and isnotempty(HostName) and HostName != \"-\"\n| extend MACNorm = tolower(replace_string(M, \":\", \"\"))\n| summarize arg_max(TimeGenerated, HostName) by MACNorm\n| project MACNorm, DhcpHost = HostName;\nlet UnifiHostMap = Syslog\n| where TimeGenerated > ago(30d) and Facility == \"kern\" and Computer == \"IPfreely\"\n| extend MAC = extract(@\"\\[([0-9a-fA-F:]{17})\\]\", 1, SyslogMessage)\n| where isnotempty(MAC)\n| extend MACNorm = tolower(replace_string(MAC, \":\", \"\"))\n| extend UnifiName = extract(@\"hostname[:= ]+(\\S+)\", 1, SyslogMessage)\n| where isnotempty(UnifiName)\n| summarize arg_max(TimeGenerated, UnifiName) by MACNorm\n| project MACNorm, UnifiName;\nlet DhcpIpHistory = ZeekLogs_CL\n| where TimeGenerated > ago(30d) and logType_s == \"dhcp\"\n| extend f = split(_raw_s, \"\\t\")\n| extend M = tostring(f[4]), IP = tostring(f[9])\n| where isnotempty(M) and M != \"-\" and isnotempty(IP) and IP != \"-\"\n| extend MACNorm = tolower(replace_string(M, \":\", \"\"))\n| distinct MACNorm, IP;\nlet NetFlowIpHistory = NetFlow_CL\n| extend SrcIPStr = tostring(SrcIP)\n| where isnotempty(SrcMac) and ipv4_is_private(SrcIPStr)\n| extend MACNorm = tolower(replace_string(SrcMac, \":\", \"\"))\n| distinct MACNorm, IP = SrcIPStr;\nlet MacIpAll = union DhcpIpHistory, NetFlowIpHistory | distinct MACNorm, IP;\nlet Unmanaged = UnmanagedMacsRaw\n| join kind=leftouter DhcpHostMap on MACNorm\n| join kind=leftouter UnifiHostMap on MACNorm\n| extend SecondNibble = substring(MACNorm, 1, 1)\n| extend IsRandomMAC = SecondNibble in (\"2\",\"3\",\"6\",\"7\",\"a\",\"b\",\"e\",\"f\")\n| extend FallbackName = iff(IsRandomMAC, strcat(\"Random-MAC-\", substring(MACNorm, 6, 6)), strcat(\"Unidentified-\", substring(MACNorm, 6, 6)))\n| extend DeviceName = coalesce(DhcpHost, UnifiName, FallbackName)\n| project MAC, MACNorm, DeviceName, FirstSeen, LastSeen, Events;\nlet DeviceByIP = Unmanaged\n| join kind=inner MacIpAll on MACNorm\n| project IP, DeviceName, MAC, MACNorm;\nlet UnmanagedSel = Unmanaged\n| where (isempty('{UnmanagedDevice}')) or (DeviceName == '{UnmanagedDevice}');\nlet SelMacs = UnmanagedSel | distinct MACNorm;\nlet SelIPs = DeviceByIP | where MACNorm in (SelMacs) | distinct IP;\nSuricata_CL\n| extend e = parse_json(_raw_s)\n| where tostring(e.event_type) == \"alert\"\n| extend SrcIp = tostring(e.src_ip), DstIp = tostring(e.dest_ip), a = e.alert\n| where SrcIp in (SelIPs) or DstIp in (SelIPs)\n| extend Signature = tostring(a.signature), Category = tostring(a.category), Sid = tostring(a.signature_id), Severity = toint(a.severity), Action = tostring(a.action)\n| extend InternalIP = iff(SrcIp in (SelIPs), SrcIp, DstIp), ExternalIP = iff(SrcIp in (SelIPs), DstIp, SrcIp)\n| summarize Hits = count(), LastSeen = max(TimeGenerated), ExternalIPs = make_set(ExternalIP, 5), Devices = make_set(InternalIP, 5) by Signature, Category, Sid, Severity, Action\n| top 50 by Hits desc\n| project Signature, Category, Severity, Action, Hits, Devices, ExternalIPs, Sid, LastSeen",
+              "size": 0,
+              "title": "Suricata IDS Alerts on Unmanaged Devices",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Severity",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "1",
+                          "representation": "redBright",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "2",
+                          "representation": "red",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "3",
+                          "representation": "orange",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "thresholdValue": null,
+                          "representation": "yellow",
+                          "text": "{0}{1}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "Hits",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "Devices",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "ExternalIPs",
+                    "formatter": 1
+                  }
+                ],
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "Hits",
+                    "sortOrder": 2
+                  }
+                ]
+              },
+              "sortBy": [
+                {
+                  "itemKey": "Hits",
+                  "sortOrder": 2
+                }
+              ]
+            },
+            "customWidth": "50"
           }
         ]
       }

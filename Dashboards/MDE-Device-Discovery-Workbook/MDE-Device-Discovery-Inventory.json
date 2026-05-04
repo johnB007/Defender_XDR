@@ -218,7 +218,7 @@
                 "showLegend": true,
                 "xAxis": "NetworkName",
                 "group": "Category",
-                "createOtherGroup": 10,
+                "createOtherGroup": 1000,
                 "seriesLabelSettings": [
                   {
                     "seriesName": "Workstation",

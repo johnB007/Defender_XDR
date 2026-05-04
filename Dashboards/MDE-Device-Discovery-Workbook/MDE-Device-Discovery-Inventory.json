@@ -1675,40 +1675,6 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let _df = '{DeviceFilter}';\nlet Base = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform, ExposureLevel, Vendor, Model, PublicIP) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded')\n| extend IsByName = NameLc has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-','vending','access-ctrl','badge-reader','intercom')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint));\nBase\n| extend DaysSinceLastSeen = datetime_diff('day', now(), Timestamp)\n| summarize\n    Active7d = countif(DaysSinceLastSeen <= 7),\n    Stale8to30d = countif(DaysSinceLastSeen between (8 .. 30)),\n    Offline30d = countif(DaysSinceLastSeen > 30),\n    PublicIPExposed = countif(isnotempty(PublicIP))\n| mv-expand kv = pack_array(\n    pack('label','Active (<= 7d)','value',Active7d),\n    pack('label','Stale (8-30d)','value',Stale8to30d),\n    pack('label','Offline (> 30d)','value',Offline30d),\n    pack('label','Public IP Exposed','value',PublicIPExposed))\n| project label = tostring(kv.label), value = toint(kv.value)",
-              "size": 4,
-              "title": "Lifecycle - Unmanaged IoT & OT",
-              "timeContextFromParameter": "TimeRange",
-              "queryType": 0,
-              "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "tiles",
-              "tileSettings": {
-                "showBorder": true,
-                "titleContent": {
-                  "columnMatch": "label"
-                },
-                "leftContent": {
-                  "columnMatch": "value",
-                  "formatter": 12,
-                  "formatOptions": {
-                    "palette": "auto"
-                  },
-                  "numberFormat": {
-                    "unit": 17,
-                    "options": {
-                      "style": "decimal",
-                      "useGrouping": true
-                    }
-                  }
-                }
-              }
-            },
-            "name": "iot-lifecycle-kpi"
-          },
-          {
-            "type": 3,
-            "content": {
-              "version": "KqlItem/1.0",
               "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OSPlatform, OnboardingStatus) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded')\n| extend IsByName = NameLc has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-','vending','access-ctrl','badge-reader','intercom')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| extend TypeLabel=case(DeviceType=~'VoIPPhone','VoIP Phone', DeviceType=~'CommunicationsDevice','Communications Device', DeviceType=~'SmartAppliance','Smart Appliance', DeviceType=~'IoTDevice','IoT Device', DeviceType=~'GameConsole','Game Console', DeviceType=~'MediaPlayer','Media Player', OSPlatform in~ ('IoT','Embedded'),'Embedded / OT', NameLc has_any ('plc','scada','hmi','bms'),'OT (PLC/SCADA/HMI)', NameLc has_any ('hvac','thermostat'),'Building Mgmt (HVAC)', NameLc has_any ('kiosk','pos-','atm-','vending'),'Kiosk / POS', NameLc has_any ('badge-reader','access-ctrl','intercom'),'Physical Access', 'Other IoT')\n| summarize Count=count() by TypeLabel\n| order by Count desc",
               "size": 3,
               "title": "IoT Sub-Type Breakdown",
@@ -1971,7 +1937,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let _df = '{DeviceFilter}';\nlet Base = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform, ExposureLevel, Vendor, Model, PublicIP) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded')\n| extend IsByName = NameLc has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-','vending','access-ctrl','badge-reader','intercom')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint));\nlet _Net = DeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, IPAddresses, MacAddress) by DeviceId\n| mv-expand IPE = parse_json(IPAddresses)\n| extend IP = tostring(IPE.IPAddress)\n| where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.'\n| summarize LastIP = take_any(IP), Mac = take_any(MacAddress) by DeviceId;\nBase\n| where isnotempty(PublicIP)\n| join kind=leftouter _Net on DeviceId\n| extend DaysSinceLastSeen = datetime_diff('day', now(), Timestamp)\n| project DeviceName, DeviceId, DeviceType, Vendor, Model, OSPlatform, PublicIP, LastIP, MAC = Mac, ExposureLevel, DaysSinceLastSeen, LastSeen = Timestamp\n| order by DaysSinceLastSeen asc, DeviceName asc\n| top 100 by LastSeen desc",
+              "query": "let _df = '{DeviceFilter}';\nlet Base = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform, ExposureLevel, Vendor, Model) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded')\n| extend IsByName = NameLc has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-','vending','access-ctrl','badge-reader','intercom')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint));\nlet _Net = DeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, IPAddresses, MacAddress) by DeviceId\n| mv-expand IPE = parse_json(IPAddresses)\n| extend IP = tostring(IPE.IPAddress)\n| where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.'\n       and IP !startswith '10.'\n       and not(IP startswith '172.' and toint(split(IP,'.')[1]) between (16 .. 31))\n       and IP !startswith '192.168.'\n| summarize PublicIPs = make_set(IP, 5), MAC = take_any(MacAddress) by DeviceId;\nBase\n| join kind=inner _Net on DeviceId\n| extend DaysSinceLastSeen = datetime_diff('day', now(), Timestamp)\n| extend PublicIP = tostring(PublicIPs[0])\n| project DeviceName, DeviceId, DeviceType, Vendor, Model, OSPlatform, PublicIP, AllPublicIPs = PublicIPs, MAC, ExposureLevel, DaysSinceLastSeen, LastSeen = Timestamp\n| order by DaysSinceLastSeen asc, DeviceName asc\n| top 100 by LastSeen desc",
               "size": 0,
               "title": "Unmanaged IoT & OT on Public IPs (Top 100)",
               "timeContextFromParameter": "TimeRange",

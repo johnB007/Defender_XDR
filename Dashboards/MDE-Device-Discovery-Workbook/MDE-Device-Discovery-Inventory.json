@@ -2238,6 +2238,35 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
+              "query": "// Distinct device counts within the selected time range (Onboarded vs Unmanaged, Workstation vs Server)\nlet _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| where DeviceType in~ ('Workstation','Desktop','Laptop','Server') or (OSPlatform has_any ('Windows','Linux','macOS') and DeviceType !in~ ('NetworkDevice','Printer','Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo','IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer','MobilePhone','Smartphone','Tablet','Mobile'))\n| where _df == '' or DeviceName has _df\n| summarize arg_max(Timestamp, DeviceType, OSPlatform, OnboardingStatus) by DeviceId\n| extend Kind = case(OSPlatform has 'WindowsServer' or OSPlatform has 'Server' or DeviceType =~ 'Server', 'Server', 'Workstation')\n| extend Onb = OnboardingStatus =~ 'Onboarded'\n| summarize\n    OnbWS = dcountif(DeviceId, Onb and Kind == 'Workstation'),\n    OnbSrv = dcountif(DeviceId, Onb and Kind == 'Server'),\n    UnmWS = dcountif(DeviceId, not(Onb) and Kind == 'Workstation'),\n    UnmSrv = dcountif(DeviceId, not(Onb) and Kind == 'Server')\n| mv-expand kv = pack_array(\n    pack('label','Onboarded - Workstations','value',OnbWS),\n    pack('label','Onboarded - Servers','value',OnbSrv),\n    pack('label','Unmanaged - Workstations','value',UnmWS),\n    pack('label','Unmanaged - Servers','value',UnmSrv))\n| project label = tostring(kv.label), value = toint(kv.value)",
+              "size": 3,
+              "title": "Distinct Devices in Selected Time Range",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "label",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "value",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "min": 0,
+                    "palette": "blue"
+                  }
+                },
+                "showBorder": true
+              }
+            },
+            "name": "computers-range-kpi"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
               "query": "// Onboarded Computers & Servers Reporting Per Day - first day of window trimmed (telemetry edge)\nlet _df = '{DeviceFilter}';\nlet _scope = DeviceInfo\n| where Timestamp {TimeRange}\n| where DeviceType in~ ('Workstation','Desktop','Laptop','Server') or (OSPlatform has_any ('Windows','Linux','macOS') and DeviceType !in~ ('NetworkDevice','Printer','Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo','IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer','MobilePhone','Smartphone','Tablet','Mobile'))\n| where _df == '' or DeviceName has _df;\nlet _firstDay = toscalar(_scope | summarize startofday(min(Timestamp)));\n_scope\n| extend Kind = case(OSPlatform has 'WindowsServer' or OSPlatform has 'Server' or DeviceType =~ 'Server', 'Windows Server', OSPlatform has_any ('Windows10','Windows11') or DeviceType in~ ('Workstation','Desktop','Laptop'), 'Windows Client', OSPlatform =~ 'macOS', 'macOS', OSPlatform =~ 'Linux', 'Linux', 'Other')\n| summarize arg_max(Timestamp, OnboardingStatus) by DeviceId, Day = startofday(Timestamp), Kind\n| where OnboardingStatus =~ 'Onboarded'\n| where Day > _firstDay\n| summarize OnboardedReporting = dcount(DeviceId) by Day, Kind\n| order by Kind asc, Day asc",
               "size": 0,
               "title": "Onboarded Computers & Servers Reporting Per Day (real onboarding spikes show as step-ups; day 1 trimmed)",

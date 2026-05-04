@@ -1,0 +1,526 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "15dcc679-3946-42f8-9f0d-2c6c976c2c7e",
+            "version": "KqlParameterItem/1.0",
+            "name": "timeRangeParam",
+            "label": "Time Range",
+            "type": 4,
+            "isRequired": true,
+            "isGlobal": true,
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 2592000000
+                },
+                {
+                  "durationMs": 7776000000
+                }
+              ],
+              "allowCustom": true
+            },
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": {
+              "durationMs": 604800000
+            }
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "timePicker"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "Unusual & Known-Bad Browser Extensions",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "Sort by **KnownBad** then **MaxSuspicion** (heatmap). Chrome/Edge store links are populated for every row - if one 404s, click the other.\r\nFirefox has no deterministic ID; the AMO link is a search - pivot on `SHA256s` (VT/MDTI) or inspect `manifest.json` inside the renamed `.xpi`.",
+              "style": "info"
+            },
+            "name": "ube-info"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// Installed browser extensions found on disk - rare / known-bad / out-of-profile\r\n// Performance: indexed positive filters first, then cheap negatives, then string ops.\r\nlet ExtensionWhitelist = dynamic([\r\n    \"ljanpepaipafblfikgiokdoccjbckfbf\",\"afdpoidmelmfapkoikmenejmcdpgecfe\",\r\n    \"cokbpgemipiebgbmnnlfboefilmdlonm\",\"ncphcdigcdkjeagemagmchkgommoifjd\",\r\n    \"aternity-webext-12.2.4@aternity.com.xpi\",\r\n    \"jmjflgjpcpepeafmmgdpfkogkghcpiha\",\"gamjhjfeblghkihfjdpmbpajhlpmobbp\",\r\n    \"ljglajjnnkapghbckkcmodicjhacbfhk\",\"kagpabjoboikccfdghpdlaaopmgpgfdc\",\r\n    \"ppnbnpeolgkicgegkbkbjmhlideopiji\",\"hkbpopdgcjpgknlljklheebmnpiplnji\",\r\n    \"bkbeeeffjjeopflfhgeknacdieedcoml\",\"ghbmnnjooekpmoecnnnilnnbdlolhkhi\",\r\n    \"aohghmighlieiainnegkcijnfilokake\",\"aapocclcgogkmnckokdopfmhonfmgoek\",\r\n    \"felcaaldnbdncclmgdcncolpebgiejap\",\"blpcfgokakmgnkcojhhkbfbldkacnbeo\",\r\n    \"nmmhkkegccagdldgiimedpiccmgmieda\",\"efaidnbmnnnibpcajpcglclefindmkaj\",\r\n    \"aeblfdkhhhdcdjpifhhbdiojplfjncoa\",\"hdokiejnpimakedhajhdlcegeplioahd\",\r\n    \"nngceckbapebfimnlniiiahkandclblb\",\"globoedmnnhjjbdbjpicdojcdmdlhpan\",\r\n    \"loccoehoeckjmaecdmnkbeflhjijlnig\",\"kgjfgplpablkjnlkjmjdecgdpfankdle\",\r\n    \"jndclpdbaamdhonoechobihbbiimdgai\",\"kbfnbcaeplbcioakkpcpgfkobkghlhen\",\r\n    \"gighmmpiobklfepjocnamgkkbiglidom\",\"cfhdojbkjhnklbpkdaibdccddilifddb\",\r\n    \"cjpalhdlnbpafiamejdnhcphjbkeiagm\",\"bmnlcjabgnpnenekpadlanbbkooimhnj\",\r\n    \"niloccemoadcdkdjlinkgdfekeahmflj\",\"maafgiompdekodanheihhgilkjchcakm\",\r\n    \"newtab@mozilla.org.xpi\"\r\n]);\r\nlet KnownBadIDs = dynamic([\r\n    \"nnpnnpemnckcfdebeekibpiijlicmpom\",\"acmacodkjbdgmoleebolmdjonilkdbch\",\r\n    \"mnhffkhmpnefgklngfmlndmkimimbphc\",\"kkodiihpgodmdankclfibbiphjkfdenh\",\r\n    \"oaikpkmjciadfpddlpjjdapglcihgdle\",\"jaceimaopfeahjpcdgflnnoeegmckaoo\",\r\n    \"hihblcmlaaademjlakdpicchbjnnnkbo\"\r\n]);\r\nlet BrowserProcs = dynamic([\r\n    \"chrome.exe\",\"msedge.exe\",\"brave.exe\",\"opera.exe\",\"vivaldi.exe\",\r\n    \"firefox.exe\",\"MicrosoftEdgeUpdate.exe\",\"GoogleUpdate.exe\",\r\n    \"setup.exe\",\"chrome_installer.exe\"\r\n]);\r\nDeviceFileEvents\r\n| where FolderPath has_any (\"Extensions\", \"extensions\")\r\n| where FolderPath has_any (\r\n    @\"AppData\\Local\\Google\\Chrome\\User Data\",\r\n    @\"AppData\\Local\\Microsoft\\Edge\\User Data\",\r\n    @\"AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data\",\r\n    @\"AppData\\Roaming\\Mozilla\\Firefox\\Profiles\")\r\n| where FolderPath startswith @\"C:\\Users\\\" or FolderPath startswith @\"%systemdrive%\\users\\\"\r\n| where ActionType != \"FileDeleted\"\r\n| where FileName !startswith \"*\"\r\n| where FolderPath !has \"CRX_INSTALL\"\r\n| extend Browser = case(\r\n    FolderPath has \"BraveSoftware\",       \"Brave\",\r\n    FolderPath has @\"\\Microsoft\\Edge\\\", \"Edge\",\r\n    FolderPath has @\"\\Google\\Chrome\\\",  \"Chrome\",\r\n    FolderPath has \"Firefox\",             \"FireFox\",\r\n    \"Unknown\")\r\n| extend ID = iff(Browser in (\"Chrome\",\"Edge\",\"Brave\"),\r\n                  tolower(extract(@\"(?i)extensions\\\\(\\w+)\\\\\", 1, FolderPath)),\r\n                  tolower(FileName))\r\n| where isnotempty(ID)\r\n    and ID !in (\"temp\",\"trash\",\"staged\")\r\n    and (Browser != \"FireFox\" or FileName endswith \".xpi\")\r\n    and ID !in (ExtensionWhitelist)\r\n| extend KnownBad = ID in (KnownBadIDs)\r\n| extend StoreLookup = case(\r\n    Browser in (\"Chrome\",\"Brave\"), strcat(\"https://chromewebstore.google.com/detail/\", ID),\r\n    Browser == \"Edge\",              strcat(\"https://microsoftedge.microsoft.com/addons/detail/\", ID),\r\n    Browser == \"FireFox\",           strcat(\"https://addons.mozilla.org/en-US/firefox/search/?q=\",\r\n                                            url_encode_component(replace_string(replace_string(tostring(FileName),\".xpi\",\"\"),\"@\",\" \"))),\r\n    \"\")\r\n| extend AltStoreLookup = case(\r\n    Browser == \"Chrome\", strcat(\"https://microsoftedge.microsoft.com/addons/detail/\", ID),\r\n    Browser == \"Edge\",   strcat(\"https://chromewebstore.google.com/detail/\", ID),\r\n    Browser == \"Brave\",  strcat(\"https://microsoftedge.microsoft.com/addons/detail/\", ID),\r\n    \"\")\r\n| extend InBrowserProfile = FolderPath has_any (\r\n    @\"AppData\\Local\\Google\\Chrome\\User Data\\Default\",\r\n    @\"AppData\\Local\\Microsoft\\Edge\\User Data\\Default\",\r\n    @\"AppData\\Local\\BraveSoftware\\Brave-Browser\\User Data\\Default\",\r\n    @\"AppData\\Roaming\\Mozilla\\Firefox\\Profiles\")\r\n| extend DropperIsBrowser = tostring(InitiatingProcessFileName) in~ (BrowserProcs)\r\n| extend SuspicionScore =\r\n        toint(KnownBad) * 5\r\n      + toint(not(InBrowserProfile))\r\n      + toint(not(DropperIsBrowser))\r\n      + toint(InitiatingProcessFolderPath has_any (@\"\\Temp\\\", @\"\\Downloads\\\", @\"\\Public\\\"))\r\n| summarize\r\n    FirstSeen          = min(TimeGenerated),\r\n    LastSeen           = max(TimeGenerated),\r\n    DeviceCount        = dcount(DeviceName),\r\n    Devices            = make_set(DeviceName, 50),\r\n    FolderPaths        = make_set(FolderPath, 10),\r\n    Droppers           = make_set(InitiatingProcessFileName, 10),\r\n    DropperPaths       = make_set(InitiatingProcessFolderPath, 10),\r\n    Accounts           = make_set(InitiatingProcessAccountName, 10),\r\n    SHA256s            = make_set(SHA256, 10),\r\n    KnownBad           = max(toint(KnownBad)),\r\n    OutOfProfile       = max(toint(not(InBrowserProfile))),\r\n    NonBrowserDropper  = max(toint(not(DropperIsBrowser))),\r\n    MaxSuspicion       = max(SuspicionScore)\r\n    by ID, Browser, StoreLookup, AltStoreLookup\r\n| sort by KnownBad desc, MaxSuspicion desc, DeviceCount asc",
+              "size": 0,
+              "title": "Installed Browser Extensions - Rare or Known-Bad",
+              "timeContextFromParameter": "timeRangeParam",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "KnownBad",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "0",
+                          "representation": "success",
+                          "text": "{0}"
+                        },
+                        {
+                          "operator": "Default",
+                          "representation": "4",
+                          "text": "{0}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "MaxSuspicion",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "redGreen",
+                      "compositeBarSettings": {
+                        "labelText": ""
+                      }
+                    },
+                    "numberFormat": {
+                      "unit": 17,
+                      "options": {
+                        "style": "decimal",
+                        "maximumFractionDigits": 0
+                      }
+                    }
+                  },
+                  {
+                    "columnMatch": "OutOfProfile",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "0",
+                          "representation": "success",
+                          "text": "{0}"
+                        },
+                        {
+                          "operator": "Default",
+                          "representation": "4",
+                          "text": "{0}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "NonBrowserDropper",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "0",
+                          "representation": "success",
+                          "text": "{0}"
+                        },
+                        {
+                          "operator": "Default",
+                          "representation": "4",
+                          "text": "{0}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "FirstSeen",
+                    "formatter": 6
+                  },
+                  {
+                    "columnMatch": "LastSeen",
+                    "formatter": 6
+                  },
+                  {
+                    "columnMatch": "StoreLookup",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "Url",
+                      "linkLabel": "Lookup",
+                      "customColumnWidthSetting": "12ch"
+                    }
+                  },
+                  {
+                    "columnMatch": "AltStoreLookup",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "Url",
+                      "linkLabel": "Other store",
+                      "customColumnWidthSetting": "14ch"
+                    }
+                  }
+                ],
+                "rowLimit": 10000,
+                "sortBy": [
+                  {
+                    "itemKey": "KnownBad",
+                    "sortOrder": 2
+                  },
+                  {
+                    "itemKey": "MaxSuspicion",
+                    "sortOrder": 2
+                  },
+                  {
+                    "itemKey": "DeviceCount",
+                    "sortOrder": 1
+                  }
+                ]
+              },
+              "sortBy": [
+                {
+                  "itemKey": "KnownBad",
+                  "sortOrder": 2
+                },
+                {
+                  "itemKey": "MaxSuspicion",
+                  "sortOrder": 2
+                },
+                {
+                  "itemKey": "DeviceCount",
+                  "sortOrder": 1
+                }
+              ],
+              "showExportToExcel": true
+            },
+            "name": "ube-installed-extensions-rare-or-bad"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// Known-Bad & Rare .crx (Chrome/Edge Extension) drops with extension IDs in the filename\r\n// Threat intel: Cyberhaven (Dec 2024), SquareX Syncjacking (2025), RedDirection (2025), GreedyBear (2025).\r\nlet ExtensionWhitelist = dynamic([\r\n    \"ljanpepaipafblfikgiokdoccjbckfbf\",\"afdpoidmelmfapkoikmenejmcdpgecfe\",\r\n    \"cokbpgemipiebgbmnnlfboefilmdlonm\",\"ncphcdigcdkjeagemagmchkgommoifjd\",\r\n    \"jmjflgjpcpepeafmmgdpfkogkghcpiha\",\"gamjhjfeblghkihfjdpmbpajhlpmobbp\",\r\n    \"ljglajjnnkapghbckkcmodicjhacbfhk\",\"kagpabjoboikccfdghpdlaaopmgpgfdc\",\r\n    \"ppnbnpeolgkicgegkbkbjmhlideopiji\",\"hkbpopdgcjpgknlljklheebmnpiplnji\",\r\n    \"bkbeeeffjjeopflfhgeknacdieedcoml\",\"ghbmnnjooekpmoecnnnilnnbdlolhkhi\",\r\n    \"aohghmighlieiainnegkcijnfilokake\",\"aapocclcgogkmnckokdopfmhonfmgoek\",\r\n    \"felcaaldnbdncclmgdcncolpebgiejap\",\"blpcfgokakmgnkcojhhkbfbldkacnbeo\",\r\n    \"nmmhkkegccagdldgiimedpiccmgmieda\",\"efaidnbmnnnibpcajpcglclefindmkaj\",\r\n    \"aeblfdkhhhdcdjpifhhbdiojplfjncoa\",\"hdokiejnpimakedhajhdlcegeplioahd\",\r\n    \"nngceckbapebfimnlniiiahkandclblb\",\"globoedmnnhjjbdbjpicdojcdmdlhpan\",\r\n    \"loccoehoeckjmaecdmnkbeflhjijlnig\",\"kgjfgplpablkjnlkjmjdecgdpfankdle\",\r\n    \"jndclpdbaamdhonoechobihbbiimdgai\",\"kbfnbcaeplbcioakkpcpgfkobkghlhen\",\r\n    \"gighmmpiobklfepjocnamgkkbiglidom\",\"cfhdojbkjhnklbpkdaibdccddilifddb\",\r\n    \"cjpalhdlnbpafiamejdnhcphjbkeiagm\",\"bmnlcjabgnpnenekpadlanbbkooimhnj\",\r\n    \"niloccemoadcdkdjlinkgdfekeahmflj\",\"maafgiompdekodanheihhgilkjchcakm\"\r\n]);\r\nlet KnownBadIDs = dynamic([\r\n    \"nnpnnpemnckcfdebeekibpiijlicmpom\",\"acmacodkjbdgmoleebolmdjonilkdbch\",\r\n    \"mnhffkhmpnefgklngfmlndmkimimbphc\",\"kkodiihpgodmdankclfibbiphjkfdenh\",\r\n    \"oaikpkmjciadfpddlpjjdapglcihgdle\",\"jaceimaopfeahjpcdgflnnoeegmckaoo\",\r\n    \"hihblcmlaaademjlakdpicchbjnnnkbo\"\r\n]);\r\nlet BrowserProcs = dynamic([\r\n    \"chrome.exe\",\"msedge.exe\",\"brave.exe\",\"opera.exe\",\"vivaldi.exe\",\r\n    \"firefox.exe\",\"MicrosoftEdgeUpdate.exe\",\"GoogleUpdate.exe\",\r\n    \"setup.exe\",\"chrome_installer.exe\"\r\n]);\r\nDeviceFileEvents\r\n| where FileName has_cs \".crx\"\r\n| where ActionType != \"FileDeleted\"\r\n| where FileName endswith \".crx\"\r\n| where FileName !startswith \"*\"\r\n| extend PotentialExtensionID = tolower(extract(@\"^([A-Za-z]{32})_\", 1, FileName))\r\n| where isnotempty(PotentialExtensionID) and PotentialExtensionID !in (ExtensionWhitelist)\r\n| extend KnownBad = PotentialExtensionID in (KnownBadIDs)\r\n| extend InBrowserProfile = FolderPath has_any (\r\n    @\"AppData\\Local\\Google\\Chrome\",\r\n    @\"AppData\\Local\\Microsoft\\Edge\",\r\n    @\"AppData\\Local\\BraveSoftware\",\r\n    @\"AppData\\Roaming\\Mozilla\\Firefox\",\r\n    \"msedge_url_fetcher_\",\r\n    \"chromecrx_chrome_url_fetcher_\")\r\n| extend DropperIsBrowser = tostring(InitiatingProcessFileName) in~ (BrowserProcs)\r\n| extend SuspicionScore =\r\n        toint(KnownBad) * 5\r\n      + toint(not(InBrowserProfile))\r\n      + toint(not(DropperIsBrowser))\r\n      + toint(InitiatingProcessFolderPath has_any (@\"\\Temp\\\", @\"\\Downloads\\\", @\"\\Public\\\"))\r\n| extend PotentialChromeExtensionLink = strcat(\"https://chromewebstore.google.com/detail/\", PotentialExtensionID)\r\n| extend PotentialEdgeExtensionLink   = strcat(\"https://microsoftedge.microsoft.com/addons/detail/\", PotentialExtensionID)\r\n| summarize\r\n    FirstSeen          = min(TimeGenerated),\r\n    LastSeen           = max(TimeGenerated),\r\n    DeviceCount        = dcount(DeviceName),\r\n    Devices            = make_set(DeviceName, 50),\r\n    FolderPaths        = make_set(FolderPath, 10),\r\n    Droppers           = make_set(InitiatingProcessFileName, 10),\r\n    DropperPaths       = make_set(InitiatingProcessFolderPath, 10),\r\n    Accounts           = make_set(InitiatingProcessAccountName, 10),\r\n    FileNames          = make_set(FileName, 10),\r\n    SHA256s            = make_set(SHA256, 10),\r\n    KnownBad           = max(toint(KnownBad)),\r\n    OutOfProfile       = max(toint(not(InBrowserProfile))),\r\n    NonBrowserDropper  = max(toint(not(DropperIsBrowser))),\r\n    MaxSuspicion       = max(SuspicionScore)\r\n    by PotentialExtensionID, PotentialChromeExtensionLink, PotentialEdgeExtensionLink\r\n| sort by KnownBad desc, MaxSuspicion desc, DeviceCount asc",
+              "size": 0,
+              "title": "Known-Bad & Rare .crx Drops (with extension IDs)",
+              "timeContextFromParameter": "timeRangeParam",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "KnownBad",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "0",
+                          "representation": "success",
+                          "text": "{0}"
+                        },
+                        {
+                          "operator": "Default",
+                          "representation": "4",
+                          "text": "{0}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "MaxSuspicion",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "redGreen",
+                      "compositeBarSettings": {
+                        "labelText": ""
+                      }
+                    },
+                    "numberFormat": {
+                      "unit": 17,
+                      "options": {
+                        "style": "decimal",
+                        "maximumFractionDigits": 0
+                      }
+                    }
+                  },
+                  {
+                    "columnMatch": "OutOfProfile",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "0",
+                          "representation": "success",
+                          "text": "{0}"
+                        },
+                        {
+                          "operator": "Default",
+                          "representation": "4",
+                          "text": "{0}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "NonBrowserDropper",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "0",
+                          "representation": "success",
+                          "text": "{0}"
+                        },
+                        {
+                          "operator": "Default",
+                          "representation": "4",
+                          "text": "{0}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "FirstSeen",
+                    "formatter": 6
+                  },
+                  {
+                    "columnMatch": "LastSeen",
+                    "formatter": 6
+                  },
+                  {
+                    "columnMatch": "PotentialEdgeExtensionLink",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "Url",
+                      "linkLabel": "Edge Add-ons",
+                      "customColumnWidthSetting": "16ch"
+                    }
+                  },
+                  {
+                    "columnMatch": "PotentialChromeExtensionLink",
+                    "formatter": 7,
+                    "formatOptions": {
+                      "linkTarget": "Url",
+                      "linkLabel": "Chrome Web Store",
+                      "customColumnWidthSetting": "20ch"
+                    }
+                  }
+                ],
+                "rowLimit": 10000,
+                "sortBy": [
+                  {
+                    "itemKey": "KnownBad",
+                    "sortOrder": 2
+                  },
+                  {
+                    "itemKey": "MaxSuspicion",
+                    "sortOrder": 2
+                  },
+                  {
+                    "itemKey": "DeviceCount",
+                    "sortOrder": 1
+                  }
+                ]
+              },
+              "sortBy": [
+                {
+                  "itemKey": "KnownBad",
+                  "sortOrder": 2
+                },
+                {
+                  "itemKey": "MaxSuspicion",
+                  "sortOrder": 2
+                },
+                {
+                  "itemKey": "DeviceCount",
+                  "sortOrder": 1
+                }
+              ],
+              "showExportToExcel": true
+            },
+            "name": "ube-crx-id-known-bad-and-rare"
+          },
+          {
+            "type": 9,
+            "content": {
+              "version": "KqlParameterItem/1.0",
+              "parameters": [
+                {
+                  "id": "b5a29757-7bd4-4793-825b-fe7703c11f00",
+                  "version": "KqlParameterItem/1.0",
+                  "name": "DeviceCount",
+                  "label": "Max Device Count (no-ID .crx)",
+                  "type": 1,
+                  "isRequired": true,
+                  "value": "10"
+                }
+              ],
+              "style": "pills",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "name": "ube-noid-params"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// Suspicious No-ID .crx Drops - dropper + path scored\r\n// Known-benign vendor drops are flagged (KnownBenign=1) but kept visible.\r\nlet CrxFilenameWhitelist = dynamic([\r\n    \"pad_extension_for_chrome\",      // Microsoft Power Automate Desktop\r\n    \"pad_extension_for_msedge\"       // Microsoft Power Automate Desktop\r\n]);\r\nlet BenignFolderPaths = dynamic([\r\n    @\"\\WindowsApps\\Microsoft.PowerAutomateDesktop\"\r\n]);\r\nlet BrowserProcs = dynamic([\r\n    \"chrome.exe\",\"msedge.exe\",\"brave.exe\",\"opera.exe\",\"vivaldi.exe\",\r\n    \"firefox.exe\",\"MicrosoftEdgeUpdate.exe\",\"GoogleUpdate.exe\",\r\n    \"setup.exe\",\"chrome_installer.exe\"\r\n]);\r\nDeviceFileEvents\r\n| where FileName has_cs \".crx\"\r\n| where ActionType != \"FileDeleted\"\r\n| where FileName endswith \".crx\"\r\n| where FileName !startswith \"*\"\r\n| where isnotempty(SHA256)\r\n| where isempty(extract(@\"^([A-Za-z]{32})_\", 1, FileName))\r\n| extend KnownBenign = FileName has_any (CrxFilenameWhitelist)\r\n                    or FolderPath has_any (BenignFolderPaths)\r\n| extend InBrowserProfile = FolderPath has_any (\r\n    @\"AppData\\Local\\Google\\Chrome\",\r\n    @\"AppData\\Local\\Microsoft\\Edge\",\r\n    @\"AppData\\Local\\BraveSoftware\",\r\n    @\"AppData\\Roaming\\Mozilla\\Firefox\",\r\n    \"msedge_url_fetcher_\",\r\n    \"chromecrx_chrome_url_fetcher_\")\r\n| extend DropperIsBrowser = tostring(InitiatingProcessFileName) in~ (BrowserProcs)\r\n// Benign rows score 0; everything else uses normal weighted score\r\n| extend SuspicionScore = iff(KnownBenign, 0,\r\n        toint(not(InBrowserProfile))\r\n      + toint(not(DropperIsBrowser))\r\n      + toint(InitiatingProcessFolderPath has_any (@\"\\Temp\\\", @\"\\Downloads\\\", @\"\\Public\\\")))\r\n| summarize\r\n    FirstSeen          = min(TimeGenerated),\r\n    LastSeen           = max(TimeGenerated),\r\n    DeviceCount        = dcount(DeviceName),\r\n    Devices            = make_set(DeviceName, 50),\r\n    FolderPaths        = make_set(FolderPath, 10),\r\n    Droppers           = make_set(InitiatingProcessFileName, 10),\r\n    DropperPaths       = make_set(InitiatingProcessFolderPath, 10),\r\n    Accounts           = make_set(InitiatingProcessAccountName, 10),\r\n    SHA256s            = make_set(SHA256, 10),\r\n    KnownBenign        = max(toint(KnownBenign)),\r\n    OutOfProfile       = max(toint(not(InBrowserProfile))),\r\n    NonBrowserDropper  = max(toint(not(DropperIsBrowser))),\r\n    MaxSuspicion       = max(SuspicionScore)\r\n    by FileName\r\n| where DeviceCount <= toint('{DeviceCount}')\r\n| sort by MaxSuspicion desc, KnownBenign asc, DeviceCount desc",
+              "size": 0,
+              "title": "Suspicious No-ID .crx Drops (dropper + path scored)",
+              "timeContextFromParameter": "timeRangeParam",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "KnownBenign",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "1",
+                          "representation": "success",
+                          "text": "{0}"
+                        },
+                        {
+                          "operator": "Default",
+                          "representation": "more",
+                          "text": "{0}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "MaxSuspicion",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "redGreen",
+                      "compositeBarSettings": {
+                        "labelText": ""
+                      }
+                    },
+                    "numberFormat": {
+                      "unit": 17,
+                      "options": {
+                        "style": "decimal",
+                        "maximumFractionDigits": 0
+                      }
+                    }
+                  },
+                  {
+                    "columnMatch": "OutOfProfile",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "0",
+                          "representation": "success",
+                          "text": "{0}"
+                        },
+                        {
+                          "operator": "Default",
+                          "representation": "4",
+                          "text": "{0}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "NonBrowserDropper",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "0",
+                          "representation": "success",
+                          "text": "{0}"
+                        },
+                        {
+                          "operator": "Default",
+                          "representation": "4",
+                          "text": "{0}"
+                        }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "FirstSeen",
+                    "formatter": 6
+                  },
+                  {
+                    "columnMatch": "LastSeen",
+                    "formatter": 6
+                  }
+                ],
+                "rowLimit": 10000,
+                "sortBy": [
+                  {
+                    "itemKey": "MaxSuspicion",
+                    "sortOrder": 2
+                  },
+                  {
+                    "itemKey": "KnownBenign",
+                    "sortOrder": 1
+                  },
+                  {
+                    "itemKey": "DeviceCount",
+                    "sortOrder": 2
+                  }
+                ]
+              },
+              "sortBy": [
+                {
+                  "itemKey": "MaxSuspicion",
+                  "sortOrder": 2
+                },
+                {
+                  "itemKey": "KnownBenign",
+                  "sortOrder": 1
+                },
+                {
+                  "itemKey": "DeviceCount",
+                  "sortOrder": 2
+                }
+              ],
+              "showExportToExcel": true
+            },
+            "name": "ube-crx-noid-suspicious-drops"
+          }
+        ]
+      },
+      "name": "tabUnusualBrowserExtensions"
+    }
+  ],
+  "fallbackResourceIds": [
+    "/subscriptions/882d9ca8-f61e-4cc8-a081-dc01aab06b8a/resourcegroups/soc-central/providers/microsoft.operationalinsights/workspaces/soc-central"
+  ],
+  "fromTemplateId": "sentinel-UserWorkbook",
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

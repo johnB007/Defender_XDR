@@ -96,11 +96,12 @@
 param(
     [string]$ConfigPath,
     [string]$NicAlias,
-    [string]$BaseIP                 = '192.168.50.100',
+    [string]$BaseIP                 = '192.168.50.200',
     [int]   $Prefix                 = 24,
     [int]   $DurationMinutes        = 60,
     [int]   $AnnounceIntervalSeconds = 60,
     [int]   $HttpPort               = 8080,
+    [int]   $AliasAddDelayMs        = 250,
     [switch]$Cleanup
 )
 
@@ -328,26 +329,76 @@ function Get-FreeTcpPort {
     throw "No free TCP port found between $Preferred and $($Preferred + $Range)."
 }
 
+function Test-IPInUse {
+    param([string]$IP)
+    # ARP probe is the most reliable way to detect a live host on a LAN
+    # without depending on ICMP (which many devices firewall off). Falls
+    # back to ping if SendARP P/Invoke isn't available.
+    try {
+        if (-not ('NativeArp' -as [type])) {
+            Add-Type -Namespace Native -Name Arp -MemberDefinition @'
+[System.Runtime.InteropServices.DllImport("iphlpapi.dll", ExactSpelling=true)]
+public static extern int SendARP(int DestIP, int SrcIP, byte[] pMacAddr, ref int PhyAddrLen);
+'@ -ErrorAction Stop
+        }
+        $dst = [System.Net.IPAddress]::Parse($IP).GetAddressBytes()
+        [Array]::Reverse($dst)
+        $dstInt = [BitConverter]::ToInt32($dst, 0)
+        $mac = New-Object byte[] 6
+        $len = 6
+        $rc = [Native.Arp]::SendARP($dstInt, 0, $mac, [ref]$len)
+        if ($rc -eq 0 -and ($mac | Where-Object { $_ -ne 0 })) { return $true }
+    } catch { }
+    # Fallback: short ICMP ping
+    try {
+        $p = New-Object System.Net.NetworkInformation.Ping
+        $r = $p.Send($IP, 250)
+        if ($r.Status -eq 'Success') { return $true }
+    } catch { }
+    return $false
+}
+
 function Add-TempIPAliases {
     param([string]$Nic, [System.Net.IPAddress]$Base, [int]$Count, [int]$Pfx)
     $bytes = $Base.GetAddressBytes()
     $ips = @()
-    for ($i = 0; $i -lt $Count; $i++) {
+    Write-Host "Pre-scanning $Count candidate IPs for collisions (ARP/ping)..." -ForegroundColor DarkGray
+    # Walk forward from BaseIP, skipping in-use addresses, until we have $Count free ones.
+    # Cap the search at $Count * 4 to avoid runaway scans on a busy /24.
+    $offset = 0
+    $maxScan = [Math]::Min($Count * 4, 250)
+    while ($ips.Count -lt $Count -and $offset -lt $maxScan) {
         $b = $bytes.Clone()
-        $b[3] = ($bytes[3] + $i) % 256
-        $ip = [System.Net.IPAddress]::new($b).ToString()
+        $b[3] = ($bytes[3] + $offset) % 256
+        $candidate = [System.Net.IPAddress]::new($b).ToString()
+        $offset++
+        if (Test-IPInUse -IP $candidate) {
+            Write-Host "  skip $candidate (in use on LAN)" -ForegroundColor Yellow
+            continue
+        }
         try {
-            # SkipAsSource=$true keeps Windows from using these aliases as the outbound source IP
-            # for traffic to the internet (which would break NAT and kill connectivity), while still
-            # allowing the NIC to respond to ARP and unicast probes addressed to these IPs on the LAN.
-            New-NetIPAddress -InterfaceAlias $Nic -IPAddress $ip -PrefixLength $Pfx `
+            New-NetIPAddress -InterfaceAlias $Nic -IPAddress $candidate -PrefixLength $Pfx `
                 -SkipAsSource $true -PolicyStore ActiveStore -ErrorAction Stop |
                 Add-Member -NotePropertyName Tag -NotePropertyValue $AliasTag -PassThru | Out-Null
-            $ips += $ip
-            Write-Host "  alias added: $ip" -ForegroundColor DarkGray
+            # Throttle to avoid ARP-flood detection on consumer routers / managed switches
+            # with DHCP snooping or Dynamic ARP Inspection.
+            Start-Sleep -Milliseconds $AliasAddDelayMs
+            # Verify the address didn't get marked Duplicate or Tentative by DAD.
+            $state = Get-NetIPAddress -InterfaceAlias $Nic -IPAddress $candidate -ErrorAction SilentlyContinue
+            if ($state -and $state.AddressState -eq 'Preferred') {
+                $ips += $candidate
+                Write-Host "  alias added: $candidate" -ForegroundColor DarkGray
+            } else {
+                $st = if ($state) { $state.AddressState } else { 'missing' }
+                Write-Warning "  alias $candidate did not become Preferred (state=$st). Removing."
+                try { Remove-NetIPAddress -InterfaceAlias $Nic -IPAddress $candidate -Confirm:$false -ErrorAction SilentlyContinue } catch {}
+            }
         } catch {
-            Write-Warning "Could not add alias $ip ($($_.Exception.Message))"
+            Write-Warning "  could not add $candidate ($($_.Exception.Message))"
         }
+    }
+    if ($ips.Count -lt $Count) {
+        Write-Warning "Only secured $($ips.Count)/$Count alias IPs. Continuing with what we have."
     }
     return $ips
 }

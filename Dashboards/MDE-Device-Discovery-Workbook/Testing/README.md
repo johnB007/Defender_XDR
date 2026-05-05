@@ -38,21 +38,33 @@ The script auto-detects Wi-Fi adapters and enables a directed-broadcast fallback
 Run on the lab host that is on the same broadcast domain as a Discovery sensor. The script announces 35 fake devices via mDNS, SSDP, and an HTTP banner.
 
 ```powershell
+# Open PowerShell as Administrator
 cd .\Testing
-.\New-SyntheticDiscoveredDevices.ps1 -BaseIP 192.168.50.100 -DurationMinutes 240
+.\New-SyntheticDiscoveredDevices.ps1
 ```
+
+That's it. The script auto-detects your wired/Wi-Fi NIC, reads its real DHCP IP and subnet, and picks a safe `BaseIP` inside that subnet. **Do not pass `-BaseIP` unless you know what you're doing** — passing an off-subnet address used to be possible and would flip the NIC from DHCP to static. The script now refuses to run in that case, but the cleanest path is to omit the parameter entirely.
 
 Common variations:
 
 ```powershell
-# Pick a specific NIC if multiple are present
-.\New-SyntheticDiscoveredDevices.ps1 -NicAlias "Ethernet" -BaseIP 10.0.50.50 -DurationMinutes 60
+# Longer run window
+.\New-SyntheticDiscoveredDevices.ps1 -DurationMinutes 240
+
+# Pick a specific NIC if auto-detection picks the wrong one
+.\New-SyntheticDiscoveredDevices.ps1 -NicAlias "Ethernet 2"
+
+# Override BaseIP only if you want a specific range INSIDE your real subnet
+.\New-SyntheticDiscoveredDevices.ps1 -BaseIP 192.168.1.50
 
 # Use a custom profile catalog instead of the built-in 35 profiles
 .\New-SyntheticDiscoveredDevices.ps1 -ConfigPath .\my-profiles.json
 
 # Cleanup if a prior run exited abnormally
 .\New-SyntheticDiscoveredDevices.ps1 -Cleanup
+
+# Recovery: re-enable DHCP if a prior bad run left the NIC stuck on a static IP
+.\New-SyntheticDiscoveredDevices.ps1 -RestoreDhcp -NicAlias "Ethernet 2"
 ```
 
 The script:

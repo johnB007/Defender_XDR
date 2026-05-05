@@ -1148,7 +1148,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| where DeviceType =~ 'NetworkDevice'\n| summarize TotalNet=count(), CanBeOnboarded=countif(OnboardingStatus=~'Can be onboarded'), Insufficient=countif(OnboardingStatus=~'Insufficient info' or isempty(OnboardingStatus)), Unsupported=countif(OnboardingStatus=~'Unsupported')\n| mv-expand kv=pack_array(pack('label','Unmanaged Network Devices','value',TotalNet), pack('label','Can Be Onboarded','value',CanBeOnboarded), pack('label','Insufficient Info','value',Insufficient), pack('label','Unsupported','value',Unsupported))\n| project label=tostring(kv.label), value=toint(kv.value)",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| where DeviceType =~ 'NetworkDevice'\n| summarize TotalNet=count(), Unsupported=countif(OnboardingStatus=~'Unsupported')\n| mv-expand kv=pack_array(pack('label','Unmanaged Network Devices','value',TotalNet), pack('label','Unsupported','value',Unsupported))\n| project label=tostring(kv.label), value=toint(kv.value)",
               "size": 4,
               "title": "Unmanaged Network Infrastructure KPI",
               "timeContextFromParameter": "TimeRange",
@@ -1183,9 +1183,9 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| where DeviceType =~ 'NetworkDevice'\n| extend SubType = case(NameLc has_any ('firewall','fw-','checkpoint','palo','fortinet','sonicwall','watchguard','asa'),'Firewall', NameLc has_any ('router','rtr-','gateway','gw-'),'Router / Gateway', NameLc has_any ('switch','sw-','core-sw','dist-sw','access-sw'),'Switch', NameLc has_any ('access-point','ap-','wap-','wifi-','wireless','aruba','ubiquiti','ruckus','meraki'),'Wireless / Access Point', NameLc has_any ('load-balancer','lb-','f5-'),'Load Balancer', 'Other Network Device')\n| summarize Count=count() by SubType\n| order by Count desc",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| where DeviceType =~ 'NetworkDevice'\n| extend SubType = case(\n    NameLc has_any ('firewall','fw-','checkpoint','palo','fortinet','sonicwall','watchguard','asa'),'Firewall',\n    NameLc has_any ('router','rtr-','gateway','gw-'),'Router / Gateway',\n    NameLc has_any ('switch','sw-','core-sw','dist-sw','access-sw'),'Switch',\n    NameLc has_any ('access-point','ap-','wap-','wifi-','wireless','aruba','ubiquiti','ruckus','meraki'),'Wireless / Access Point',\n    NameLc has_any ('load-balancer','lb-','f5-'),'Load Balancer',\n    '')\n| where SubType != ''\n| summarize Count=count() by SubType\n| order by Count desc",
               "size": 3,
-              "title": "Network Device Sub-Type Breakdown",
+              "title": "Network Device Sub-Type Breakdown (Classified)",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -1198,51 +1198,45 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| where DeviceType =~ 'NetworkDevice'\n| extend StatusLabel=case(OnboardingStatus=~'Onboarded','Onboarded', OnboardingStatus=~'Can be onboarded','Can Be Onboarded', OnboardingStatus=~'Insufficient info','Insufficient Info', OnboardingStatus=~'Unsupported','Unsupported', 'Other')\n| where StatusLabel != 'Other'\n| summarize Count=count() by StatusLabel",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, Vendor) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| where DeviceType =~ 'NetworkDevice'\n| extend VendorName = iff(isempty(Vendor) or Vendor =~ 'Unknown', 'Unknown / Not reported', tostring(Vendor))\n| summarize Devices = dcount(DeviceId) by VendorName\n| top 15 by Devices desc",
               "size": 3,
-              "title": "Network Device Onboarding Status",
+              "title": "Top 15 Vendors - Unmanaged Network Devices",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "piechart"
+              "visualization": "barchart",
+              "chartSettings": {
+                "xAxis": "VendorName",
+                "yAxis": [
+                  "Devices"
+                ],
+                "showLegend": false
+              }
             },
             "customWidth": "33",
-            "name": "netinfra-onboarding-pie"
+            "name": "netinfra-top-vendors"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform, ExposureLevel) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| where DeviceType =~ 'NetworkDevice'\n| extend ExpLevel=coalesce(ExposureLevel,'None')\n| summarize Count=count() by ExpLevel",
+              "query": "let _df = '{DeviceFilter}';\nlet NetDev = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| where DeviceType =~ 'NetworkDevice'\n| project DeviceId;\nDeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, ConnectedNetworks) by DeviceId\n| join kind=inner NetDev on DeviceId\n| mv-expand Net = parse_json(ConnectedNetworks)\n| extend NetworkName = tostring(Net.Name)\n| where isnotempty(NetworkName)\n| summarize Devices = dcount(DeviceId) by NetworkName\n| top 15 by Devices desc",
               "size": 3,
-              "title": "Network Device Exposure Level",
+              "title": "Top 15 Networks / SSIDs Served by Unmanaged Network Devices",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "piechart",
+              "visualization": "barchart",
               "chartSettings": {
-                "seriesLabelSettings": [
-                  {
-                    "seriesName": "High",
-                    "color": "red"
-                  },
-                  {
-                    "seriesName": "Medium",
-                    "color": "orange"
-                  },
-                  {
-                    "seriesName": "Low",
-                    "color": "yellow"
-                  },
-                  {
-                    "seriesName": "None",
-                    "color": "green"
-                  }
-                ]
+                "xAxis": "NetworkName",
+                "yAxis": [
+                  "Devices"
+                ],
+                "showLegend": false
               }
             },
             "customWidth": "34",
-            "name": "netinfra-exposure-pie"
+            "name": "netinfra-top-networks"
           },
           {
             "type": 3,

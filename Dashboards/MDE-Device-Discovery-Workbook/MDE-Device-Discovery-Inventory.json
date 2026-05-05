@@ -877,7 +877,7 @@
                   "type": 3,
                   "content": {
                     "version": "KqlItem/1.0",
-                    "query": "let _MergedSet = DeviceInfo | where Timestamp {TimeRange} | where isnotempty(MergedToDeviceId) | distinct DeviceId;\nlet _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| where (DeviceSubtype has 'camera') or (DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo'))\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| where isnotempty(DeviceId)\n| summarize FirstSeen = min(Timestamp) by DeviceId\n| where DeviceId !in (_MergedSet)\n| summarize NewCameras = count() by Day = startofday(FirstSeen)\n| order by Day asc",
+                    "query": "let _MergedSet = DeviceInfo | where Timestamp {TimeRange} | where isnotempty(MergedToDeviceId) | distinct DeviceId;\nlet _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| where (DeviceSubtype has 'camera') or (DeviceType in~ ('Camera','Webcam','AudioVideoEquipment','VideoSurveillance','AudioAndVideo'))\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| where isnotempty(DeviceId)\n| summarize FirstSeen = min(Timestamp) by DeviceId\n| where DeviceId !in (_MergedSet)\n| where FirstSeen > ago(28d)\n| summarize NewCameras = count() by Day = startofday(FirstSeen)\n| order by Day asc",
                     "size": 0,
                     "title": "New Cameras Discovered Over Time",
                     "timeContextFromParameter": "TimeRange",

@@ -389,8 +389,16 @@ function Add-TempIPAliases {
             # Throttle to avoid ARP-flood detection on consumer routers / managed switches
             # with DHCP snooping or Dynamic ARP Inspection.
             Start-Sleep -Milliseconds $AliasAddDelayMs
-            # Verify the address didn't get marked Duplicate or Tentative by DAD.
-            $state = Get-NetIPAddress -InterfaceAlias $Nic -IPAddress $candidate -ErrorAction SilentlyContinue
+            # Wait for DAD to complete. Windows DAD typically resolves in 1-3 seconds;
+            # poll for up to 5 seconds before giving up. Tentative is a transient state
+            # while DAD probes; only Duplicate or persistent Tentative is a failure.
+            $state = $null
+            $deadline = (Get-Date).AddSeconds(5)
+            while ((Get-Date) -lt $deadline) {
+                $state = Get-NetIPAddress -InterfaceAlias $Nic -IPAddress $candidate -ErrorAction SilentlyContinue
+                if ($state -and ($state.AddressState -eq 'Preferred' -or $state.AddressState -eq 'Duplicate')) { break }
+                Start-Sleep -Milliseconds 250
+            }
             if ($state -and $state.AddressState -eq 'Preferred') {
                 $ips += $candidate
                 Write-Host "  alias added: $candidate" -ForegroundColor DarkGray

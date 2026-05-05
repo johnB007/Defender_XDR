@@ -222,6 +222,21 @@ Use this section when the same guide is used for native Azure VMs (Defender for 
     Get-MpComputerStatus | Select-Object AMProductVersion, AMEngineVersion, AntivirusSignatureVersion
     ```
 
+* ☐ **Consolidated install order (WS2012 R2 / WS2016)** — run in this exact sequence, then reboot:
+
+  ```powershell
+  # 1. Install & start the Defender feature (skip on WS2019/2022 — built-in)
+  Add-WindowsFeature -Name Windows-Defender -IncludeAllSubFeature
+  Set-Service -Name WinDefend -StartupType Automatic
+  Start-Service -Name WinDefend
+  ```
+
+  2. Apply **KB4052623** (MDAV Platform Update)
+  3. Apply **KB5005292** (MDE EDR Sensor Update — WS2012 R2 / WS2016 only)
+  4. **Reboot the server** before running validation or `md4ws.msi`.
+
+  > Reboot is required so `WinDefend` and `Sense` reload with the updated platform binaries. Skipping the reboot is the most common cause of stale `AMProductVersion` and Sense not registering.
+
 ### 3.2 Policy & Registry Validation
 
 **Review and validate policy settings that may have disabled Windows Defender for third-party EPP/EDR.**

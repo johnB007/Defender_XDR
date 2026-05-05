@@ -282,8 +282,7 @@ function Resolve-NicAlias {
 
     $candidates = Get-NetAdapter |
         Where-Object { $_.Status -eq 'Up' -and $_.Virtual -eq $false } |
-        Where-Object { Test-RealNic $_ } |
-        Sort-Object -Property @{Expression='LinkSpeed'; Descending=$true}
+        Where-Object { Test-RealNic $_ }
 
     if (-not $candidates) {
         Write-Host ""
@@ -292,9 +291,30 @@ function Resolve-NicAlias {
         throw "No usable physical network adapter found. Pass -NicAlias 'Name' explicitly using one of the names above (typically 'Wi-Fi' or 'Ethernet')."
     }
 
-    $picked = $candidates | Select-Object -First 1
-    if ($candidates.Count -gt 1) {
-        Write-Host "  Multiple physical adapters Up. Picked: $($picked.Name) ($($picked.InterfaceDescription)). Override with -NicAlias if needed." -ForegroundColor DarkGray
+    # Prefer wired (802.3) over Wi-Fi (Native 802.11). Fall back to Wi-Fi only if no wired NIC is up.
+    # MediaType: '802.3' = Ethernet, 'Native 802.11' = Wi-Fi. PhysicalMediaType is also checked as a backstop.
+    function Test-Wired {
+        param($a)
+        $mt  = [string]$a.MediaType
+        $pmt = [string]$a.PhysicalMediaType
+        if ($mt -like '*802.11*' -or $pmt -like '*802.11*' -or $pmt -like '*Wireless*') { return $false }
+        if ($mt -like '*802.3*'  -or $pmt -like '*802.3*'  -or $pmt -eq '' -or $pmt -eq 'Unspecified') { return $true }
+        return $true  # default to wired if unknown
+    }
+
+    $wired = $candidates | Where-Object { Test-Wired $_ } | Sort-Object -Property @{Expression='LinkSpeed'; Descending=$true}
+    $wifi  = $candidates | Where-Object { -not (Test-Wired $_) } | Sort-Object -Property @{Expression='LinkSpeed'; Descending=$true}
+
+    if ($wired) {
+        $picked = $wired | Select-Object -First 1
+        if ($wifi) {
+            Write-Host "  Wired and Wi-Fi both Up. Preferring wired: $($picked.Name) ($($picked.InterfaceDescription)). Override with -NicAlias if needed." -ForegroundColor DarkGray
+        } elseif (($wired | Measure-Object).Count -gt 1) {
+            Write-Host "  Multiple wired adapters Up. Picked: $($picked.Name) ($($picked.InterfaceDescription)). Override with -NicAlias if needed." -ForegroundColor DarkGray
+        }
+    } else {
+        $picked = $wifi | Select-Object -First 1
+        Write-Host "  No wired adapter Up. Falling back to Wi-Fi: $($picked.Name) ($($picked.InterfaceDescription))." -ForegroundColor DarkGray
     }
     return $picked
 }

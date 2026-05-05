@@ -143,33 +143,39 @@ function Test-AwsEc2 {
 }
 
 function Confirm-MulticastReady {
-    Write-Host "Pre-flight checks..." -ForegroundColor Cyan
+    Write-Host "Pre-flight checks (on-prem physical host only)..." -ForegroundColor Cyan
 
-    $isAzure = Test-AzureVm
-    $isAws   = Test-AwsEc2
-
-    if ($isAzure -or $isAws) {
-        $cloud = if ($isAzure) { 'Azure' } else { 'AWS EC2' }
-        Write-Warning "Running on $cloud. Cloud VNets do not forward multicast or broadcast traffic."
-        Write-Warning "mDNS, SSDP, LLMNR, and NetBIOS announcements will NOT reach an MDE Discovery sensor on a separate VM."
-        Write-Warning "This script is intended for on-prem lab subnets where multicast is supported."
-        Write-Warning ""
-        Write-Warning "If you intentionally want to test that the local stack still emits packets, continue. Otherwise, abort and run on-prem."
-        $resp = Read-Host "Continue anyway? (y/N)"
-        if ($resp -notmatch '^(y|yes)$') {
-            throw "Aborted by user."
-        }
-    } else {
-        Write-Host "  Cloud metadata: not detected (assumed on-prem)" -ForegroundColor DarkGray
+    if (Test-AzureVm) {
+        throw "This host appears to be running in Azure. Cloud VNets do not forward multicast or broadcast. This script is on-prem only. Aborting."
+    }
+    if (Test-AwsEc2) {
+        throw "This host appears to be running in AWS EC2. Cloud VPCs do not forward multicast or broadcast. This script is on-prem only. Aborting."
     }
 
-    # Check that we have a usable adapter at all
+    # Detect virtualization (Hyper-V, VMware, KVM, Xen, VirtualBox)
+    try {
+        $cs = Get-CimInstance -ClassName Win32_ComputerSystem -ErrorAction Stop
+        $manufacturer = "$($cs.Manufacturer)".ToLower()
+        $model        = "$($cs.Model)".ToLower()
+        $virtIndicators = @('microsoft corporation','vmware','xen','innotek','qemu','kvm','parallels','virtual machine','virtualbox','hvm domu')
+        $isVirtual = $false
+        foreach ($v in $virtIndicators) {
+            if ($manufacturer.Contains($v) -or $model.Contains($v)) { $isVirtual = $true; break }
+        }
+        if ($isVirtual) {
+            throw "This host appears to be a virtual machine (Manufacturer='$($cs.Manufacturer)', Model='$($cs.Model)'). This script is intended for on-prem physical hosts only. Aborting."
+        }
+        Write-Host "  Hardware: $($cs.Manufacturer) $($cs.Model) (physical)" -ForegroundColor DarkGray
+    } catch {
+        if ($_.Exception.Message -like '*intended for on-prem physical*') { throw }
+        Write-Warning "Could not query Win32_ComputerSystem to verify physical host. Continuing."
+    }
+
     $upAdapters = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' }
     if (-not $upAdapters) {
         throw "No 'Up' network adapters found. Bring a NIC online before running."
     }
 
-    # Check that an MDE Defender process is local OR warn we cannot self-detect
     $mde = Get-Service -Name 'Sense' -ErrorAction SilentlyContinue
     if ($mde -and $mde.Status -eq 'Running') {
         Write-Host "  MDE Sense service: Running (this host can act as Discovery sensor)" -ForegroundColor Green
@@ -242,17 +248,16 @@ function Resolve-NicAlias {
     if ($Requested) {
         $a = Get-NetAdapter -Name $Requested -ErrorAction SilentlyContinue
         if (-not $a) { throw "Adapter '$Requested' not found." }
+        if ($a.Virtual) {
+            throw "Adapter '$Requested' is virtual. This script is on-prem physical only."
+        }
         return $a
     }
-    # Prefer physical adapter that is Up. Fall back to any Up adapter (including Hyper-V virtual NIC).
-    $up = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' }
-    if (-not $up) { throw "No 'Up' adapters available." }
-
-    $physical = $up | Where-Object { $_.Virtual -eq $false } | Select-Object -First 1
-    if ($physical) { return $physical }
-
-    Write-Warning "No physical adapter Up. Using virtual adapter: $($up[0].Name) ($($up[0].InterfaceDescription))"
-    return $up[0]
+    $up = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' -and $_.Virtual -eq $false }
+    if (-not $up) {
+        throw "No physical 'Up' adapter found. This script is on-prem only and will not run on virtual NICs."
+    }
+    return $up | Select-Object -First 1
 }
 
 function Add-TempIPAliases {

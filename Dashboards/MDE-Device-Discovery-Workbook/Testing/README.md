@@ -12,7 +12,7 @@ Two PowerShell scripts for end to end testing of the MDE Device Discovery workbo
 
 ## Prerequisites
 
-* Lab Windows host (DC, Hyper-V VM, or workstation) on a subnet where at least one onboarded MDE device has Standard Discovery enabled.
+* **On-prem physical Windows host** on a subnet where at least one onboarded MDE device has Standard Discovery enabled. The seeding script refuses to run on Azure VMs, AWS EC2, Hyper-V VMs, VMware VMs, or any virtualized environment.
 * PowerShell 5.1 or 7 (run elevated).
 * Outbound HTTPS to `login.microsoftonline.com` and `api.security.microsoft.com`.
 * An Entra account with Security Reader, Security Administrator, Global Reader, or `AdvancedHunting.Read.All`.
@@ -22,14 +22,12 @@ Two PowerShell scripts for end to end testing of the MDE Device Discovery workbo
 
 | Environment | Seeding script | Validator script |
 |---|---|---|
-| On-prem physical Windows host | Yes (recommended) | Yes |
-| On-prem Hyper-V VM with bridged NIC | Yes | Yes |
-| On-prem VMware/other hypervisor | Yes (NIC must be bridged, not NAT) | Yes |
-| Azure VM | **No** for seeding (Azure VNets do not forward multicast or broadcast). | Yes |
-| AWS EC2 / GCP VM | **No** for seeding (same multicast restriction). | Yes |
-| Laptop on corporate Wi-Fi | Maybe (depends on AP isolating clients). On-prem wired is safer. | Yes |
+| On-prem physical Windows host | Yes | Yes |
+| On-prem Hyper-V / VMware / KVM VM | **No** (script aborts) | Yes |
+| Azure / AWS / GCP VM | **No** (script aborts) | Yes |
+| Laptop on corporate Wi-Fi | Not recommended (AP client isolation may block multicast). On-prem wired host preferred. | Yes |
 
-The seeding script auto-detects Azure and AWS via instance metadata and warns before continuing. The validator script runs from anywhere with internet egress.
+The seeding script auto-detects cloud and virtualization via instance metadata and `Win32_ComputerSystem` and aborts with a clear error before making any changes. The validator script runs from anywhere with internet egress.
 
 ## Run order
 

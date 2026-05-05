@@ -57,7 +57,7 @@
 
 [CmdletBinding()]
 param(
-    [string]$WorkbookPath = (Join-Path $PSScriptRoot 'MDE-Device-Discovery-Inventory.json'),
+    [string]$WorkbookPath = (Join-Path (Split-Path -Parent $PSScriptRoot) 'MDE-Device-Discovery-Inventory.json'),
     [string]$TimeRange   = 'between (ago(7d) .. now())',
     [string]$DeviceFilter = '',
     [string]$IPFilter    = '',

@@ -142,6 +142,24 @@ Use this section when the same guide is used for native Azure VMs (Defender for 
 
 ---
 
+## 2.X Onboarding Gate (before running MDE / Arc onboarding)
+
+> Run the items below immediately before initiating onboarding. After the host is onboarded, continue with **Section 3** for post-onboarding validation.
+
+* ☐ **Tamper Protection state confirmed BEFORE onboarding** — must be **OFF / not enforced** at first onboarding so MDAV lands cleanly in passive mode and the 3rd-party AV uninstall is not blocked later.
+  ```powershell
+  Get-MpComputerStatus | Select-Object IsTamperProtected, AMRunningMode
+  ```
+  Expected pre-onboard: `IsTamperProtected = False`, `AMRunningMode = Passive` (after `md4ws.msi` install) or `Not running` (before).
+
+* ☐ **Tamper Protection enablement is deferred** until after each wave reaches Phase B (MDAV Active). See *CRITICAL CONSTRAINT — Tamper Protection* in Section 1: Phase B is a **one-way transition** on platform 4.18.2208.0+.
+
+* ☐ **Onboarding executed** via Defender for Cloud P2 → MDE.Windows / MDE.Linux Arc extension (no manual onboarding script needed when Arc + P2 is in place).
+
+* ☐ **Verify host appears in the Microsoft Defender portal (DoD / IL5):** `https://security.apps.mil` within 15 minutes; last-seen ≤ 24h before moving to Section 3.
+
+---
+
 ## 3. System Configuration & Policy Validation
 
 **Complete this validation before starting any deployment:**

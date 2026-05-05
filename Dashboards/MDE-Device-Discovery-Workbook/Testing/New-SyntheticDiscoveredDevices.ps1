@@ -123,6 +123,63 @@ if (-not (Get-Command Start-ThreadJob -ErrorAction SilentlyContinue)) {
     }
 }
 
+# ---------- Environment pre-flight ----------
+function Test-AzureVm {
+    try {
+        $r = Invoke-RestMethod -Uri 'http://169.254.169.254/metadata/instance?api-version=2021-02-01' `
+            -Headers @{Metadata='true'} -TimeoutSec 2 -ErrorAction Stop
+        if ($r.compute) { return $true }
+    } catch {}
+    return $false
+}
+
+function Test-AwsEc2 {
+    try {
+        $tok = Invoke-RestMethod -Method Put -Uri 'http://169.254.169.254/latest/api/token' `
+            -Headers @{'X-aws-ec2-metadata-token-ttl-seconds'='30'} -TimeoutSec 2 -ErrorAction Stop
+        if ($tok) { return $true }
+    } catch {}
+    return $false
+}
+
+function Confirm-MulticastReady {
+    Write-Host "Pre-flight checks..." -ForegroundColor Cyan
+
+    $isAzure = Test-AzureVm
+    $isAws   = Test-AwsEc2
+
+    if ($isAzure -or $isAws) {
+        $cloud = if ($isAzure) { 'Azure' } else { 'AWS EC2' }
+        Write-Warning "Running on $cloud. Cloud VNets do not forward multicast or broadcast traffic."
+        Write-Warning "mDNS, SSDP, LLMNR, and NetBIOS announcements will NOT reach an MDE Discovery sensor on a separate VM."
+        Write-Warning "This script is intended for on-prem lab subnets where multicast is supported."
+        Write-Warning ""
+        Write-Warning "If you intentionally want to test that the local stack still emits packets, continue. Otherwise, abort and run on-prem."
+        $resp = Read-Host "Continue anyway? (y/N)"
+        if ($resp -notmatch '^(y|yes)$') {
+            throw "Aborted by user."
+        }
+    } else {
+        Write-Host "  Cloud metadata: not detected (assumed on-prem)" -ForegroundColor DarkGray
+    }
+
+    # Check that we have a usable adapter at all
+    $upAdapters = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' }
+    if (-not $upAdapters) {
+        throw "No 'Up' network adapters found. Bring a NIC online before running."
+    }
+
+    # Check that an MDE Defender process is local OR warn we cannot self-detect
+    $mde = Get-Service -Name 'Sense' -ErrorAction SilentlyContinue
+    if ($mde -and $mde.Status -eq 'Running') {
+        Write-Host "  MDE Sense service: Running (this host can act as Discovery sensor)" -ForegroundColor Green
+    } else {
+        Write-Warning "  MDE Sense service not detected on this host."
+        Write-Warning "  Synthetic devices will only be picked up if ANOTHER onboarded MDE box on the same subnet has Standard Discovery enabled."
+    }
+    Write-Host ""
+}
+
 # ---------- Built-in profile catalog ----------
 function Get-DefaultProfiles {
     @(
@@ -187,9 +244,15 @@ function Resolve-NicAlias {
         if (-not $a) { throw "Adapter '$Requested' not found." }
         return $a
     }
-    Get-NetAdapter |
-        Where-Object { $_.Status -eq 'Up' -and $_.Virtual -eq $false } |
-        Select-Object -First 1
+    # Prefer physical adapter that is Up. Fall back to any Up adapter (including Hyper-V virtual NIC).
+    $up = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' }
+    if (-not $up) { throw "No 'Up' adapters available." }
+
+    $physical = $up | Where-Object { $_.Virtual -eq $false } | Select-Object -First 1
+    if ($physical) { return $physical }
+
+    Write-Warning "No physical adapter Up. Using virtual adapter: $($up[0].Name) ($($up[0].InterfaceDescription))"
+    return $up[0]
 }
 
 function Add-TempIPAliases {
@@ -281,6 +344,7 @@ $profiles = if ($ConfigPath) {
 Write-Host "Loaded $($profiles.Count) synthetic device profile(s)."
 
 # ---------- Setup ----------
+Confirm-MulticastReady
 $nic = Resolve-NicAlias -Requested $NicAlias
 Write-Host "Using NIC: $($nic.Name)  ($($nic.InterfaceDescription))"
 

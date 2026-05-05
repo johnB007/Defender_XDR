@@ -18,6 +18,19 @@ Two PowerShell scripts for end to end testing of the MDE Device Discovery workbo
 * An Entra account with Security Reader, Security Administrator, Global Reader, or `AdvancedHunting.Read.All`.
 * The MDE Device Discovery workbook deployed to the tenant.
 
+## Where this can run
+
+| Environment | Seeding script | Validator script |
+|---|---|---|
+| On-prem physical Windows host | Yes (recommended) | Yes |
+| On-prem Hyper-V VM with bridged NIC | Yes | Yes |
+| On-prem VMware/other hypervisor | Yes (NIC must be bridged, not NAT) | Yes |
+| Azure VM | **No** for seeding (Azure VNets do not forward multicast or broadcast). | Yes |
+| AWS EC2 / GCP VM | **No** for seeding (same multicast restriction). | Yes |
+| Laptop on corporate Wi-Fi | Maybe (depends on AP isolating clients). On-prem wired is safer. | Yes |
+
+The seeding script auto-detects Azure and AWS via instance metadata and warns before continuing. The validator script runs from anywhere with internet egress.
+
 ## Run order
 
 ### Step 1. Seed synthetic devices

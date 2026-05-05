@@ -112,6 +112,17 @@ $FirewallTag    = 'MDE-Discovery-Lab'
 $TranscriptPath = Join-Path $PSScriptRoot 'SyntheticDiscovery.log'
 Start-Transcript -Path $TranscriptPath -Append | Out-Null
 
+# Ensure ThreadJob is available (built in for PS7, may need import on Windows PowerShell 5.1)
+if (-not (Get-Command Start-ThreadJob -ErrorAction SilentlyContinue)) {
+    try {
+        Import-Module ThreadJob -ErrorAction Stop
+    } catch {
+        Write-Host "Installing ThreadJob module for current user..." -ForegroundColor DarkGray
+        Install-Module ThreadJob -Scope CurrentUser -Force -AllowClobber -ErrorAction Stop
+        Import-Module ThreadJob
+    }
+}
+
 # ---------- Built-in profile catalog ----------
 function Get-DefaultProfiles {
     @(
@@ -350,30 +361,42 @@ function Send-NbnsAnnouncement {
 }
 
 # ---------- HTTP banner listener (for SSDP location URL probing) ----------
-function Start-HttpBanner {
-    param($IP, $Profile, $HttpPort)
+# A single wildcard HttpListener bound to http://+:$HttpPort/ serves all alias
+# IPs. We look up the right profile based on which local IP received the
+# request, then return UPnP description.xml with vendor/model fingerprint.
+function Start-HttpBanners {
+    param([hashtable]$IpToProfile, [int]$HttpPort)
     $listener = [System.Net.HttpListener]::new()
-    $prefix = "http://${IP}:${HttpPort}/"
+    $prefix = "http://+:${HttpPort}/"
     try {
         $listener.Prefixes.Add($prefix)
         $listener.Start()
+        Write-Host "HTTP banner listener started on $prefix" -ForegroundColor DarkGray
     } catch {
-        Write-Warning "HTTP listener failed for $IP : $($_.Exception.Message)"
+        Write-Warning "Wildcard HTTP listener failed: $($_.Exception.Message)"
+        Write-Warning "Run as Administrator. If it persists, register the URL ACL once with:"
+        Write-Warning "  netsh http add urlacl url=http://+:$HttpPort/ user=Everyone"
         return $null
     }
+
     $job = Start-ThreadJob -ScriptBlock {
-        param($listener, $Profile)
+        param($listener, $IpToProfile)
         while ($listener.IsListening) {
             try {
                 $ctx = $listener.GetContext()
+                $localIp = $ctx.Request.LocalEndPoint.Address.ToString()
+                $profile = $IpToProfile[$localIp]
+                if (-not $profile) {
+                    $profile = @{ Hostname='UNKNOWN'; Vendor='Unknown'; Model='Unknown'; OS='Unknown'; DeviceType='Unknown' }
+                }
                 $resp = $ctx.Response
-                $resp.Headers.Add('Server', "$($Profile.OS) $($Profile.Vendor)/$($Profile.Model)")
-                $resp.Headers.Add('X-Vendor', $Profile.Vendor)
-                $resp.Headers.Add('X-Model',  $Profile.Model)
-                $body = "<root><device><friendlyName>$($Profile.Hostname)</friendlyName>"   `
-                      + "<manufacturer>$($Profile.Vendor)</manufacturer>"                    `
-                      + "<modelName>$($Profile.Model)</modelName>"                           `
-                      + "<modelDescription>$($Profile.OS) $($Profile.DeviceType)</modelDescription>" `
+                $resp.Headers.Add('Server', "$($profile.OS) $($profile.Vendor)/$($profile.Model)")
+                $resp.Headers.Add('X-Vendor', $profile.Vendor)
+                $resp.Headers.Add('X-Model',  $profile.Model)
+                $body = "<root><device><friendlyName>$($profile.Hostname)</friendlyName>"   `
+                      + "<manufacturer>$($profile.Vendor)</manufacturer>"                    `
+                      + "<modelName>$($profile.Model)</modelName>"                           `
+                      + "<modelDescription>$($profile.OS) $($profile.DeviceType)</modelDescription>" `
                       + "</device></root>"
                 $bytes = [System.Text.Encoding]::UTF8.GetBytes($body)
                 $resp.ContentType = 'text/xml'
@@ -382,16 +405,15 @@ function Start-HttpBanner {
                 $resp.OutputStream.Close()
             } catch { }
         }
-    } -ArgumentList $listener, $Profile
+    } -ArgumentList $listener, $IpToProfile
     return @{ Listener = $listener; Job = $job }
 }
 
 # ---------- Main loop ----------
-$httpServers = @()
-foreach ($a in $assignments) {
-    $h = Start-HttpBanner -IP $a.IP -Profile $a.Profile -HttpPort $HttpPort
-    if ($h) { $httpServers += $h }
-}
+$ipToProfile = @{}
+foreach ($a in $assignments) { $ipToProfile[$a.IP] = $a.Profile }
+
+$httpServer = Start-HttpBanners -IpToProfile $ipToProfile -HttpPort $HttpPort
 
 $end = (Get-Date).AddMinutes($DurationMinutes)
 $tick = 0
@@ -412,10 +434,10 @@ try {
 } finally {
     Write-Host ""
     Write-Host "Stopping..." -ForegroundColor Yellow
-    foreach ($h in $httpServers) {
-        try { $h.Listener.Stop(); $h.Listener.Close() } catch {}
-        try { Stop-Job   $h.Job -ErrorAction SilentlyContinue } catch {}
-        try { Remove-Job $h.Job -ErrorAction SilentlyContinue } catch {}
+    if ($httpServer) {
+        try { $httpServer.Listener.Stop(); $httpServer.Listener.Close() } catch {}
+        try { Stop-Job   $httpServer.Job -ErrorAction SilentlyContinue } catch {}
+        try { Remove-Job $httpServer.Job -ErrorAction SilentlyContinue } catch {}
     }
     Remove-TempIPAliases -Nic $nic.Name
     Remove-FirewallRules

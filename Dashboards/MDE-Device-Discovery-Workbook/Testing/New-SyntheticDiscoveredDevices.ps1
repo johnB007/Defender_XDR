@@ -564,6 +564,27 @@ $hostPrefix = $cfg.IPv4Address[0].PrefixLength
 $gateway    = if ($cfg.IPv4DefaultGateway) { $cfg.IPv4DefaultGateway[0].NextHop } else { $null }
 Write-Host "Host IPv4: $hostIp/$hostPrefix  Gateway: $gateway" -ForegroundColor DarkGray
 
+# Refuse APIPA / link-local. 169.254.0.0/16 means DHCP failed — the NIC isn't
+# really on the LAN and MDE Discovery sensors won't see anything we announce.
+if ($hostIp -like '169.254.*') {
+    throw @"
+
+REFUSING TO RUN: NIC '$($nic.Name)' has an APIPA address ($hostIp).
+This means DHCP failed - the NIC is not actually on the LAN.
+
+Fix this first:
+    ipconfig /release "$($nic.Name)"
+    ipconfig /renew   "$($nic.Name)"
+    Get-NetIPConfiguration -InterfaceAlias "$($nic.Name)"
+
+You should see a real DHCP-assigned IP and gateway. Then re-run this script.
+If renew doesn't help, check the cable, switch port, or DHCP server.
+"@
+}
+if (-not $gateway) {
+    Write-Warning "No default gateway on '$($nic.Name)'. Multicast/broadcast may still reach the local subnet, but MDE Discovery sensors typically need a healthy gateway. Continuing anyway."
+}
+
 if (-not $Prefix -or $Prefix -eq 0) { $Prefix = $hostPrefix }
 if ([string]::IsNullOrWhiteSpace($BaseIP)) {
     # Use first three octets of host IP and pick .200 as base for /24, or

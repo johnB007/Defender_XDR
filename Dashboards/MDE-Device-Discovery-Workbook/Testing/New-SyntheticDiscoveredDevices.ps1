@@ -102,7 +102,8 @@ param(
     [int]   $AnnounceIntervalSeconds = 60,
     [int]   $HttpPort               = 8080,
     [int]   $AliasAddDelayMs        = 250,
-    [switch]$Cleanup
+    [switch]$Cleanup,
+    [switch]$RestoreDhcp
 )
 
 #Requires -RunAsAdministrator
@@ -368,9 +369,10 @@ function Add-TempIPAliases {
     $ips = @()
     Write-Host "Pre-scanning $Count candidate IPs for collisions (ARP/ping)..." -ForegroundColor DarkGray
     # Walk forward from BaseIP, skipping in-use addresses, until we have $Count free ones.
-    # Cap the search at $Count * 4 to avoid runaway scans on a busy /24.
+    # Hard cap: at most $Count * 2 attempts. Better to seed fewer devices than risk
+    # damaging the NIC by attempting hundreds of address adds.
     $offset = 0
-    $maxScan = [Math]::Min($Count * 4, 250)
+    $maxScan = [Math]::Min($Count * 2, 70)
     while ($ips.Count -lt $Count -and $offset -lt $maxScan) {
         $b = $bytes.Clone()
         $b[3] = ($bytes[3] + $offset) % 256
@@ -445,6 +447,43 @@ function Remove-FirewallRules {
     Get-NetFirewallRule -ErrorAction SilentlyContinue |
         Where-Object { $_.DisplayName -like "$FirewallTag-*" } |
         Remove-NetFirewallRule -Confirm:$false -ErrorAction SilentlyContinue
+}
+
+function Restore-NicDhcp {
+    param([string]$Nic)
+    Write-Host "Restoring DHCP on '$Nic'..." -ForegroundColor Yellow
+    try {
+        # Remove any leftover manual addresses
+        Get-NetIPAddress -InterfaceAlias $Nic -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+            Where-Object { $_.PrefixOrigin -eq 'Manual' } |
+            Remove-NetIPAddress -Confirm:$false -ErrorAction SilentlyContinue
+        # Remove any manual default gateway
+        Get-NetRoute -InterfaceAlias $Nic -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue |
+            Remove-NetRoute -Confirm:$false -ErrorAction SilentlyContinue
+        # Re-enable DHCP on the interface
+        Set-NetIPInterface -InterfaceAlias $Nic -Dhcp Enabled -ErrorAction Stop
+        Set-DnsClientServerAddress -InterfaceAlias $Nic -ResetServerAddresses -ErrorAction SilentlyContinue
+        # Force DHCP renew via netsh (most reliable)
+        & ipconfig /release "$Nic" 2>&1 | Out-Null
+        & ipconfig /renew   "$Nic" 2>&1 | Out-Null
+        & ipconfig /flushdns 2>&1 | Out-Null
+        Write-Host "DHCP restored on '$Nic'." -ForegroundColor Green
+        Get-NetIPConfiguration -InterfaceAlias $Nic | Format-List InterfaceAlias,IPv4Address,IPv4DefaultGateway | Out-Host
+    } catch {
+        Write-Warning "Failed to restore DHCP on '$Nic': $($_.Exception.Message)"
+        Write-Warning "Manual recovery: open Network Connections (ncpa.cpl), right-click '$Nic', Properties, IPv4, set both 'Obtain IP automatically' and 'Obtain DNS automatically'."
+    }
+}
+
+# ---------- DHCP restore mode ----------
+# Recovery for hosts where a prior bad run flipped the NIC from DHCP to static
+# (off-subnet BaseIP, off-prefix mask, etc.). Re-enables DHCP and renews the lease.
+if ($RestoreDhcp) {
+    $nic = Resolve-NicAlias -Requested $NicAlias
+    Write-Host "Selected NIC: $($nic.Name) ($($nic.InterfaceDescription))" -ForegroundColor Cyan
+    Restore-NicDhcp -Nic $nic.Name
+    Stop-Transcript | Out-Null
+    return
 }
 
 # ---------- Cleanup mode ----------
@@ -535,6 +574,42 @@ if ([string]::IsNullOrWhiteSpace($BaseIP)) {
     }
     $BaseIP = ([System.Net.IPAddress]::new($hostBytes)).ToString()
     Write-Host "Auto-selected BaseIP: $BaseIP/$Prefix (override with -BaseIP if needed)" -ForegroundColor DarkGray
+}
+
+# ---------- HARD SUBNET GUARD ----------
+# Refuse to proceed if BaseIP is not in the host's actual subnet. Adding
+# off-subnet IPs can flip the NIC from DHCP to static and destroy connectivity
+# in ways that survive reboots. Guard against the most common foot-gun.
+function Test-SameSubnet {
+    param([string]$Ip1, [string]$Ip2, [int]$Prefix)
+    $b1 = [System.Net.IPAddress]::Parse($Ip1).GetAddressBytes()
+    $b2 = [System.Net.IPAddress]::Parse($Ip2).GetAddressBytes()
+    $maskBits = New-Object byte[] 4
+    $full = [Math]::Floor($Prefix / 8)
+    for ($i = 0; $i -lt 4; $i++) {
+        if ($i -lt $full)      { $maskBits[$i] = 0xFF }
+        elseif ($i -eq $full)  { $maskBits[$i] = [byte](0xFF -shl (8 - ($Prefix - 8*$full)) -band 0xFF) }
+        else                   { $maskBits[$i] = 0 }
+    }
+    for ($i = 0; $i -lt 4; $i++) {
+        if (($b1[$i] -band $maskBits[$i]) -ne ($b2[$i] -band $maskBits[$i])) { return $false }
+    }
+    return $true
+}
+if (-not (Test-SameSubnet -Ip1 $hostIp -Ip2 $BaseIP -Prefix $hostPrefix)) {
+    throw @"
+
+REFUSING TO RUN: BaseIP '$BaseIP' is not in the host's subnet ($hostIp/$hostPrefix).
+
+Adding off-subnet IPs to this NIC would:
+  1. Flip the NIC from DHCP to static (Windows behavior on manual IP add)
+  2. Cause every alias to fail DAD (state=Tentative) and waste minutes
+  3. Leave you with no internet until DHCP is manually re-enabled
+
+Either omit -BaseIP to auto-detect, or pass an address inside $hostIp/$hostPrefix.
+If you've already lost DHCP from a prior bad run, recover with:
+    .\New-SyntheticDiscoveredDevices.ps1 -RestoreDhcp -NicAlias '$($nic.Name)'
+"@
 }
 
 $script:AddedIPs = Add-TempIPAliases -Nic $nic.Name -Base ([System.Net.IPAddress]::Parse($BaseIP)) -Count $profiles.Count -Pfx $Prefix

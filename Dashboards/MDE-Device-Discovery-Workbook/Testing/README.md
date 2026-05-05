@@ -40,10 +40,10 @@ Run on the lab host that is on the same broadcast domain as a Discovery sensor. 
 ```powershell
 # Open PowerShell as Administrator
 cd .\Testing
-.\New-SyntheticDiscoveredDevices.ps1
+.\New-SyntheticDiscoveredDevices.ps1 -DurationMinutes 240
 ```
 
-That's it. The script auto-detects your wired/Wi-Fi NIC, reads its real DHCP IP and subnet, and picks a safe `BaseIP` inside that subnet. **Do not pass `-BaseIP` unless you know what you're doing** — passing an off-subnet address used to be possible and would flip the NIC from DHCP to static. The script now refuses to run in that case, but the cleanest path is to omit the parameter entirely.
+That's it. The script auto-detects your wired/Wi-Fi NIC, reads its real DHCP IP and subnet, and picks a safe `BaseIP` inside that subnet. `-DurationMinutes 240` gives MDE Discovery 4 hours to ingest and classify all 35 devices (vendor, OS, DeviceType, DeviceSubtype). Default is 60 minutes if you omit it. **Do not pass `-BaseIP` unless you know what you're doing** — passing an off-subnet address used to be possible and would flip the NIC from DHCP to static. The script now refuses to run in that case, but the cleanest path is to omit the parameter entirely.
 
 Common variations:
 

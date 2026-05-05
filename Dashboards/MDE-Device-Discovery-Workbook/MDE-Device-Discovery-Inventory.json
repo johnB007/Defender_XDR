@@ -1733,14 +1733,15 @@
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "barchart",
               "chartSettings": {
-                "xAxis": "Vendor",
+                "xAxis": "VendorName",
                 "yAxis": [
-                  "Devices"
+                  "ExposedDevices"
                 ],
                 "showLegend": false
               }
             },
-            "name": "iot-public-ip-vendors"
+            "name": "iot-public-ip-vendors",
+            "customWidth": "33"
           },
           {
             "type": 3,

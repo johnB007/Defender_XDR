@@ -96,8 +96,8 @@
 param(
     [string]$ConfigPath,
     [string]$NicAlias,
-    [string]$BaseIP                 = '192.168.50.200',
-    [int]   $Prefix                 = 24,
+    [string]$BaseIP                 = '',
+    [int]   $Prefix                 = 0,
     [int]   $DurationMinutes        = 60,
     [int]   $AnnounceIntervalSeconds = 60,
     [int]   $HttpPort               = 8080,
@@ -257,6 +257,10 @@ function Resolve-NicAlias {
     param([string]$Requested)
     if ($Requested) {
         $a = Get-NetAdapter -Name $Requested -ErrorAction SilentlyContinue
+        if (-not $a) {
+            # Try a wildcard match: 'Ethernet' should match 'Ethernet 3'
+            $a = Get-NetAdapter | Where-Object { $_.Name -like "$Requested*" -and $_.Status -eq 'Up' } | Select-Object -First 1
+        }
         if (-not $a) { throw "Adapter '$Requested' not found." }
         if ($a.Virtual) {
             throw "Adapter '$Requested' is virtual. This script is on-prem physical only."
@@ -498,6 +502,41 @@ if ($HttpPort -ne $origPort) {
     Write-Warning "Port $origPort was in use. Using $HttpPort instead."
     Add-FirewallRules -HttpPort $HttpPort
 }
+
+# ---------- Auto-detect subnet from the selected NIC ----------
+# If user didn't pass -BaseIP / -Prefix, derive them from the NIC's real IPv4
+# config. Pick a base address that's well above the host's own IP and any
+# typical DHCP pool, so collisions are unlikely. The ARP/ping pre-scan in
+# Add-TempIPAliases will skip anything that's still in use.
+$cfg = Get-NetIPConfiguration -InterfaceAlias $nic.Name
+if (-not $cfg.IPv4Address) {
+    throw "NIC $($nic.Name) has no IPv4 address. Connect it to the LAN and re-run."
+}
+$hostIp     = $cfg.IPv4Address[0].IPAddress
+$hostPrefix = $cfg.IPv4Address[0].PrefixLength
+$gateway    = if ($cfg.IPv4DefaultGateway) { $cfg.IPv4DefaultGateway[0].NextHop } else { $null }
+Write-Host "Host IPv4: $hostIp/$hostPrefix  Gateway: $gateway" -ForegroundColor DarkGray
+
+if (-not $Prefix -or $Prefix -eq 0) { $Prefix = $hostPrefix }
+if ([string]::IsNullOrWhiteSpace($BaseIP)) {
+    # Use first three octets of host IP and pick .200 as base for /24, or
+    # an offset that's guaranteed to be inside the prefix for smaller masks.
+    $hostBytes = [System.Net.IPAddress]::Parse($hostIp).GetAddressBytes()
+    if ($Prefix -ge 24) {
+        $hostBytes[3] = 200
+    } elseif ($Prefix -ge 16) {
+        # /16 or larger - put the 35 aliases far from the host's last octet
+        $hostBytes[2] = ($hostBytes[2] + 1) % 256
+        $hostBytes[3] = 10
+    } else {
+        # very large subnets - just bump octet 2 by 1
+        $hostBytes[2] = ($hostBytes[2] + 1) % 256
+        $hostBytes[3] = 10
+    }
+    $BaseIP = ([System.Net.IPAddress]::new($hostBytes)).ToString()
+    Write-Host "Auto-selected BaseIP: $BaseIP/$Prefix (override with -BaseIP if needed)" -ForegroundColor DarkGray
+}
+
 $script:AddedIPs = Add-TempIPAliases -Nic $nic.Name -Base ([System.Net.IPAddress]::Parse($BaseIP)) -Count $profiles.Count -Pfx $Prefix
 
 # Save state for cleanup

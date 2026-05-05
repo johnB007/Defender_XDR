@@ -262,11 +262,50 @@ function Resolve-NicAlias {
         }
         return $a
     }
-    $up = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' -and $_.Virtual -eq $false }
-    if (-not $up) {
-        throw "No physical 'Up' adapter found. This script is on-prem only and will not run on virtual NICs."
+
+    # Filter out non-network pseudo-adapters that report as physical (Xbox controllers, Bluetooth, etc.)
+    $skipPatterns = @(
+        '*xbox*', '*bluetooth*', '*loopback*', '*tap*', '*tun*',
+        '*npcap*', '*wan miniport*', '*teredo*', '*isatap*',
+        '*kernel debug*', '*microsoft network adapter multiplexor*'
+    )
+    function Test-RealNic {
+        param($a)
+        foreach ($p in $skipPatterns) {
+            if ($a.InterfaceDescription -like $p -or $a.Name -like $p) { return $false }
+        }
+        # Must have a routable IPv4 address
+        $cfg = Get-NetIPConfiguration -InterfaceIndex $a.ifIndex -ErrorAction SilentlyContinue
+        if (-not $cfg -or -not $cfg.IPv4Address) { return $false }
+        return $true
     }
-    return $up | Select-Object -First 1
+
+    $candidates = Get-NetAdapter |
+        Where-Object { $_.Status -eq 'Up' -and $_.Virtual -eq $false } |
+        Where-Object { Test-RealNic $_ } |
+        Sort-Object -Property @{Expression='LinkSpeed'; Descending=$true}
+
+    if (-not $candidates) {
+        Write-Host ""
+        Write-Host "Up adapters seen:" -ForegroundColor Yellow
+        Get-NetAdapter | Where-Object Status -eq 'Up' | Format-Table Name, InterfaceDescription, LinkSpeed, Virtual -AutoSize | Out-Host
+        throw "No usable physical network adapter found. Pass -NicAlias 'Name' explicitly using one of the names above (typically 'Wi-Fi' or 'Ethernet')."
+    }
+
+    $picked = $candidates | Select-Object -First 1
+    if ($candidates.Count -gt 1) {
+        Write-Host "  Multiple physical adapters Up. Picked: $($picked.Name) ($($picked.InterfaceDescription)). Override with -NicAlias if needed." -ForegroundColor DarkGray
+    }
+    return $picked
+}
+
+function Get-FreeTcpPort {
+    param([int]$Preferred, [int]$Range = 100)
+    $inUse = (Get-NetTCPConnection -State Listen -ErrorAction SilentlyContinue).LocalPort | Sort-Object -Unique
+    for ($p = $Preferred; $p -lt ($Preferred + $Range); $p++) {
+        if ($inUse -notcontains $p) { return $p }
+    }
+    throw "No free TCP port found between $Preferred and $($Preferred + $Range)."
 }
 
 function Add-TempIPAliases {
@@ -363,6 +402,13 @@ $nic = Resolve-NicAlias -Requested $NicAlias
 Write-Host "Using NIC: $($nic.Name)  ($($nic.InterfaceDescription))"
 
 Add-FirewallRules -HttpPort $HttpPort
+# Auto-pick a free port if requested one is taken
+$origPort = $HttpPort
+$HttpPort = Get-FreeTcpPort -Preferred $HttpPort -Range 200
+if ($HttpPort -ne $origPort) {
+    Write-Warning "Port $origPort was in use. Using $HttpPort instead."
+    Add-FirewallRules -HttpPort $HttpPort
+}
 $script:AddedIPs = Add-TempIPAliases -Nic $nic.Name -Base ([System.Net.IPAddress]::Parse($BaseIP)) -Count $profiles.Count -Pfx $Prefix
 
 # Save state for cleanup

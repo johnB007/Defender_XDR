@@ -1640,7 +1640,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded')\n| extend IsByName = NameLc has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-','vending','access-ctrl','badge-reader','intercom')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| summarize TotalIoT=count(), CanBeOnboarded=countif(OnboardingStatus=~'Can be onboarded'), Insufficient=countif(OnboardingStatus=~'Insufficient info' or isempty(OnboardingStatus)), Unsupported=countif(OnboardingStatus=~'Unsupported')\n| mv-expand kv=pack_array(pack('label','Unmanaged IoT / OT Devices','value',TotalIoT), pack('label','Can Be Onboarded','value',CanBeOnboarded), pack('label','Insufficient Info','value',Insufficient), pack('label','Unsupported','value',Unsupported))\n| project label=tostring(kv.label), value=toint(kv.value)",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded')\n| extend IsByName = NameLc has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-','vending','access-ctrl','badge-reader','intercom')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| summarize TotalIoT=count(), Insufficient=countif(OnboardingStatus=~'Insufficient info' or isempty(OnboardingStatus)), Unsupported=countif(OnboardingStatus=~'Unsupported')\n| mv-expand kv=pack_array(pack('label','Unmanaged IoT / OT Devices','value',TotalIoT), pack('label','Insufficient Info','value',Insufficient), pack('label','Unsupported','value',Unsupported))\n| project label=tostring(kv.label), value=toint(kv.value)",
               "size": 4,
               "title": "Unmanaged IoT & OT KPI",
               "timeContextFromParameter": "TimeRange",
@@ -1725,16 +1725,22 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded')\n| extend IsByName = NameLc has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-','vending','access-ctrl','badge-reader','intercom')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| extend StatusLabel=case(OnboardingStatus=~'Onboarded','Onboarded', OnboardingStatus=~'Can be onboarded','Can Be Onboarded', OnboardingStatus=~'Insufficient info','Insufficient Info', OnboardingStatus=~'Unsupported','Unsupported', 'Other')\n| where StatusLabel != 'Other'\n| summarize Count=count() by StatusLabel",
-              "size": 3,
-              "title": "IoT Onboarding Status",
+              "query": "let _df = '{DeviceFilter}';\nlet Base = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform, Vendor) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('IoTDevice','SmartAppliance','CommunicationsDevice','VoIPPhone','GameConsole','MediaPlayer') or OSPlatform in~ ('IoT','Embedded')\n| extend IsByName = NameLc has_any ('thermostat','hvac','bms','plc','scada','hmi','iot-','sensor','beacon','kiosk','pos-','atm-','vending','access-ctrl','badge-reader','intercom')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint));\nlet _Net = DeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, IPAddresses) by DeviceId\n| mv-expand IPE = parse_json(IPAddresses)\n| extend IP = tostring(IPE.IPAddress)\n| where isnotempty(IP) and IP !has ':' and IP !startswith '127.' and IP !startswith '169.254.'\n       and IP !startswith '10.'\n       and not(IP startswith '172.' and toint(split(IP,'.')[1]) between (16 .. 31))\n       and IP !startswith '192.168.'\n| summarize PublicIPCount = dcount(IP) by DeviceId;\nBase\n| join kind=inner _Net on DeviceId\n| extend VendorName = iff(isempty(Vendor) or Vendor =~ 'Unknown', 'Unknown / Not reported', tostring(Vendor))\n| summarize ExposedDevices = dcount(DeviceId) by VendorName\n| top 15 by ExposedDevices desc\n| order by ExposedDevices desc",
+              "size": 0,
+              "title": "Top Vendors by Public IP Exposure - Unmanaged IoT & OT",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "piechart"
+              "visualization": "barchart",
+              "chartSettings": {
+                "xAxis": "Vendor",
+                "yAxis": [
+                  "Devices"
+                ],
+                "showLegend": false
+              }
             },
-            "customWidth": "34",
-            "name": "iot-onboarding-pie"
+            "name": "iot-public-ip-vendors"
           },
           {
             "type": 3,

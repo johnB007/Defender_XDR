@@ -152,15 +152,24 @@ function Confirm-MulticastReady {
         throw "This host appears to be running in AWS EC2. Cloud VPCs do not forward multicast or broadcast. This script is on-prem only. Aborting."
     }
 
-    # Detect virtualization (Hyper-V, VMware, KVM, Xen, VirtualBox)
+    # Detect virtualization. Use Model field (reliable for Hyper-V, VMware, etc.).
+    # Manufacturer alone is unreliable - "Microsoft Corporation" is also Surface hardware.
     try {
         $cs = Get-CimInstance -ClassName Win32_ComputerSystem -ErrorAction Stop
-        $manufacturer = "$($cs.Manufacturer)".ToLower()
-        $model        = "$($cs.Model)".ToLower()
-        $virtIndicators = @('microsoft corporation','vmware','xen','innotek','qemu','kvm','parallels','virtual machine','virtualbox','hvm domu')
+        $model = "$($cs.Model)".ToLower()
+        $virtModelIndicators = @(
+            'virtual machine',  # Hyper-V
+            'vmware virtual',   # VMware
+            'vmware7,1',        # VMware
+            'kvm',              # KVM/QEMU
+            'qemu',             # QEMU
+            'xen hvm',          # Xen
+            'virtualbox',       # VirtualBox
+            'parallels'         # Parallels
+        )
         $isVirtual = $false
-        foreach ($v in $virtIndicators) {
-            if ($manufacturer.Contains($v) -or $model.Contains($v)) { $isVirtual = $true; break }
+        foreach ($v in $virtModelIndicators) {
+            if ($model.Contains($v)) { $isVirtual = $true; break }
         }
         if ($isVirtual) {
             throw "This host appears to be a virtual machine (Manufacturer='$($cs.Manufacturer)', Model='$($cs.Model)'). This script is intended for on-prem physical hosts only. Aborting."

@@ -1417,7 +1417,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('Printer')\n| extend IsByName = NameLc has_any ('printer','prn-','laserjet','officejet','copier','xerox','epson','brother','ricoh','konica','kyocera','toshiba-mfp','sharp-mfp','-mfp','-mfd')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| summarize TotalPrinters=count(), Unsupported=countif(OnboardingStatus=~'Unsupported'), CanBeOnboarded=countif(OnboardingStatus=~'Can be onboarded'), Insufficient=countif(OnboardingStatus=~'Insufficient info')\n| mv-expand kv=pack_array(pack('label','Unmanaged Printers / MFPs','value',TotalPrinters), pack('label','Unsupported (Expected)','value',Unsupported), pack('label','Can Be Onboarded','value',CanBeOnboarded), pack('label','Insufficient Info','value',Insufficient))\n| project label=tostring(kv.label), value=toint(kv.value)",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| where DeviceType =~ 'Printer' or NameLc has_any ('printer','print-','hp-','xerox','canon','konica','kyocera','ricoh','brother','epson','toshiba','sharp','mfp','copier')\n| summarize Total=count(), Unsupported=countif(OnboardingStatus=~'Unsupported')\n| mv-expand kv=pack_array(pack('label','Unmanaged Printers / MFPs','value',Total), pack('label','Unsupported','value',Unsupported))\n| project label=tostring(kv.label), value=toint(kv.value)",
               "size": 4,
               "title": "Unmanaged Printers & MFPs KPI",
               "timeContextFromParameter": "TimeRange",
@@ -1452,51 +1452,45 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('Printer')\n| extend IsByName = NameLc has_any ('printer','prn-','laserjet','officejet','copier','xerox','epson','brother','ricoh','konica','kyocera','toshiba-mfp','sharp-mfp','-mfp','-mfd')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| extend StatusLabel=case(OnboardingStatus=~'Onboarded','Onboarded', OnboardingStatus=~'Can be onboarded','Can Be Onboarded', OnboardingStatus=~'Insufficient info','Insufficient Info', OnboardingStatus=~'Unsupported','Unsupported', 'Other')\n| where StatusLabel != 'Other'\n| summarize Count=count() by StatusLabel",
+              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, Vendor) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| where DeviceType =~ 'Printer' or NameLc has_any ('printer','print-','hp-','xerox','canon','konica','kyocera','ricoh','brother','epson','toshiba','sharp','mfp','copier')\n| extend VendorName = iff(isempty(Vendor) or Vendor =~ 'Unknown', 'Unknown / Not reported', tostring(Vendor))\n| summarize Devices = dcount(DeviceId) by VendorName\n| top 15 by Devices desc",
               "size": 3,
-              "title": "Printer Onboarding Status",
+              "title": "Top 15 Vendors - Unmanaged Printers & MFPs",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "piechart"
+              "visualization": "barchart",
+              "chartSettings": {
+                "xAxis": "VendorName",
+                "yAxis": [
+                  "Devices"
+                ],
+                "showLegend": false
+              }
             },
             "customWidth": "50",
-            "name": "printers-onboarding-pie"
+            "name": "printers-top-vendors"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let _df = '{DeviceFilter}';\nDeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus, OSPlatform, ExposureLevel) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| extend IsByType = DeviceType in~ ('Printer')\n| extend IsByName = NameLc has_any ('printer','prn-','laserjet','officejet','copier','xerox','epson','brother','ricoh','konica','kyocera','toshiba-mfp','sharp-mfp','-mfp','-mfd')\n| extend IsRegularEndpoint = DeviceType in~ ('Workstation','Server','Desktop','Laptop') or OSPlatform has_any ('Windows10','Windows11','WindowsServer','macOS','Linux')\n| where IsByType or (IsByName and not(IsRegularEndpoint))\n| extend ExpLevel=coalesce(ExposureLevel,'None')\n| summarize Count=count() by ExpLevel",
+              "query": "let _df = '{DeviceFilter}';\nlet Printers = DeviceInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, DeviceType, OnboardingStatus) by DeviceId, DeviceName\n| where isempty(OnboardingStatus) or OnboardingStatus !~ 'Onboarded'\n| where _df == '' or DeviceName has _df\n| extend NameLc = tolower(coalesce(DeviceName,''))\n| where DeviceType =~ 'Printer' or NameLc has_any ('printer','print-','hp-','xerox','canon','konica','kyocera','ricoh','brother','epson','toshiba','sharp','mfp','copier')\n| project DeviceId;\nDeviceNetworkInfo\n| where Timestamp {TimeRange}\n| summarize arg_max(Timestamp, ConnectedNetworks) by DeviceId\n| join kind=inner Printers on DeviceId\n| mv-expand Net = parse_json(ConnectedNetworks)\n| extend NetworkName = tostring(Net.Name)\n| where isnotempty(NetworkName)\n| summarize Devices = dcount(DeviceId) by NetworkName\n| top 15 by Devices desc",
               "size": 3,
-              "title": "Printer Exposure Level",
+              "title": "Top 15 Networks / SSIDs Hosting Unmanaged Printers",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "piechart",
+              "visualization": "barchart",
               "chartSettings": {
-                "seriesLabelSettings": [
-                  {
-                    "seriesName": "High",
-                    "color": "red"
-                  },
-                  {
-                    "seriesName": "Medium",
-                    "color": "orange"
-                  },
-                  {
-                    "seriesName": "Low",
-                    "color": "yellow"
-                  },
-                  {
-                    "seriesName": "None",
-                    "color": "green"
-                  }
-                ]
+                "xAxis": "NetworkName",
+                "yAxis": [
+                  "Devices"
+                ],
+                "showLegend": false
               }
             },
             "customWidth": "50",
-            "name": "printers-exposure-pie"
+            "name": "printers-top-networks"
           },
           {
             "type": 3,

@@ -337,8 +337,11 @@ function Add-TempIPAliases {
         $b[3] = ($bytes[3] + $i) % 256
         $ip = [System.Net.IPAddress]::new($b).ToString()
         try {
+            # SkipAsSource=$true keeps Windows from using these aliases as the outbound source IP
+            # for traffic to the internet (which would break NAT and kill connectivity), while still
+            # allowing the NIC to respond to ARP and unicast probes addressed to these IPs on the LAN.
             New-NetIPAddress -InterfaceAlias $Nic -IPAddress $ip -PrefixLength $Pfx `
-                -SkipAsSource $false -PolicyStore ActiveStore -ErrorAction Stop |
+                -SkipAsSource $true -PolicyStore ActiveStore -ErrorAction Stop |
                 Add-Member -NotePropertyName Tag -NotePropertyValue $AliasTag -PassThru | Out-Null
             $ips += $ip
             Write-Host "  alias added: $ip" -ForegroundColor DarkGray
@@ -352,8 +355,7 @@ function Add-TempIPAliases {
 function Remove-TempIPAliases {
     param([string]$Nic)
     Write-Host "Cleaning up IP aliases on $Nic ..."
-    $all = Get-NetIPAddress -InterfaceAlias $Nic -AddressFamily IPv4 -ErrorAction SilentlyContinue |
-        Where-Object { $_.SkipAsSource -eq $false }
+    $all = Get-NetIPAddress -InterfaceAlias $Nic -AddressFamily IPv4 -ErrorAction SilentlyContinue
     foreach ($a in $all) {
         # only delete addresses we added: those in the alias range we used
         if ($script:AddedIPs -contains $a.IPAddress) {

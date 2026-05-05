@@ -1963,6 +1963,14 @@
             "name": "iot-risk-header"
           },
           {
+            "type": 1,
+            "content": {
+              "json": "> **Note:** Vendor list is hard coded in KQL, not a live CISA feed. Review and refresh periodically against current advisories before treating matches as authoritative.",
+              "style": "error"
+            },
+            "name": "iot-vuln-disclaimer"
+          },
+          {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",

@@ -9,9 +9,9 @@ It includes:
 - KPI tiles for unmanaged counts by category, onboarding readiness, exposure, and lifecycle
 - Per category tabs for Audio & Video, Network Infrastructure, Printers & MFPs, IoT & OT, Computers & Servers, and Mobile & Tablets
 - Vendor and Model columns on every grid
-- IoT vendor risk heatmap and Public IP exposure grid for OT/IoT triage
+- IoT vendor risk heatmap, Top Vendors by Public IP Exposure chart, and Public IP exposure grid for OT/IoT triage
 - IoT/OT **Vendor Pattern Vulnerability Matches** section: KPI tiles and a grid that pattern match unmanaged device names against publicly disclosed advisories ([CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog), [CISA ICS Advisories](https://www.cisa.gov/news-events/cybersecurity-advisories?f%5B0%5D=advisory_type%3A95), vendor PSIRTs)
-- Computers & Servers onboarding range KPIs (1d / 7d / 30d / 90d) and a daily onboarding trend line
+- Computers & Servers KPI tiles and a daily onboarding trend line bucketed into Workstations / Servers / Other Endpoints
 
 ## Summary For Sysadmin And Security
 Use this workbook to review MDE device discovery data across device categories with an unmanaged first lens.
@@ -29,8 +29,8 @@ Use this workbook to review MDE device discovery data across device categories w
 | Audio & Video | **Unmanaged only.** Scoped inventory of cameras, webcams, video surveillance, and conferencing or AV equipment. Camera Heartbeat and Camera Network Activity sub tabs identify silently failing cameras. |
 | Network Infrastructure | **Unmanaged only.** Scoped inventory of switches, routers, access points, and network devices with Vendor, Model, OS Version, FirstSeen, DefaultGateway, DnsServers, ConnectedNetworkName, DomainAuthenticated, and IsPublicIP columns. |
 | Printers & MFPs | **Unmanaged only.** Scoped inventory of printers and multi function printers (MFPs) with Vendor and Model columns. |
-| IoT & OT Devices | **Unmanaged only.** Scoped inventory of IoT devices, smart appliances, VoIP phones, game consoles, and communications devices. Includes Top Vendors chart, Vendor Risk Heatmap (vendor x exposure), Public IP exposure grid (top 100), and **Vendor Pattern Vulnerability Matches** (CISA KEV, ICS CERT, and vendor PSIRT pattern match against unmanaged device names). |
-| Computers & Servers | **Unmanaged only.** Scoped inventory of workstations, desktops, laptops, and servers. Includes onboarding range KPIs (1d / 7d / 30d / 90d) and a daily onboarding trend line chart. |
+| IoT & OT Devices | **Unmanaged only.** Scoped inventory of IoT devices, smart appliances, VoIP phones, game consoles, and communications devices. Includes Top Vendors chart, Top Vendors by Public IP Exposure, Vendor Risk Heatmap (vendor x exposure), Public IP exposure grid (top 100), and **Vendor Pattern Vulnerability Matches** (CISA KEV, ICS CERT, and vendor PSIRT pattern match against unmanaged device names). |
+| Computers & Servers | Includes Onboarded and Unmanaged KPI tiles bucketed into Workstations / Servers / Other Endpoints, plus a daily onboarding trend line chart with the same three buckets so weekend bulk onboards of any device class are visible. |
 | Mobile & Tablets | **Unmanaged only.** Scoped inventory of mobile phones, smartphones, and tablets discovered by MDE. |
 
 ## Workbook Overview Screenshots
@@ -91,11 +91,11 @@ Use this workbook to review MDE device discovery data across device categories w
 
 ### IoT & OT Devices (Unmanaged)
 - What it does: filters DeviceInfo to IoTDevice, SmartAppliance, CommunicationsDevice, VoIPPhone, GameConsole, MediaPlayer types and OT name patterns (thermostat, hvac, bms, plc, scada, hmi, kiosk, pos, atm, etc.), excluding onboarded devices and regular endpoints.
-- Visuals: KPI tiles (Total / Can Be Onboarded / Insufficient Info / Unsupported), Top Vendors bar chart, Vendor Risk Heatmap (vendor x exposure level), subtype, exposure, and onboarding pie charts, full device grid, Public IP exposure grid (devices reachable on public IPs, derived from DeviceNetworkInfo), and a **Vendor Pattern Vulnerability Matches** section with Critical / High / Medium / Total KPI tiles and a grid that pattern matches unmanaged device names against publicly disclosed advisories (CISA KEV, CISA ICS Advisories, vendor PSIRTs).
+- Visuals: KPI tiles (Total / Insufficient Info / Unsupported), Sub-Type pie, Exposure Level pie, **Top Vendors by Public IP Exposure** bar chart, Top 15 Vendors bar chart, Vendor Risk Heatmap (vendor x exposure level), full device grid, Public IP exposure grid (devices reachable on public IPs, derived from DeviceNetworkInfo), and a **Vendor Pattern Vulnerability Matches** section with Critical / High / Medium / Total KPI tiles and a grid that pattern matches unmanaged device names against publicly disclosed advisories (CISA KEV, CISA ICS Advisories, vendor PSIRTs).
 
-### Computers & Servers (Unmanaged)
-- What it does: filters DeviceInfo to Workstation, Desktop, Laptop, and Server types. Onboarded views are scoped to Windows OS plus active sensor; Unmanaged views show all unmanaged Windows and Server endpoints.
-- Visuals: KPI tiles, OS distribution pie, sensor health pie, exposure level pie, filterable device grid with Vendor and Model, **Onboarding Activity** range KPI tiles (1d / 7d / 30d / 90d), and a **Daily Onboarding Trend** line chart.
+### Computers & Servers
+- What it does: queries DeviceInfo for all device types and buckets each device into Workstations (Workstation/Desktop/Laptop, Windows 10/11, macOS, Linux), Servers (`OSPlatform has 'Server'` or `DeviceType =~ 'Server'`), or Other Endpoints (everything else: phones, tablets, IoT, network gear, printers, etc.).
+- Visuals: KPI tiles, OS distribution pie, sensor health pie, exposure level pie, filterable device grid with Vendor and Model, **Distinct Devices in Selected Time Range** tiles (Onboarded x 3 buckets and Unmanaged x 3 buckets), and a **Daily Onboarded Reporting Trend** line chart with the same three buckets so weekend bulk onboards across any device class are visible.
 
 ### Mobile & Tablets (Unmanaged)
 - What it does: filters DeviceInfo to MobilePhone, Smartphone, and Tablet types and excludes onboarded devices.

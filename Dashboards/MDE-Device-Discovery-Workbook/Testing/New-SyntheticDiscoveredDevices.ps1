@@ -401,6 +401,22 @@ Confirm-MulticastReady
 $nic = Resolve-NicAlias -Requested $NicAlias
 Write-Host "Using NIC: $($nic.Name)  ($($nic.InterfaceDescription))"
 
+# Wi-Fi warning - corporate APs commonly block client-to-client multicast
+if ($nic.PhysicalMediaType -like '*802.11*' -or $nic.InterfaceDescription -like '*wireless*' -or $nic.InterfaceDescription -like '*wi-fi*') {
+    Write-Warning ""
+    Write-Warning "Wi-Fi adapter selected. Multicast over Wi-Fi is unreliable:"
+    Write-Warning "  - Corporate APs typically enable client isolation (multicast between clients is dropped)"
+    Write-Warning "  - Guest Wi-Fi almost always blocks it"
+    Write-Warning "  - Only home/small-office Wi-Fi reliably forwards mDNS/SSDP"
+    Write-Warning ""
+    Write-Warning "For best results use wired Ethernet on the same subnet as the MDE Discovery sensor."
+    Write-Warning "This run will continue with both multicast AND directed-broadcast fallback enabled."
+    Write-Warning ""
+    $script:UseDirectedBroadcast = $true
+} else {
+    $script:UseDirectedBroadcast = $true  # always-on, broadcast helps any environment
+}
+
 Add-FirewallRules -HttpPort $HttpPort
 # Auto-pick a free port if requested one is taken
 $origPort = $HttpPort
@@ -424,6 +440,17 @@ for ($i = 0; $i -lt [Math]::Min($profiles.Count, $script:AddedIPs.Count); $i++) 
         MAC     = $nic.MacAddress
     }
 }
+
+# Compute the subnet directed broadcast (e.g. 192.168.50.255 from 192.168.50.100/24)
+$script:SubnetBroadcast = $null
+try {
+    $bytes = ([System.Net.IPAddress]::Parse($BaseIP)).GetAddressBytes()
+    if ($Prefix -eq 24) {
+        $bytes[3] = 255
+        $script:SubnetBroadcast = ([System.Net.IPAddress]::new($bytes)).ToString()
+        Write-Host "  Directed broadcast address: $script:SubnetBroadcast" -ForegroundColor DarkGray
+    }
+} catch {}
 
 Write-Host ""
 Write-Host "============== Synthetic Devices ==============" -ForegroundColor Cyan
@@ -456,10 +483,7 @@ function Send-MdnsAnnouncement {
 
 function Send-SsdpNotify {
     param($IP, $Hostname, $Vendor, $Model, $OS, $HttpPort)
-    try {
-        $client = New-Object System.Net.Sockets.UdpClient
-        $client.Client.Bind([System.Net.IPEndPoint]::new([System.Net.IPAddress]::Parse($IP), 0))
-        $msg = @"
+    $msg = @"
 NOTIFY * HTTP/1.1`r
 HOST: 239.255.255.250:1900`r
 CACHE-CONTROL: max-age=1800`r
@@ -471,11 +495,28 @@ USN: uuid:$([guid]::NewGuid())::upnp:rootdevice`r
 X-MDE-LAB: $Hostname`r
 `r
 "@
-        $payload = [System.Text.Encoding]::ASCII.GetBytes($msg)
+    $payload = [System.Text.Encoding]::ASCII.GetBytes($msg)
+
+    # Multicast send (works on wired and good Wi-Fi)
+    try {
+        $client = New-Object System.Net.Sockets.UdpClient
+        $client.Client.Bind([System.Net.IPEndPoint]::new([System.Net.IPAddress]::Parse($IP), 0))
         $ep = [System.Net.IPEndPoint]::new($ssdpAddr, 1900)
         [void]$client.Send($payload, $payload.Length, $ep)
         $client.Close()
     } catch {}
+
+    # Directed broadcast fallback (corporate Wi-Fi often passes broadcast even when multicast is blocked)
+    if ($script:UseDirectedBroadcast -and $script:SubnetBroadcast) {
+        try {
+            $client = New-Object System.Net.Sockets.UdpClient
+            $client.EnableBroadcast = $true
+            $client.Client.Bind([System.Net.IPEndPoint]::new([System.Net.IPAddress]::Parse($IP), 0))
+            $ep = [System.Net.IPEndPoint]::new([System.Net.IPAddress]::Parse($script:SubnetBroadcast), 1900)
+            [void]$client.Send($payload, $payload.Length, $ep)
+            $client.Close()
+        } catch {}
+    }
 }
 
 function Send-NbnsAnnouncement {

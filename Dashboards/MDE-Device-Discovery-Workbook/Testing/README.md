@@ -22,12 +22,14 @@ Two PowerShell scripts for end to end testing of the MDE Device Discovery workbo
 
 | Environment | Seeding script | Validator script |
 |---|---|---|
-| On-prem physical Windows host | Yes | Yes |
+| On-prem physical Windows host on **wired Ethernet** | Yes (most reliable) | Yes |
+| On-prem physical Windows host on **home or small-office Wi-Fi** | Usually works | Yes |
+| On-prem physical Windows host on **corporate Wi-Fi with client isolation** | Often blocked. Multicast and broadcast between Wi-Fi clients are typically dropped by enterprise APs. | Yes |
+| On-prem physical Windows host on **guest Wi-Fi** | No | Yes |
 | On-prem Hyper-V / VMware / KVM VM | **No** (script aborts) | Yes |
 | Azure / AWS / GCP VM | **No** (script aborts) | Yes |
-| Laptop on corporate Wi-Fi | Not recommended (AP client isolation may block multicast). On-prem wired host preferred. | Yes |
 
-The seeding script auto-detects cloud and virtualization via instance metadata and `Win32_ComputerSystem` and aborts with a clear error before making any changes. The validator script runs from anywhere with internet egress.
+The script auto-detects Wi-Fi adapters and enables a directed-broadcast fallback (e.g. `192.168.50.255`) in addition to multicast, since some enterprise APs forward broadcast even when they block multicast. There is no software workaround if the AP drops both. **For guaranteed results use a wired Ethernet connection on the same flat subnet as the MDE Discovery sensor.**
 
 ## Run order
 

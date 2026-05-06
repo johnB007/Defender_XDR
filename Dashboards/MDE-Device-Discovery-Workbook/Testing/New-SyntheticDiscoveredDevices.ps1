@@ -624,13 +624,30 @@ function Test-NicHealthy {
     # flagging transient drops). Used to bail out early if anything we did
     # actually broke connectivity for real.
     param([string]$Nic, [string]$ExpectedIP, [string]$Gateway)
-    $hasIp = Get-NetIPAddress -InterfaceAlias $Nic -IPAddress $ExpectedIP -AddressFamily IPv4 -ErrorAction SilentlyContinue
+    # Adding a secondary IP can cause the driver to briefly re-register
+    # addresses, during which Get-NetIPAddress returns nothing or shows the
+    # primary as Tentative/Duplicate for a second. Retry up to ~6s before
+    # declaring the primary really gone.
+    $hasIp = $null
+    $lastState = 'missing'
+    for ($i = 0; $i -lt 8; $i++) {
+        $hasIp = Get-NetIPAddress -InterfaceAlias $Nic -IPAddress $ExpectedIP -AddressFamily IPv4 -ErrorAction SilentlyContinue
+        if ($hasIp) {
+            $lastState = [string]$hasIp.AddressState
+            if ($hasIp.AddressState -eq 'Preferred') { break }
+        }
+        Start-Sleep -Milliseconds 750
+    }
     if (-not $hasIp) {
-        Write-Warning "  health check: host IP $ExpectedIP missing from NIC"
+        Write-Warning "  health check: host IP $ExpectedIP missing from NIC after 6s of retries"
+        $all = Get-NetIPAddress -InterfaceAlias $Nic -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+               Select-Object IPAddress, PrefixLength, AddressState, PrefixOrigin, SuffixOrigin, SkipAsSource
+        if ($all) { Write-Host "  current IPv4 addresses on '$Nic':" -ForegroundColor Yellow; $all | Format-Table -AutoSize | Out-String | Write-Host }
+        else { Write-Host "  NIC '$Nic' has NO IPv4 addresses at all." -ForegroundColor Red }
         return $false
     }
     if ($hasIp.AddressState -ne 'Preferred') {
-        Write-Warning "  health check: host IP $ExpectedIP is in state '$($hasIp.AddressState)' (expected Preferred)"
+        Write-Warning "  health check: host IP $ExpectedIP is in state '$lastState' (expected Preferred) after 6s"
         return $false
     }
     if ($Gateway) {

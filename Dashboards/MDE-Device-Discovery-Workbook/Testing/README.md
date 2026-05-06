@@ -22,16 +22,49 @@ Two PowerShell scripts for end to end testing of the MDE Device Discovery workbo
 
 | Environment | Seeding script | Validator script |
 |---|---|---|
-| On-prem physical Windows host on **wired Ethernet** | Yes (most reliable) | Yes |
-| On-prem physical Windows host on **home or small-office Wi-Fi** | Usually works | Yes |
+| On-prem physical Windows host on **wired Ethernet** | **Yes (strongly recommended)** | Yes |
+| On-prem physical Windows host on **home or small-office Wi-Fi** | Sometimes — many Wi-Fi drivers do not loopback the host's own multicast back to its own listener, so a single-host setup will not see itself. A *separate* onboarded sensor on the same SSID/broadcast domain works. | Yes |
 | On-prem physical Windows host on **corporate Wi-Fi with client isolation** | Often blocked. Multicast and broadcast between Wi-Fi clients are typically dropped by enterprise APs. | Yes |
 | On-prem physical Windows host on **guest Wi-Fi** | No | Yes |
 | On-prem Hyper-V / VMware / KVM VM | **No** (script aborts) | Yes |
 | Azure / AWS / GCP VM | **No** (script aborts) | Yes |
 
-The script auto-detects Wi-Fi adapters and enables a directed-broadcast fallback (e.g. `192.168.50.255`) in addition to multicast, since some enterprise APs forward broadcast even when they block multicast. There is no software workaround if the AP drops both. **For guaranteed results use a wired Ethernet connection on the same flat subnet as the MDE Discovery sensor.**
+The script auto-detects Wi-Fi adapters and enables a directed-broadcast fallback (the subnet's `.255` address) in addition to multicast, since some enterprise APs forward broadcast even when they block multicast. There is no software workaround if the AP drops both. **For reliable single-host results use a wired Ethernet connection on the same flat subnet as the MDE Discovery sensor.**
+
+> **Why wired matters even on permissive Wi-Fi**: most Wi-Fi NIC drivers do not deliver a host's own outbound multicast packets back to the same host's listening sockets. Wired Ethernet does. When the seeding host is *also* the Discovery sensor, only Ethernet guarantees the host can hear itself. If you have a second onboarded device on the same broadcast domain, Wi-Fi can work because *that* device receives the multicast normally.
 
 ## Run order
+
+### Step 0. Pre-flight (do this once per host)
+
+A few small environment checks save a lot of "why aren't devices showing up" time later. All of these are run on the **seeding host**.
+
+**1. Confirm MDE Device Discovery is configured.**
+In the Defender portal: `Settings → Device discovery → Discovery setup`.
+
+* Mode = **Standard discovery** (Basic does not ingest mDNS/SSDP advertisements).
+* The seeding host's subnet is in **Monitored networks** (not *Ignore* / *No decision*).
+* The seeding host is **not excluded** from acting as a discovery sensor.
+
+**2. If the host is dual-homed (Ethernet + Wi-Fi), prefer Ethernet.**
+Windows multicast routing follows the interface metric, *not* the script's `-NicAlias` parameter. If Wi-Fi has a lower metric, multicast goes out Wi-Fi regardless of which NIC the script reports it picked. Lower the Ethernet metric so Ethernet wins:
+
+```powershell
+Set-NetIPInterface -InterfaceAlias 'Ethernet'  -InterfaceMetric 5
+Set-NetIPInterface -InterfaceAlias 'Wi-Fi'     -InterfaceMetric 100
+Get-NetIPInterface -AddressFamily IPv4 |
+    Where-Object ConnectionState -eq Connected |
+    Sort-Object InterfaceMetric |
+    Format-Table InterfaceAlias, InterfaceMetric, ConnectionState
+```
+
+Use whatever your wired adapter is actually named (`Ethernet`, `Ethernet 2`, etc.).
+
+**3. Free up TCP 8080 if possible (optional).**
+If port 8080 is in use the script falls back to 8081 and prints a warning — that is fine and does not affect discovery.
+
+**4. Do not disable the NIC the script is bound to mid-run.**
+The script reads the NIC and host IP once at startup and binds its multicast/broadcast sockets to that interface. If you later disable that NIC (e.g. turning Wi-Fi off after the script started on Wi-Fi), announcements silently stop even though the tick counter keeps incrementing. Stop with Ctrl+C, change network state, then restart.
 
 ### Step 1. Seed synthetic devices
 
@@ -184,7 +217,101 @@ If something exits unexpectedly and leaves aliases or firewall rules behind:
 .\New-SyntheticDiscoveredDevices.ps1 -Cleanup
 ```
 
-## Important caveats
+## Verifying the announcements actually leave the host
+
+Before blaming MDE Discovery for "no synthetic devices yet", confirm the script is really putting packets on the wire from the expected source IP. The most reliable check is `pktmon`.
+
+```powershell
+$out = "$env:USERPROFILE\Downloads\synth.etl"
+$txt = "$env:USERPROFILE\Downloads\synth.txt"
+& "$env:WinDir\System32\pktmon.exe" stop 2>$null
+& "$env:WinDir\System32\pktmon.exe" filter remove
+& "$env:WinDir\System32\pktmon.exe" filter add -p 5353 -t UDP
+& "$env:WinDir\System32\pktmon.exe" filter add -p 1900 -t UDP
+& "$env:WinDir\System32\pktmon.exe" start --capture --comp all --pkt-size 0 --file-name $out
+Start-Sleep 60
+& "$env:WinDir\System32\pktmon.exe" stop
+& "$env:WinDir\System32\pktmon.exe" format $out -o $txt
+
+# Group by source IP -> destination
+Get-Content $txt | Select-String '\.5353|\.1900' |
+    ForEach-Object {
+        if ($_ -match '(\d+\.\d+\.\d+\.\d+)\.\d+\s*>\s*(\d+\.\d+\.\d+\.\d+)\.(5353|1900)') {
+            "$($Matches[1])  ->  $($Matches[2]):$($Matches[3])"
+        }
+    } | Group-Object | Sort-Object Count -Descending | Format-Table Count, Name -Auto
+```
+
+**Important:** use `--comp all`, not `--comp nics`. Multicast packets (`224.0.0.251`, `239.255.255.250`) are intercepted at the WFP / virtual switch layer and frequently do not show up in the post-NDIS NIC view. `--comp all` includes those layers.
+
+Expected output (with the script running on, say, Ethernet IP `10.x.y.z`):
+
+```
+Count Name
+----- ----
+  130 10.x.y.z  ->  224.0.0.251:5353
+  100 10.x.y.z  ->  239.255.255.250:1900
+   90 10.x.y.z  ->  10.x.y.255:1900
+```
+
+* All three destinations from the **expected source IP** → script is healthy, network is healthy. Wait for MDE ingestion.
+* Source IP is **a different interface** than expected (e.g., a Hyper-V `vEthernet` IP, or Wi-Fi when you wanted Ethernet) → revisit Step 0 pre-flight, in particular the interface metric. Stop the script, fix the metric, restart.
+* No matches at all → check that the script's PowerShell window is still printing `[tick N]` lines. If it is and pktmon shows nothing, the multicast sockets failed to bind silently — usually fixed by re-running pre-flight Step 0.4 (the script process probably had its NIC pulled).
+
+## Verifying ingestion in Advanced Hunting
+
+`DeviceNetworkEvents` does **not** log multicast or broadcast UDP, so the absence of port 5353 / 1900 traffic from the seeding host in `DeviceNetworkEvents` is **not** evidence the announcements failed. The two reliable observability signals are:
+
+```kql
+// Did MDE Discovery surface the synthetic device names?
+DeviceInfo
+| where Timestamp > ago(2h)
+| where DeviceName startswith "LAB-"
+| summarize arg_max(Timestamp, *) by DeviceId
+| project DeviceName, DeviceType, DeviceSubtype, OnboardingStatus, OSPlatform
+| order by DeviceName asc
+```
+
+```kql
+// Did the synthetic IP range appear anywhere in DeviceNetworkInfo?
+// Replace the prefix with whatever subnet your seeding host is on.
+DeviceNetworkInfo
+| where Timestamp > ago(2h)
+| mv-expand ip = parse_json(IPAddresses)
+| extend IPAddress = tostring(ip.IPAddress)
+| where IPAddress startswith "10.x.y."   // your subnet's third octet
+| project Timestamp, DeviceName, IPAddress, NetworkAdapterType
+| order by Timestamp desc
+```
+
+```kql
+// Sanity check: confirm the seeding host is healthy and reporting telemetry
+DeviceNetworkEvents
+| where Timestamp > ago(1h)
+| where DeviceName == "<your-seeding-host>"
+| summarize Hits = count() by ActionType, RemotePort
+| order by Hits desc
+| take 20
+```
+
+Allow up to 30–60 minutes after the first `[tick]` for IT-class devices, and up to several hours for IoT / OT classification.
+
+## Troubleshooting (lessons from end-to-end testing)
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Script banner says `Using NIC: Ethernet` but pktmon shows traffic from the Wi-Fi IP. | Windows multicast routing followed the interface metric, not the `-NicAlias` parameter. | Lower the Ethernet metric (`Set-NetIPInterface ... -InterfaceMetric 5`), Ctrl+C the script, restart it. |
+| Tick counter keeps incrementing but pktmon `--comp nics` shows nothing. | `--comp nics` misses multicast intercepted at WFP / vSwitch. | Re-run pktmon with `--comp all`. |
+| Script started on Wi-Fi, then Wi-Fi was disabled to force Ethernet, ticks continue but no packets leave the host. | Sockets were bound to the now-dead Wi-Fi interface. The tick loop counter does not detect this. | Re-enable Wi-Fi (or set Ethernet metric lower), Ctrl+C the script, restart. |
+| `pktmon` returns "Cannot open file" when writing into `C:\Temp`. | `C:\Temp` does not exist or the running account lacks write permission. | Use `$env:USERPROFILE\Downloads` or create `C:\Temp` first. |
+| `WARNING: Port 8080 was in use. Using 8081 instead.` | Another HTTP listener already owns 8080. | Cosmetic. Discovery does not require the SSDP `LOCATION:` URL to be reachable for first-pass classification. |
+| `DeviceNetworkEvents` shows zero traffic for ports 5353 / 1900 / 5355 / 137. | Defender does not log multicast or broadcast UDP in `DeviceNetworkEvents`. | Use `DeviceInfo` and `DeviceNetworkInfo` instead, plus pktmon for proof of transmission. |
+| UDP 5353 / 5355 / 1900 / 137 owned by `svchost` or `System` in `Get-NetUDPEndpoint`. | Normal — Windows DNS Client, SSDP Discovery, NetBIOS, and Bonjour Service all bind these. | The script uses `SO_REUSEADDR` to share the multicast group; this is fine. |
+| Devices visible briefly then disappear from the workbook 15–30 minutes after the script stops. | Default `DeviceInfo` retention behavior — the row stops aging forward when telemetry stops. | Run with `-DurationMinutes` long enough for the workbook walkthrough you plan to do. |
+| `DeviceInfo` rows appear under non-`LAB-` names (random hex strings). | Common when the host runs the seeding script *and* is itself a Discovery sensor with very weak fingerprints from neighboring real devices on the same subnet. Those are the neighbors, not the synthetic profiles. | Filter by `IPAddress` against the synthetic range (`192.168.x.200-209` by default) or by `DeviceName startswith "LAB-"`. |
+| First run from a new account fails with `'.\\New-...ps1' is not recognized`. | The repo isn't cloned on this account yet, or the working directory is not the `Testing\` folder. | Either `git clone` the repo, or fetch just the script from your fork's raw URL with `Invoke-WebRequest` to a local path and run it from there. |
+
+
 
 * **You cannot inject rows into `DeviceInfo` directly via API.** It is a managed Defender table. The seeding script works by putting real network presence on the wire so a Discovery sensor on the same subnet observes the announcements.
 * **Multicast does not cross VLANs.** The lab host and at least one onboarded sensor must share a broadcast domain.

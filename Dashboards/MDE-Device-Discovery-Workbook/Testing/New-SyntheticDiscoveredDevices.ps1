@@ -89,6 +89,18 @@
     Cleanup is automatic on Ctrl+C. Re-run with -Cleanup if anything is
     left behind after an abrupt termination.
 
+    KNOWN BEHAVIOR ON DUAL-HOMED HOSTS: Windows multicast routing chooses the
+    outbound interface based on the IPv4 interface metric, NOT this script's
+    -NicAlias parameter. If the host has both Ethernet and Wi-Fi up and Wi-Fi
+    has a lower metric, mDNS/SSDP packets will leave via Wi-Fi even when the
+    banner reports "Using NIC: Ethernet". Before running, set the wired
+    interface to a lower metric:
+        Set-NetIPInterface -InterfaceAlias 'Ethernet' -InterfaceMetric 5
+        Set-NetIPInterface -InterfaceAlias 'Wi-Fi'    -InterfaceMetric 100
+    Verify outbound transmission with pktmon using --comp all (not --comp nics;
+    multicast is intercepted at WFP/vSwitch and is invisible to the NIC view).
+    See README.md "Verifying the announcements actually leave the host".
+
     NOT FOR PRODUCTION NETWORKS. Use only on isolated lab subnets.
 #>
 

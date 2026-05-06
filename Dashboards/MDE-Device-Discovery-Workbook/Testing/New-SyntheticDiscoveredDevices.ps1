@@ -337,6 +337,20 @@ function Get-FreeTcpPort {
     throw "No free TCP port found between $Preferred and $($Preferred + $Range)."
 }
 
+# Prefix length -> dotted subnet mask (netsh wants the dotted form for "add address").
+if (-not ('Ipconverter' -as [type])) {
+    Add-Type -TypeDefinition @"
+public static class Ipconverter {
+    public static string PrefixToMask(int prefix) {
+        uint mask = prefix == 0 ? 0u : 0xFFFFFFFFu << (32 - prefix);
+        return string.Format("{0}.{1}.{2}.{3}",
+            (mask >> 24) & 0xFF, (mask >> 16) & 0xFF,
+            (mask >>  8) & 0xFF,  mask        & 0xFF);
+    }
+}
+"@
+}
+
 function Test-IPInUse {
     param([string]$IP)
     # ARP probe is the most reliable way to detect a live host on a LAN
@@ -399,9 +413,15 @@ function Add-TempIPAliases {
             continue
         }
         try {
-            New-NetIPAddress -InterfaceAlias $Nic -IPAddress $candidate -PrefixLength $Pfx `
-                -SkipAsSource $true -PolicyStore ActiveStore -ErrorAction Stop |
-                Add-Member -NotePropertyName Tag -NotePropertyValue $AliasTag -PassThru | Out-Null
+            # Use netsh instead of New-NetIPAddress because some NIC drivers
+            # (notably Surface Ethernet and other USB GbE adapters) treat the
+            # cmdlet path as "set primary IP", which flushes the existing
+            # DHCP-assigned address. netsh's "add address" command is more
+            # reliable for adding a SECONDARY IP without touching the primary.
+            $netshOut = & netsh interface ipv4 add address "$Nic" "$candidate" "$([Ipconverter]::PrefixToMask($Pfx))" 2>&1
+            if ($LASTEXITCODE -ne 0) {
+                throw "netsh failed: $netshOut"
+            }
             # Throttle to avoid ARP-flood detection on consumer routers / managed switches
             # with DHCP snooping or Dynamic ARP Inspection.
             Start-Sleep -Milliseconds $AliasAddDelayMs
@@ -429,7 +449,7 @@ function Add-TempIPAliases {
             } else {
                 $st = if ($state) { $state.AddressState } else { 'missing' }
                 Write-Warning "  alias $candidate did not become Preferred (state=$st). Removing."
-                try { Remove-NetIPAddress -InterfaceAlias $Nic -IPAddress $candidate -Confirm:$false -ErrorAction SilentlyContinue } catch {}
+                try { & netsh interface ipv4 delete address "$Nic" "$candidate" 2>&1 | Out-Null } catch {}
             }
         } catch {
             # Re-throw the abort signal; otherwise just warn and continue.

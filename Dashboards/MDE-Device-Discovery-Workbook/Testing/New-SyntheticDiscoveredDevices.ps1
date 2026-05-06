@@ -771,8 +771,12 @@ $profiles = if ($ConfigPath) {
 # Cap at $DeviceCount. Default is 10 - small blast radius for first runs.
 # Pass -DeviceCount 35 (or higher) to seed the full catalog once you've
 # verified the script behaves on your network.
-if ($DeviceCount -gt 0 -and $profiles.Count -gt $DeviceCount) {
-    $profiles = $profiles | Select-Object -First $DeviceCount
+# @() wrapper is critical: Select-Object -First 1 returns a single object, not
+# an array, and $profiles.Count would then return the hashtable's key count.
+if ($DeviceCount -gt 0 -and @($profiles).Count -gt $DeviceCount) {
+    $profiles = @($profiles | Select-Object -First $DeviceCount)
+} else {
+    $profiles = @($profiles)
 }
 Write-Host "Loaded $($profiles.Count) synthetic device profile(s) (DeviceCount=$DeviceCount)."
 

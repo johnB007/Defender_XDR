@@ -8,3 +8,6 @@ SyntheticDiscovery.log
 # Validator artifacts may contain tenant device IDs / hostnames.
 WorkbookKqlResults*.csv
 WorkbookKqlErrors*.log
+
+# Local-only HTML previews generated alongside Markdown docs.
+*.html

@@ -48,6 +48,12 @@ That's it. The script auto-detects your wired/Wi-Fi NIC, reads its real DHCP IP 
 Common variations:
 
 ```powershell
+# Preview without making any changes (recommended for first run)
+.\New-SyntheticDiscoveredDevices.ps1 -DryRun
+
+# Smaller or larger device count (default is 10, max in built-in catalog is 35)
+.\New-SyntheticDiscoveredDevices.ps1 -DeviceCount 35
+
 # Longer run window
 .\New-SyntheticDiscoveredDevices.ps1 -DurationMinutes 240
 
@@ -55,7 +61,7 @@ Common variations:
 .\New-SyntheticDiscoveredDevices.ps1 -NicAlias "Ethernet 2"
 
 # Override BaseIP only if you want a specific range INSIDE your real subnet
-.\New-SyntheticDiscoveredDevices.ps1 -BaseIP 192.168.1.50
+.\New-SyntheticDiscoveredDevices.ps1 -BaseIP 10.0.0.50
 
 # Use a custom profile catalog instead of the built-in 35 profiles
 .\New-SyntheticDiscoveredDevices.ps1 -ConfigPath .\my-profiles.json
@@ -66,6 +72,15 @@ Common variations:
 # Recovery: re-enable DHCP if a prior bad run left the NIC stuck on a static IP
 .\New-SyntheticDiscoveredDevices.ps1 -RestoreDhcp -NicAlias "Ethernet 2"
 ```
+
+### Built-in safety guarantees
+
+* Snapshots the NIC's full IPv4 state to a local JSON file before any change. On any error, Ctrl+C, or normal exit the NIC is restored exactly as found.
+* Refuses to run if `BaseIP` is outside the host's actual subnet (would flip NIC from DHCP to static).
+* Refuses to run if the host has an APIPA address (`169.254.x.x`) since that means DHCP failed and announcements wouldn't reach the LAN.
+* Skips the host's own DHCP IP during alias allocation.
+* Health-checks the host's gateway every 5 alias adds; aborts and restores on any connectivity loss.
+* `-DryRun` prints the full plan without touching anything.
 
 The script:
 

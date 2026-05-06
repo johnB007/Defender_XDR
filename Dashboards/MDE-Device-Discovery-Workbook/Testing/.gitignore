@@ -1,0 +1,10 @@
+# Runtime artifacts created by New-SyntheticDiscoveredDevices.ps1.
+# These contain real NIC IPs, DHCP state, and DNS servers from the host
+# that ran the script and must never be committed.
+.synthetic-discovery-snapshot.json
+.synthetic-discovery-state.json
+SyntheticDiscovery.log
+
+# Validator artifacts may contain tenant device IDs / hostnames.
+WorkbookKqlResults*.csv
+WorkbookKqlErrors*.log

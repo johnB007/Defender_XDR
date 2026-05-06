@@ -418,7 +418,14 @@ function Add-TempIPAliases {
             # cmdlet path as "set primary IP", which flushes the existing
             # DHCP-assigned address. netsh's "add address" command is more
             # reliable for adding a SECONDARY IP without touching the primary.
-            $netshOut = & netsh interface ipv4 add address "$Nic" "$candidate" "$([Ipconverter]::PrefixToMask($Pfx))" 2>&1
+            #
+            # CRITICAL: store=active prevents netsh from writing the address to
+            # the persistent IP store, which would otherwise flip the interface
+            # from DHCP-mode to static-mode and drop the primary DHCP-assigned
+            # IP. skipassource=true keeps Windows from using this alias as the
+            # source IP for outbound traffic (preserves user's normal egress).
+            $mask = [Ipconverter]::PrefixToMask($Pfx)
+            $netshOut = & netsh interface ipv4 add address "$Nic" "$candidate" "$mask" store=active skipassource=true 2>&1
             if ($LASTEXITCODE -ne 0) {
                 throw "netsh failed: $netshOut"
             }

@@ -104,6 +104,7 @@ param(
     [int]   $HttpPort               = 8080,
     [int]   $AliasAddDelayMs        = 1000,
     [switch]$DryRun,
+    [switch]$SkipHealthCheck,
     [switch]$Cleanup,
     [switch]$RestoreDhcp
 )
@@ -418,7 +419,7 @@ function Add-TempIPAliases {
                 $ips += $candidate
                 Write-Host "  alias added: $candidate" -ForegroundColor DarkGray
                 # Periodic health check: did we just break the host's own connectivity?
-                if ($HostIp -and ($ips.Count % $checkEvery -eq 0)) {
+                if ($HostIp -and -not $script:SkipHealthCheck -and ($ips.Count % $checkEvery -eq 0)) {
                     if (-not (Test-NicHealthy -Nic $Nic -ExpectedIP $HostIp -Gateway $Gateway)) {
                         Write-Warning "  HOST NETWORK UNHEALTHY after $($ips.Count) aliases (lost $HostIp or gateway $Gateway). Aborting."
                         # Throw so the trap/finally restores the snapshot.
@@ -604,21 +605,33 @@ function Test-NicHealthy {
     # actually broke connectivity for real.
     param([string]$Nic, [string]$ExpectedIP, [string]$Gateway)
     $hasIp = Get-NetIPAddress -InterfaceAlias $Nic -IPAddress $ExpectedIP -AddressFamily IPv4 -ErrorAction SilentlyContinue
-    if (-not $hasIp -or $hasIp.AddressState -ne 'Preferred') { return $false }
+    if (-not $hasIp) {
+        Write-Warning "  health check: host IP $ExpectedIP missing from NIC"
+        return $false
+    }
+    if ($hasIp.AddressState -ne 'Preferred') {
+        Write-Warning "  health check: host IP $ExpectedIP is in state '$($hasIp.AddressState)' (expected Preferred)"
+        return $false
+    }
     if ($Gateway) {
         # Adding an IP causes a brief gratuitous-ARP storm that often costs the
         # next 1-2 ICMP packets. Retry up to 4 times over ~4 seconds before
         # declaring the gateway unreachable.
         $ok = $false
+        $lastStatus = 'NotAttempted'
         for ($i = 0; $i -lt 4; $i++) {
             try {
                 $p = New-Object System.Net.NetworkInformation.Ping
                 $r = $p.Send($Gateway, 1000)
+                $lastStatus = [string]$r.Status
                 if ($r.Status -eq 'Success') { $ok = $true; break }
-            } catch { }
+            } catch { $lastStatus = $_.Exception.Message }
             Start-Sleep -Milliseconds 750
         }
-        if (-not $ok) { return $false }
+        if (-not $ok) {
+            Write-Warning "  health check: gateway $Gateway unreachable after 4 retries (last status: $lastStatus)"
+            return $false
+        }
     }
     return $true
 }
@@ -814,6 +827,10 @@ if ($DryRun) {
 # ---------- SNAPSHOT NIC STATE before any changes ----------
 $script:Snapshot = Save-NicSnapshot -Nic $nic.Name
 $script:RestoredAlready = $false
+$script:SkipHealthCheck = $SkipHealthCheck.IsPresent
+if ($script:SkipHealthCheck) {
+    Write-Warning "-SkipHealthCheck enabled. Per-alias gateway ping verification is OFF. Snapshot/restore on Ctrl+C still active."
+}
 
 # Master safety net: any unhandled error or Ctrl+C runs the restore block below.
 trap {

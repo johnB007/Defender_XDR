@@ -98,10 +98,12 @@ param(
     [string]$NicAlias,
     [string]$BaseIP                 = '',
     [int]   $Prefix                 = 0,
+    [int]   $DeviceCount            = 10,
     [int]   $DurationMinutes        = 60,
     [int]   $AnnounceIntervalSeconds = 60,
     [int]   $HttpPort               = 8080,
     [int]   $AliasAddDelayMs        = 250,
+    [switch]$DryRun,
     [switch]$Cleanup,
     [switch]$RestoreDhcp
 )
@@ -364,7 +366,14 @@ public static extern int SendARP(int DestIP, int SrcIP, byte[] pMacAddr, ref int
 }
 
 function Add-TempIPAliases {
-    param([string]$Nic, [System.Net.IPAddress]$Base, [int]$Count, [int]$Pfx)
+    param(
+        [string]$Nic,
+        [System.Net.IPAddress]$Base,
+        [int]$Count,
+        [int]$Pfx,
+        [string]$HostIp,
+        [string]$Gateway
+    )
     $bytes = $Base.GetAddressBytes()
     $ips = @()
     Write-Host "Pre-scanning $Count candidate IPs for collisions (ARP/ping)..." -ForegroundColor DarkGray
@@ -373,11 +382,17 @@ function Add-TempIPAliases {
     # damaging the NIC by attempting hundreds of address adds.
     $offset = 0
     $maxScan = [Math]::Min($Count * 2, 70)
+    $checkEvery = 5  # health-check the NIC every N successful adds
     while ($ips.Count -lt $Count -and $offset -lt $maxScan) {
         $b = $bytes.Clone()
         $b[3] = ($bytes[3] + $offset) % 256
         $candidate = [System.Net.IPAddress]::new($b).ToString()
         $offset++
+        # Never alias over the host's own DHCP IP.
+        if ($candidate -eq $HostIp) {
+            Write-Host "  skip $candidate (host's own IP)" -ForegroundColor Yellow
+            continue
+        }
         if (Test-IPInUse -IP $candidate) {
             Write-Host "  skip $candidate (in use on LAN)" -ForegroundColor Yellow
             continue
@@ -402,12 +417,22 @@ function Add-TempIPAliases {
             if ($state -and $state.AddressState -eq 'Preferred') {
                 $ips += $candidate
                 Write-Host "  alias added: $candidate" -ForegroundColor DarkGray
+                # Periodic health check: did we just break the host's own connectivity?
+                if ($HostIp -and ($ips.Count % $checkEvery -eq 0)) {
+                    if (-not (Test-NicHealthy -Nic $Nic -ExpectedIP $HostIp -Gateway $Gateway)) {
+                        Write-Warning "  HOST NETWORK UNHEALTHY after $($ips.Count) aliases (lost $HostIp or gateway $Gateway). Aborting."
+                        # Throw so the trap/finally restores the snapshot.
+                        throw "Host connectivity lost. Aborting alias adds and restoring snapshot."
+                    }
+                }
             } else {
                 $st = if ($state) { $state.AddressState } else { 'missing' }
                 Write-Warning "  alias $candidate did not become Preferred (state=$st). Removing."
                 try { Remove-NetIPAddress -InterfaceAlias $Nic -IPAddress $candidate -Confirm:$false -ErrorAction SilentlyContinue } catch {}
             }
         } catch {
+            # Re-throw the abort signal; otherwise just warn and continue.
+            if ($_.Exception.Message -like '*Host connectivity lost*') { throw }
             Write-Warning "  could not add $candidate ($($_.Exception.Message))"
         }
     }
@@ -483,13 +508,128 @@ function Restore-NicDhcp {
     }
 }
 
+# ---------- NIC SNAPSHOT / RESTORE (safety net) ----------
+# Before adding ANY IP aliases we snapshot the NIC's full IPv4 state to disk.
+# On any error or exit, we restore exactly what we found. This is the primary
+# safety mechanism that prevents the host from being left with a broken
+# network configuration if the script crashes, is killed, or hits an
+# unexpected error mid-run.
+$script:SnapshotPath = Join-Path $PSScriptRoot '.synthetic-discovery-snapshot.json'
+
+function Save-NicSnapshot {
+    param([string]$Nic)
+    $iface = Get-NetIPInterface -InterfaceAlias $Nic -AddressFamily IPv4 -ErrorAction SilentlyContinue
+    $addrs = Get-NetIPAddress -InterfaceAlias $Nic -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+        Where-Object { $_.PrefixOrigin -ne 'WellKnown' } |
+        ForEach-Object {
+            @{
+                IPAddress    = $_.IPAddress
+                PrefixLength = $_.PrefixLength
+                PrefixOrigin = [string]$_.PrefixOrigin
+                SuffixOrigin = [string]$_.SuffixOrigin
+            }
+        }
+    $dns = (Get-DnsClientServerAddress -InterfaceAlias $Nic -AddressFamily IPv4 -ErrorAction SilentlyContinue).ServerAddresses
+    $routes = Get-NetRoute -InterfaceAlias $Nic -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+        Where-Object { $_.DestinationPrefix -eq '0.0.0.0/0' } |
+        ForEach-Object {
+            @{ NextHop = $_.NextHop; RouteMetric = $_.RouteMetric }
+        }
+    $snap = @{
+        TimestampUtc = (Get-Date).ToUniversalTime().ToString('o')
+        NicName      = $Nic
+        Dhcp         = if ($iface) { [string]$iface.Dhcp } else { 'Unknown' }
+        Addresses    = @($addrs)
+        DnsServers   = @($dns)
+        DefaultRoutes= @($routes)
+    }
+    $snap | ConvertTo-Json -Depth 5 | Set-Content -Path $script:SnapshotPath -Encoding UTF8
+    Write-Host "NIC snapshot saved: $script:SnapshotPath" -ForegroundColor DarkGray
+    return $snap
+}
+
+function Restore-NicFromSnapshot {
+    param([string]$Nic, [hashtable]$Snapshot)
+    if (-not $Snapshot -and (Test-Path $script:SnapshotPath)) {
+        $Snapshot = Get-Content $script:SnapshotPath -Raw | ConvertFrom-Json -AsHashtable
+    }
+    if (-not $Snapshot) {
+        Write-Warning "No snapshot to restore from."
+        return
+    }
+    Write-Host "Restoring NIC '$Nic' from snapshot ($($Snapshot.TimestampUtc))..." -ForegroundColor Yellow
+
+    # 1. Remove any IPv4 we added that wasn't in the snapshot
+    $snapAddrs = @($Snapshot.Addresses | ForEach-Object { $_.IPAddress })
+    $current = Get-NetIPAddress -InterfaceAlias $Nic -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+        Where-Object { $_.PrefixOrigin -ne 'WellKnown' }
+    foreach ($a in $current) {
+        if ($snapAddrs -notcontains $a.IPAddress) {
+            try {
+                Remove-NetIPAddress -InterfaceAlias $Nic -IPAddress $a.IPAddress -Confirm:$false -ErrorAction Stop
+                Write-Host "  removed extra address: $($a.IPAddress)" -ForegroundColor DarkGray
+            } catch {
+                Write-Warning "  could not remove $($a.IPAddress): $($_.Exception.Message)"
+            }
+        }
+    }
+
+    # 2. Restore DHCP setting if the snapshot had it enabled
+    if ($Snapshot.Dhcp -eq 'Enabled') {
+        try {
+            Set-NetIPInterface -InterfaceAlias $Nic -Dhcp Enabled -ErrorAction Stop
+            Write-Host "  DHCP re-enabled" -ForegroundColor DarkGray
+        } catch {
+            Write-Warning "  could not re-enable DHCP: $($_.Exception.Message)"
+        }
+    }
+
+    # 3. If a DHCP address was lost, force a renew
+    $stillHasDhcp = Get-NetIPAddress -InterfaceAlias $Nic -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+        Where-Object { $_.PrefixOrigin -eq 'Dhcp' -and $_.AddressState -eq 'Preferred' }
+    if ($Snapshot.Dhcp -eq 'Enabled' -and -not $stillHasDhcp) {
+        Write-Host "  forcing DHCP renew" -ForegroundColor DarkGray
+        & ipconfig /release "$Nic" 2>&1 | Out-Null
+        & ipconfig /renew   "$Nic" 2>&1 | Out-Null
+    }
+
+    Write-Host "Restore complete." -ForegroundColor Green
+    Get-NetIPConfiguration -InterfaceAlias $Nic | Format-List InterfaceAlias,IPv4Address,IPv4DefaultGateway | Out-Host
+}
+
+function Test-NicHealthy {
+    # Returns $true if the host's original DHCP IP is still Preferred AND
+    # the original default gateway responds to ping. Used to bail out early
+    # if anything we did broke connectivity.
+    param([string]$Nic, [string]$ExpectedIP, [string]$Gateway)
+    $hasIp = Get-NetIPAddress -InterfaceAlias $Nic -IPAddress $ExpectedIP -AddressFamily IPv4 -ErrorAction SilentlyContinue
+    if (-not $hasIp -or $hasIp.AddressState -ne 'Preferred') { return $false }
+    if ($Gateway) {
+        try {
+            $p = New-Object System.Net.NetworkInformation.Ping
+            $r = $p.Send($Gateway, 500)
+            if ($r.Status -ne 'Success') { return $false }
+        } catch { return $false }
+    }
+    return $true
+}
+
 # ---------- DHCP restore mode ----------
-# Recovery for hosts where a prior bad run flipped the NIC from DHCP to static
-# (off-subnet BaseIP, off-prefix mask, etc.). Re-enables DHCP and renews the lease.
+# Recovery for hosts where a prior bad run flipped the NIC from DHCP to static.
+# Prefers the on-disk snapshot if one exists (precise restore). Falls back to
+# generic DHCP re-enable if there's no snapshot.
 if ($RestoreDhcp) {
     $nic = Resolve-NicAlias -Requested $NicAlias
     Write-Host "Selected NIC: $($nic.Name) ($($nic.InterfaceDescription))" -ForegroundColor Cyan
-    Restore-NicDhcp -Nic $nic.Name
+    if (Test-Path $script:SnapshotPath) {
+        Write-Host "Snapshot found - using precise restore." -ForegroundColor Cyan
+        $snap = Get-Content $script:SnapshotPath -Raw | ConvertFrom-Json -AsHashtable
+        Restore-NicFromSnapshot -Nic $nic.Name -Snapshot $snap
+        Remove-Item $script:SnapshotPath -Force -ErrorAction SilentlyContinue
+    } else {
+        Write-Host "No snapshot found - using generic DHCP restore." -ForegroundColor Cyan
+        Restore-NicDhcp -Nic $nic.Name
+    }
     Stop-Transcript | Out-Null
     return
 }
@@ -518,7 +658,13 @@ $profiles = if ($ConfigPath) {
     Get-DefaultProfiles
 }
 
-Write-Host "Loaded $($profiles.Count) synthetic device profile(s)."
+# Cap at $DeviceCount. Default is 10 - small blast radius for first runs.
+# Pass -DeviceCount 35 (or higher) to seed the full catalog once you've
+# verified the script behaves on your network.
+if ($DeviceCount -gt 0 -and $profiles.Count -gt $DeviceCount) {
+    $profiles = $profiles | Select-Object -First $DeviceCount
+}
+Write-Host "Loaded $($profiles.Count) synthetic device profile(s) (DeviceCount=$DeviceCount)."
 
 # ---------- Setup ----------
 Confirm-MulticastReady
@@ -641,7 +787,37 @@ If you've already lost DHCP from a prior bad run, recover with:
 "@
 }
 
-$script:AddedIPs = Add-TempIPAliases -Nic $nic.Name -Base ([System.Net.IPAddress]::Parse($BaseIP)) -Count $profiles.Count -Pfx $Prefix
+# ---------- DRY RUN ----------
+# Preview what would be done without touching anything.
+if ($DryRun) {
+    Write-Host "" 
+    Write-Host "=== DRY RUN ===" -ForegroundColor Cyan
+    Write-Host "Would seed $($profiles.Count) device(s) starting at $BaseIP/$Prefix on NIC '$($nic.Name)'."
+    Write-Host "Would add Windows Firewall rules for UDP 5353/5355/137/1900 and TCP $HttpPort."
+    Write-Host "Would advertise via mDNS (224.0.0.251:5353) and SSDP (239.255.255.250:1900) every $AnnounceIntervalSeconds sec for $DurationMinutes min."
+    Write-Host "Host original IP $hostIp would be preserved as DHCP. Snapshot would be saved to $script:SnapshotPath."
+    Write-Host ""
+    Write-Host "To actually run, re-invoke without -DryRun." -ForegroundColor Cyan
+    Stop-Transcript | Out-Null
+    return
+}
+
+# ---------- SNAPSHOT NIC STATE before any changes ----------
+$script:Snapshot = Save-NicSnapshot -Nic $nic.Name
+$script:RestoredAlready = $false
+
+# Master safety net: any unhandled error or Ctrl+C runs the restore block below.
+trap {
+    Write-Host ""
+    Write-Warning "Script error: $($_.Exception.Message)"
+    if (-not $script:RestoredAlready -and $script:Snapshot) {
+        Restore-NicFromSnapshot -Nic $nic.Name -Snapshot $script:Snapshot
+        $script:RestoredAlready = $true
+    }
+    continue
+}
+
+$script:AddedIPs = Add-TempIPAliases -Nic $nic.Name -Base ([System.Net.IPAddress]::Parse($BaseIP)) -Count $profiles.Count -Pfx $Prefix -HostIp $hostIp -Gateway $gateway
 
 # Save state for cleanup
 @{ AddedIPs = $script:AddedIPs; NicAlias = $nic.Name; HttpPort = $HttpPort } |
@@ -820,8 +996,15 @@ try {
         try { Stop-Job   $httpServer.Job -ErrorAction SilentlyContinue } catch {}
         try { Remove-Job $httpServer.Job -ErrorAction SilentlyContinue } catch {}
     }
-    Remove-TempIPAliases -Nic $nic.Name
+    # Snapshot-based restore is the safe primary path. It removes any IP we
+    # added that wasn't in the original snapshot, re-enables DHCP if needed,
+    # and forces a renew if the host's DHCP lease was lost.
+    if (-not $script:RestoredAlready -and $script:Snapshot) {
+        Restore-NicFromSnapshot -Nic $nic.Name -Snapshot $script:Snapshot
+        $script:RestoredAlready = $true
+    }
     Remove-FirewallRules
+    if (Test-Path $script:SnapshotPath) { Remove-Item $script:SnapshotPath -Force -ErrorAction SilentlyContinue }
     $stateFile = Join-Path $PSScriptRoot '.synthetic-discovery-state.json'
     if (Test-Path $stateFile) { Remove-Item $stateFile -Force }
     Stop-Transcript | Out-Null

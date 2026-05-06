@@ -599,17 +599,26 @@ function Restore-NicFromSnapshot {
 
 function Test-NicHealthy {
     # Returns $true if the host's original DHCP IP is still Preferred AND
-    # the original default gateway responds to ping. Used to bail out early
-    # if anything we did broke connectivity.
+    # the original default gateway responds to ping (with retries to avoid
+    # flagging transient drops). Used to bail out early if anything we did
+    # actually broke connectivity for real.
     param([string]$Nic, [string]$ExpectedIP, [string]$Gateway)
     $hasIp = Get-NetIPAddress -InterfaceAlias $Nic -IPAddress $ExpectedIP -AddressFamily IPv4 -ErrorAction SilentlyContinue
     if (-not $hasIp -or $hasIp.AddressState -ne 'Preferred') { return $false }
     if ($Gateway) {
-        try {
-            $p = New-Object System.Net.NetworkInformation.Ping
-            $r = $p.Send($Gateway, 500)
-            if ($r.Status -ne 'Success') { return $false }
-        } catch { return $false }
+        # Adding an IP causes a brief gratuitous-ARP storm that often costs the
+        # next 1-2 ICMP packets. Retry up to 4 times over ~4 seconds before
+        # declaring the gateway unreachable.
+        $ok = $false
+        for ($i = 0; $i -lt 4; $i++) {
+            try {
+                $p = New-Object System.Net.NetworkInformation.Ping
+                $r = $p.Send($Gateway, 1000)
+                if ($r.Status -eq 'Success') { $ok = $true; break }
+            } catch { }
+            Start-Sleep -Milliseconds 750
+        }
+        if (-not $ok) { return $false }
     }
     return $true
 }

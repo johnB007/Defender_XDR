@@ -102,7 +102,7 @@ param(
     [int]   $DurationMinutes        = 60,
     [int]   $AnnounceIntervalSeconds = 60,
     [int]   $HttpPort               = 8080,
-    [int]   $AliasAddDelayMs        = 250,
+    [int]   $AliasAddDelayMs        = 1000,
     [switch]$DryRun,
     [switch]$Cleanup,
     [switch]$RestoreDhcp
@@ -382,7 +382,7 @@ function Add-TempIPAliases {
     # damaging the NIC by attempting hundreds of address adds.
     $offset = 0
     $maxScan = [Math]::Min($Count * 2, 70)
-    $checkEvery = 5  # health-check the NIC every N successful adds
+    $checkEvery = 1  # health-check the host's connectivity after EVERY alias
     while ($ips.Count -lt $Count -and $offset -lt $maxScan) {
         $b = $bytes.Clone()
         $b[3] = ($bytes[3] + $offset) % 256
@@ -814,7 +814,12 @@ trap {
         Restore-NicFromSnapshot -Nic $nic.Name -Snapshot $script:Snapshot
         $script:RestoredAlready = $true
     }
-    continue
+    Remove-FirewallRules
+    if (Test-Path $script:SnapshotPath) { Remove-Item $script:SnapshotPath -Force -ErrorAction SilentlyContinue }
+    Stop-Transcript | Out-Null
+    # Exit cleanly - do NOT `continue` past the trap (would run advertising loop
+    # with no devices). Caller's $LASTEXITCODE will be 1 to signal failure.
+    exit 1
 }
 
 $script:AddedIPs = Add-TempIPAliases -Nic $nic.Name -Base ([System.Net.IPAddress]::Parse($BaseIP)) -Count $profiles.Count -Pfx $Prefix -HostIp $hostIp -Gateway $gateway

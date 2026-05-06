@@ -363,7 +363,8 @@
               "chartSettings": {
                 "showLegend": true,
                 "group": "Series",
-                "createOtherGroup": 0
+                "createOtherGroup": 0,
+                "showMetrics": false
               }
             },
             "customWidth": "100",

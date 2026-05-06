@@ -35,7 +35,7 @@ The script auto-detects Wi-Fi adapters and enables a directed-broadcast fallback
 
 ### Step 1. Seed synthetic devices
 
-Run on the lab host that is on the same broadcast domain as a Discovery sensor. The script announces 35 fake devices via mDNS, SSDP, and an HTTP banner.
+Run on the lab host that is on the same broadcast domain as a Discovery sensor. The script announces synthetic devices via mDNS and SSDP. By default it runs in **virtual-only mode**: synthetic device IPs appear only inside the announcement payloads, and **the script does not modify the NIC at all**. This is the safest mode and works on hosts where Windows refuses to add a manual IPv4 to a DHCP interface (some endpoint-management policies, certain USB GbE drivers, and some Wi-Fi drivers).
 
 ```powershell
 # Open PowerShell as Administrator
@@ -43,12 +43,12 @@ cd .\Testing
 .\New-SyntheticDiscoveredDevices.ps1 -DurationMinutes 240
 ```
 
-That's it. The script auto-detects your wired/Wi-Fi NIC, reads its real DHCP IP and subnet, and picks a safe `BaseIP` inside that subnet. `-DurationMinutes 240` gives MDE Discovery 4 hours to ingest and classify all 35 devices (vendor, OS, DeviceType, DeviceSubtype). Default is 60 minutes if you omit it. **Do not pass `-BaseIP` unless you know what you're doing** — passing an off-subnet address used to be possible and would flip the NIC from DHCP to static. The script now refuses to run in that case, but the cleanest path is to omit the parameter entirely.
+That's it. The script auto-detects your wired/Wi-Fi NIC, reads its real DHCP IP and subnet, and picks a safe `BaseIP` inside that subnet for the synthetic addresses. `-DurationMinutes 240` gives MDE Discovery 4 hours to ingest the announcements. Default is 60 minutes if you omit it.
 
 Common variations:
 
 ```powershell
-# Preview without making any changes (recommended for first run)
+# Preview without doing anything
 .\New-SyntheticDiscoveredDevices.ps1 -DryRun
 
 # Smaller or larger device count (default is 10, max in built-in catalog is 35)
@@ -60,26 +60,34 @@ Common variations:
 # Pick a specific NIC if auto-detection picks the wrong one
 .\New-SyntheticDiscoveredDevices.ps1 -NicAlias "Ethernet 2"
 
-# Override BaseIP only if you want a specific range INSIDE your real subnet
+# Override BaseIP if you want a specific range INSIDE your real subnet
 .\New-SyntheticDiscoveredDevices.ps1 -BaseIP 10.0.0.50
 
 # Use a custom profile catalog instead of the built-in 35 profiles
 .\New-SyntheticDiscoveredDevices.ps1 -ConfigPath .\my-profiles.json
 
-# Cleanup if a prior run exited abnormally
+# ADVANCED: force real IP aliases on the NIC (legacy mode). Only use on lab
+# hardware where you have verified that adding secondary IPv4 addresses does
+# NOT cause Windows to drop the DHCP IP. On many Surface, Marvell Wi-Fi, and
+# managed-endpoint installs this WILL kick the host off the network. The
+# script's snapshot/restore safety net will recover, but you'll see no devices.
+.\New-SyntheticDiscoveredDevices.ps1 -AddIPAliases
+
+# Cleanup if a prior -AddIPAliases run exited abnormally
 .\New-SyntheticDiscoveredDevices.ps1 -Cleanup
 
-# Recovery: re-enable DHCP if a prior bad run left the NIC stuck on a static IP
+# Recovery: re-enable DHCP if a prior -AddIPAliases run left the NIC static
 .\New-SyntheticDiscoveredDevices.ps1 -RestoreDhcp -NicAlias "Ethernet 2"
 ```
 
 ### Built-in safety guarantees
 
-* Snapshots the NIC's full IPv4 state to a local JSON file before any change. On any error, Ctrl+C, or normal exit the NIC is restored exactly as found.
-* Refuses to run if `BaseIP` is outside the host's actual subnet (would flip NIC from DHCP to static).
-* Refuses to run if the host has an APIPA address (`169.254.x.x`) since that means DHCP failed and announcements wouldn't reach the LAN.
-* Skips the host's own DHCP IP during alias allocation.
-* Health-checks the host's gateway every 5 alias adds; aborts and restores on any connectivity loss.
+* **Default virtual-only mode does not touch the NIC.** No netsh, no New-NetIPAddress, no firewall rule deletion that could orphan addresses.
+* If you opt into `-AddIPAliases`, the script snapshots the NIC's full IPv4 state to a local JSON file before any change, and restores it on any error, Ctrl+C, or normal exit.
+* Refuses to run if `BaseIP` is outside the host's actual subnet.
+* Refuses to run if the host has an APIPA address (`169.254.x.x`).
+* Skips the host's own DHCP IP during synthetic IP allocation.
+* In `-AddIPAliases` mode: health-checks the host's gateway after every alias and aborts on connectivity loss.
 * `-DryRun` prints the full plan without touching anything.
 
 The script:

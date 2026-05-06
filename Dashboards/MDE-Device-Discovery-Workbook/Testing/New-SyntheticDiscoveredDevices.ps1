@@ -106,7 +106,17 @@ param(
     [switch]$DryRun,
     [switch]$SkipHealthCheck,
     [switch]$Cleanup,
-    [switch]$RestoreDhcp
+    [switch]$RestoreDhcp,
+    # -VirtualOnly: do NOT add IP aliases to the NIC. Synthetic device IPs are
+    # only present in mDNS A-records and SSDP LOCATION URLs. Source IP for
+    # the announcements is the host's own real IP. This is the safest mode
+    # and the only one guaranteed to work on hosts where Windows refuses to
+    # let us add a manual IPv4 to a DHCP-enabled interface (some endpoint
+    # management policies, USB GbE drivers, certain Wi-Fi drivers).
+    [switch]$VirtualOnly = $true,
+    # Inverse: force real alias mode. Only use on lab hardware where you have
+    # verified that adding secondary IPv4s does not flush the DHCP IP.
+    [switch]$AddIPAliases
 )
 
 #Requires -RunAsAdministrator
@@ -378,6 +388,40 @@ public static extern int SendARP(int DestIP, int SrcIP, byte[] pMacAddr, ref int
         if ($r.Status -eq 'Success') { return $true }
     } catch { }
     return $false
+}
+
+function Get-SyntheticIPs {
+    # Virtual-only counterpart to Add-TempIPAliases. Picks $Count IPs starting
+    # at $Base, skipping the host's own IP and any address that is already
+    # answering ARP/ping. Does NOT touch the NIC. Result is used purely as
+    # payload data inside mDNS/SSDP announcements.
+    param(
+        [System.Net.IPAddress]$Base,
+        [int]$Count,
+        [string]$HostIp
+    )
+    $bytes = $Base.GetAddressBytes()
+    $ips = @()
+    Write-Host "Selecting $Count synthetic IPs (no NIC changes)..." -ForegroundColor DarkGray
+    $offset = 0
+    $maxScan = [Math]::Min($Count * 3, 100)
+    while ($ips.Count -lt $Count -and $offset -lt $maxScan) {
+        $b = $bytes.Clone()
+        $b[3] = ($bytes[3] + $offset) % 256
+        $candidate = [System.Net.IPAddress]::new($b).ToString()
+        $offset++
+        if ($candidate -eq $HostIp) { continue }
+        if (Test-IPInUse -IP $candidate) {
+            Write-Host "  skip $candidate (in use on LAN)" -ForegroundColor Yellow
+            continue
+        }
+        $ips += $candidate
+        Write-Host "  synthetic IP: $candidate" -ForegroundColor DarkGray
+    }
+    if ($ips.Count -lt $Count) {
+        Write-Warning "Only secured $($ips.Count)/$Count synthetic IPs (rest collided with real devices). Continuing."
+    }
+    return $ips
 }
 
 function Add-TempIPAliases {
@@ -774,6 +818,9 @@ if (-not $cfg.IPv4Address) {
 $hostIp     = $cfg.IPv4Address[0].IPAddress
 $hostPrefix = $cfg.IPv4Address[0].PrefixLength
 $gateway    = if ($cfg.IPv4DefaultGateway) { $cfg.IPv4DefaultGateway[0].NextHop } else { $null }
+# Make the host's real IP visible to senders (used for socket binding when
+# -VirtualOnly is in effect; the synthetic device IPs are not on the NIC).
+$script:HostIp = $hostIp
 Write-Host "Host IPv4: $hostIp/$hostPrefix  Gateway: $gateway" -ForegroundColor DarkGray
 
 # Refuse APIPA / link-local. 169.254.0.0/16 means DHCP failed — the NIC isn't
@@ -869,11 +916,23 @@ if ($DryRun) {
 }
 
 # ---------- SNAPSHOT NIC STATE before any changes ----------
-$script:Snapshot = Save-NicSnapshot -Nic $nic.Name
+# Resolve the alias-vs-virtual decision. Default is virtual-only (safe).
+# -AddIPAliases overrides and forces the legacy real-alias path.
+$script:VirtualOnly = -not $AddIPAliases.IsPresent
+if ($script:VirtualOnly) {
+    Write-Host "Mode: VIRTUAL-ONLY (no NIC changes; synthetic IPs only inside mDNS/SSDP payloads)." -ForegroundColor Cyan
+} else {
+    Write-Host "Mode: REAL ALIASES (-AddIPAliases). Will modify NIC. Snapshot/restore safety net active." -ForegroundColor Yellow
+}
+
+$script:Snapshot = $null
 $script:RestoredAlready = $false
 $script:SkipHealthCheck = $SkipHealthCheck.IsPresent
-if ($script:SkipHealthCheck) {
-    Write-Warning "-SkipHealthCheck enabled. Per-alias gateway ping verification is OFF. Snapshot/restore on Ctrl+C still active."
+if (-not $script:VirtualOnly) {
+    $script:Snapshot = Save-NicSnapshot -Nic $nic.Name
+    if ($script:SkipHealthCheck) {
+        Write-Warning "-SkipHealthCheck enabled. Per-alias gateway ping verification is OFF. Snapshot/restore on Ctrl+C still active."
+    }
 }
 
 # Master safety net: any unhandled error or Ctrl+C runs the restore block below.
@@ -892,7 +951,11 @@ trap {
     exit 1
 }
 
-$script:AddedIPs = Add-TempIPAliases -Nic $nic.Name -Base ([System.Net.IPAddress]::Parse($BaseIP)) -Count $profiles.Count -Pfx $Prefix -HostIp $hostIp -Gateway $gateway
+if ($script:VirtualOnly) {
+    $script:AddedIPs = Get-SyntheticIPs -Base ([System.Net.IPAddress]::Parse($BaseIP)) -Count $profiles.Count -HostIp $hostIp
+} else {
+    $script:AddedIPs = Add-TempIPAliases -Nic $nic.Name -Base ([System.Net.IPAddress]::Parse($BaseIP)) -Count $profiles.Count -Pfx $Prefix -HostIp $hostIp -Gateway $gateway
+}
 
 # Save state for cleanup
 @{ AddedIPs = $script:AddedIPs; NicAlias = $nic.Name; HttpPort = $HttpPort } |
@@ -935,7 +998,12 @@ function Send-MdnsAnnouncement {
     param($IP, $Hostname, $Vendor, $Model, $OS, $DeviceType)
     try {
         $client = New-Object System.Net.Sockets.UdpClient
-        $client.Client.Bind([System.Net.IPEndPoint]::new([System.Net.IPAddress]::Parse($IP), 0))
+        # In virtual-only mode the synthetic $IP is NOT bound to any NIC, so we
+        # cannot bind the socket to it. Bind to the host's real IP (which lives
+        # on the chosen NIC) so the multicast goes out the right interface, and
+        # let the synthetic IP appear only inside the mDNS payload.
+        $bindIp = if ($script:VirtualOnly) { [System.Net.IPAddress]::Parse($script:HostIp) } else { [System.Net.IPAddress]::Parse($IP) }
+        $client.Client.Bind([System.Net.IPEndPoint]::new($bindIp, 0))
 
         # mDNS SRV / TXT advertisement (HTTP service) - simplified payload string
         # Real mDNS is binary DNS over UDP. MDE sniffer reads TXT and PTR records.
@@ -967,7 +1035,8 @@ X-MDE-LAB: $Hostname`r
     # Multicast send (works on wired and good Wi-Fi)
     try {
         $client = New-Object System.Net.Sockets.UdpClient
-        $client.Client.Bind([System.Net.IPEndPoint]::new([System.Net.IPAddress]::Parse($IP), 0))
+        $bindIp = if ($script:VirtualOnly) { [System.Net.IPAddress]::Parse($script:HostIp) } else { [System.Net.IPAddress]::Parse($IP) }
+        $client.Client.Bind([System.Net.IPEndPoint]::new($bindIp, 0))
         $ep = [System.Net.IPEndPoint]::new($ssdpAddr, 1900)
         [void]$client.Send($payload, $payload.Length, $ep)
         $client.Close()
@@ -978,7 +1047,8 @@ X-MDE-LAB: $Hostname`r
         try {
             $client = New-Object System.Net.Sockets.UdpClient
             $client.EnableBroadcast = $true
-            $client.Client.Bind([System.Net.IPEndPoint]::new([System.Net.IPAddress]::Parse($IP), 0))
+            $bindIp = if ($script:VirtualOnly) { [System.Net.IPAddress]::Parse($script:HostIp) } else { [System.Net.IPAddress]::Parse($IP) }
+            $client.Client.Bind([System.Net.IPEndPoint]::new($bindIp, 0))
             $ep = [System.Net.IPEndPoint]::new([System.Net.IPAddress]::Parse($script:SubnetBroadcast), 1900)
             [void]$client.Send($payload, $payload.Length, $ep)
             $client.Close()

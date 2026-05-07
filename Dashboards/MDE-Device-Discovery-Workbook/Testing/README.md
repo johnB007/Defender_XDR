@@ -66,6 +66,49 @@ If port 8080 is in use the script falls back to 8081 and prints a warning — th
 **4. Do not disable the NIC the script is bound to mid-run.**
 The script reads the NIC and host IP once at startup and binds its multicast/broadcast sockets to that interface. If you later disable that NIC (e.g. turning Wi-Fi off after the script started on Wi-Fi), announcements silently stop even though the tick counter keeps incrementing. Stop with Ctrl+C, change network state, then restart.
 
+**5. The seeding host cannot be the only onboarded MDE Windows device on the subnet.**
+MDE Device Discovery only ingests an mDNS/SSDP announcement when an onboarded *Windows* device on the same broadcast domain witnesses it. The sensor explicitly excludes locally-originated traffic from the host that emitted it (to prevent feedback loops). If the seeding host is the only onboarded Windows device on its subnet, transmission can be 100% healthy on the wire and `DeviceInfo` will still be empty.
+
+Quick check — count onboarded Windows witnesses on your seeding host's subnet:
+
+```kql
+DeviceNetworkInfo
+| where Timestamp > ago(24h)
+| extend IPs = parse_json(IPAddresses)
+| mv-expand IPs
+| extend IP = tostring(IPs.IPAddress)
+| where IP startswith "<your subnet prefix, e.g. 10.0.0.>"
+| join kind=inner (
+    DeviceInfo
+    | where Timestamp > ago(24h)
+    | where OnboardingStatus == "Onboarded" and OSPlatform startswith "Windows"
+    | summarize arg_max(Timestamp, *) by DeviceId
+  ) on DeviceId
+| summarize arg_max(Timestamp, *) by DeviceId
+| project DeviceName, IP, OSPlatform
+```
+
+If this returns one row and that row is the seeding host itself, ingestion will not happen until you add a second onboarded Windows device on the same L2 (a spare laptop, a bridged Hyper-V VM, etc.). Linux MDE agents and *discovered* (unmanaged) devices do **not** count as witnesses.
+
+When the seeding host runs on a Hyper-V vSwitch (so a guest VM can act as the witness), see the next subsection.
+
+### About VIRTUAL-ONLY vs `-AddIPAliases` mode
+
+The default mode (no `-AddIPAliases`) is what the banner calls `Mode: VIRTUAL-ONLY`. The synthetic IPs appear *only inside the mDNS/SSDP payloads* — the script never adds those addresses to the host NIC. End-to-end testing has shown that this mode is sometimes **not sufficient** for MDE Discovery to create new device records, especially when the witness sensor performs L2 reachability checks (ARP) before promoting an announcement to a `DeviceInfo` row. If the synthetic IPs do not exist on any real NIC, ARP for them returns nothing and the announcement may be discarded as unverifiable.
+
+If VIRTUAL-ONLY mode produces zero ingestion after a witness has been confirmed, retry with `-AddIPAliases` on lab hardware that tolerates secondary IPv4 addresses (see safety notes in Step 1). Surface dock USB-Ethernet, Marvell Wi-Fi, and managed-endpoint configurations are the common cases where `-AddIPAliases` is rejected by the OS — on those, you generally cannot get past VIRTUAL-ONLY without changing hardware.
+
+### Running the seeding script through a Hyper-V External vSwitch (witness pattern)
+
+If the only spare Windows machine you have is a Hyper-V VM, you can use it as the witness while the *physical* host runs the seeding script. Both must end up on the same L2.
+
+1. **Create an External virtual switch** (Virtual Switch Manager → New → External). Bind it to the **wired** physical NIC. Leave *Allow management OS to share this network adapter* checked. Leave VLAN ID **unchecked** unless your physical network uses VLAN tagging.
+2. **Move the witness VM** to that switch (VM Settings → Network Adapter → Virtual switch → your new External switch). Inside the VM, `ipconfig /release; ipconfig /renew`. Confirm a DHCP lease in the host's real subnet.
+3. **Run the seeding script on the host.** After creating the External switch, the host's IP migrates from the physical NIC's alias (e.g. `Ethernet 2`) to a virtual NIC named `vEthernet (<switch name>)`. The script's pre-flight rejects virtual NICs by default — see the troubleshooting table for the override.
+4. Confirm the witness VM is reporting from the host subnet in `DeviceNetworkInfo` before counting on ingestion.
+
+> Note: bridging a domain controller VM onto a home or office LAN exposes AD ports (Kerberos, LDAP, DNS, SMB) to that LAN. Do not do this with a DC unless that is acceptable for your lab — use a non-domain-joined Windows VM as the witness instead.
+
 ### Step 1. Seed synthetic devices
 
 Run on the lab host that is on the same broadcast domain as a Discovery sensor. The script announces synthetic devices via mDNS and SSDP. By default it runs in **virtual-only mode**: synthetic device IPs appear only inside the announcement payloads, and **the script does not modify the NIC at all**. This is the safest mode and works on hosts where Windows refuses to add a manual IPv4 to a DHCP interface (some endpoint-management policies, certain USB GbE drivers, and some Wi-Fi drivers).
@@ -310,6 +353,8 @@ Allow up to 30–60 minutes after the first `[tick]` for IT-class devices, and u
 | Devices visible briefly then disappear from the workbook 15–30 minutes after the script stops. | Default `DeviceInfo` retention behavior — the row stops aging forward when telemetry stops. | Run with `-DurationMinutes` long enough for the workbook walkthrough you plan to do. |
 | `DeviceInfo` rows appear under non-`LAB-` names (random hex strings). | Common when the host runs the seeding script *and* is itself a Discovery sensor with very weak fingerprints from neighboring real devices on the same subnet. Those are the neighbors, not the synthetic profiles. | Filter by `IPAddress` against the synthetic range (`192.168.x.200-209` by default) or by `DeviceName startswith "LAB-"`. |
 | First run from a new account fails with `'.\\New-...ps1' is not recognized`. | The repo isn't cloned on this account yet, or the working directory is not the `Testing\` folder. | Either `git clone` the repo, or fetch just the script from your fork's raw URL with `Invoke-WebRequest` to a local path and run it from there. |
+| Script aborts with `Adapter '<name>' is virtual. This script is on-prem physical only.` | Pre-flight refuses virtual NICs by default. This bites the witness pattern above, where the host's IP lives on `vEthernet (<switch name>)` after creating an External vSwitch. | Patch a local copy to downgrade the throw to a warning before running. Example: `(Get-Content $tmp) -replace 'throw "Adapter ''$Requested'' is virtual\. This script is on-prem physical only\."', 'Write-Warning "Adapter ''$Requested'' is virtual; proceeding anyway (override)."' \| Set-Content $tmp` — then run the patched copy with `-NicAlias 'vEthernet (<switch name>)'`. Only do this on lab hardware. |
+| Zeek / Suricata / NetFlow show 100s of mDNS/SSDP packets per minute from the seeding host, but `DeviceInfo` never gets a `LAB-*` row even after 60–90 minutes. | Either no onboarded Windows witness on the same L2 (see Step 0.5), **or** the script is running in VIRTUAL-ONLY mode and the witness performs an ARP check that fails because no host actually owns the synthetic IPs. | First confirm a Windows witness exists on the subnet. Then re-run with `-AddIPAliases` so the synthetic IPs are real on the NIC. If `-AddIPAliases` is rejected by the OS, that hardware cannot complete ingestion in this lab and you need to seed from a host where alias creation works (e.g. a generic non-managed Win11 machine on plain Ethernet). |
 
 
 

@@ -1,21 +1,57 @@
-let TI = ThreatIntelIndicators | where TimeGenerated > ago(24h) and IsActive == true;
-let TIip = TI | where ObservableKey in ("network-traffic:src_ref.value","network-traffic:dst_ref.value","ipv4-addr:value") | distinct ObservableValue;
-let TIdom = TI | where ObservableKey == "domain-name:value" | distinct tolower(ObservableValue);
+// Network-Security-Operations-Center / KPI tiles
+// v1.4 — 14d TI window + subdomain-suffix matching via parent-suffix expansion.
+// Generates all parent suffixes for each observed domain (a.b.c.com -> a.b.c.com, b.c.com, c.com)
+// then INNER JOINs against TI domain set on suffix. Avoids 10k mv-expand-of-TI limit.
+let TI       = ThreatIntelIndicators | where TimeGenerated > ago(14d) and IsActive == true;
+let TIip     = TI | where ObservableKey in ("network-traffic:src_ref.value","network-traffic:dst_ref.value","ipv4-addr:value") | distinct ObservableValue;
+let TIdom    = TI | where ObservableKey == "domain-name:value" | extend d = tolower(ObservableValue) | where d contains "." | summarize by d;
+let pihole = PiholeDNS_CL
+    | where TimeGenerated > ago(24h)
+    | extend Domain = tolower(coalesce(extract(@'query\[\w+\]\s+(\S+)\s+from', 1, _raw_s), extract(@'(?:cached|forwarded|reply)\s+(\S+)\s+(?:is|to)', 1, _raw_s))),
+             Int = extract(@'\bfrom\s+(\d+\.\d+\.\d+\.\d+)', 1, _raw_s)
+    | where isnotempty(Domain) and Domain contains "."
+    | project Domain, Int;
+let zdns = ZeekLogs_CL
+    | where TimeGenerated > ago(24h) and logType_s == "dns"
+    | extend Domain = tolower(dns_query_s), Int = src_ip_s
+    | where isnotempty(Domain) and Domain contains "."
+    | project Domain, Int;
+let observed = union pihole, zdns | summarize Ints = make_set(Int, 50) by Domain;
+let suffixes = observed
+    | extend parts = split(Domain, ".")
+    | mv-expand idx = range(0, array_length(parts) - 2, 1) to typeof(int)
+    | extend suffix = strcat_array(array_slice(parts, idx, array_length(parts) - 1), ".")
+    | project Domain, Ints, suffix;
+let domMatches = suffixes
+    | join kind=inner (TIdom | project suffix = d) on suffix
+    | distinct Domain, tostring(Ints);
 let ipHits = union
-  (NetFlow_CL | where TimeGenerated > ago(24h) | extend Ip = case(not(ipv4_is_private(SrcIP)), SrcIP, DstIP) | where Ip in (TIip)),
-  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == "conn" | extend Ip = case(not(ipv4_is_private(src_ip_s)), src_ip_s, dst_ip_s) | where Ip in (TIip)),
-  (DeviceNetworkEvents | where TimeGenerated > ago(24h) | where RemoteIP in (TIip) | project Ip = RemoteIP)
-  | distinct Ip;
-let domHits = union
-  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == "dns" | extend d = tolower(dns_query_s) | where d in (TIdom) | project d),
-  (PiholeDNS_CL | where TimeGenerated > ago(24h) | extend d = tolower(coalesce(extract(@'query\[\w+\]\s+(\S+)\s+from', 1, _raw_s), extract(@'(?:cached|forwarded|reply)\s+(\S+)\s+(?:is|to)', 1, _raw_s))) | where d in (TIdom) | project d)
-  | distinct d;
-let nonMdeDev = union
-  (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == "conn" | extend Ext = case(not(ipv4_is_private(dst_ip_s)), dst_ip_s, src_ip_s), Int = case(ipv4_is_private(src_ip_s), src_ip_s, dst_ip_s) | where Ext in (TIip) | project Int),
-  (PiholeDNS_CL | where TimeGenerated > ago(24h) | extend d = tolower(coalesce(extract(@'query\[\w+\]\s+(\S+)\s+from', 1, _raw_s), extract(@'(?:cached|forwarded|reply)\s+(\S+)\s+(?:is|to)', 1, _raw_s))), Int = extract(@'\bfrom\s+(\d+\.\d+\.\d+\.\d+)', 1, _raw_s) | where d in (TIdom) | project Int)
-  | where isnotempty(Int) | distinct Int;
+    (NetFlow_CL | where TimeGenerated > ago(24h) | extend Ip = case(not(ipv4_is_private(SrcIP)), SrcIP, DstIP) | where Ip in (TIip) | project Ip),
+    (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == "conn" | extend Ip = case(not(ipv4_is_private(src_ip_s)), src_ip_s, dst_ip_s) | where Ip in (TIip) | project Ip),
+    (DeviceNetworkEvents | where TimeGenerated > ago(24h) | where RemoteIP in (TIip) | project Ip = RemoteIP)
+    | distinct Ip;
+let nonMdeFromDom = domMatches
+    | extend IntsArr = todynamic(Ints)
+    | mv-expand Int = IntsArr to typeof(string)
+    | where isnotempty(Int)
+    | distinct Int;
+let nonMdeFromIp = ZeekLogs_CL
+    | where TimeGenerated > ago(24h) and logType_s == "conn"
+    | extend Ext = case(not(ipv4_is_private(dst_ip_s)), dst_ip_s, src_ip_s),
+             Int = case(ipv4_is_private(src_ip_s), src_ip_s, dst_ip_s)
+    | where Ext in (TIip) and isnotempty(Int)
+    | distinct Int;
+let nonMdeDev = union nonMdeFromDom, nonMdeFromIp
+    | join kind=leftanti (
+        DeviceNetworkInfo
+        | where TimeGenerated > ago(24h)
+        | mv-expand IpRow = parse_json(IPAddresses)
+        | extend MdeIp = tostring(IpRow.IPAddress)
+        | distinct MdeIp
+      ) on $left.Int == $right.MdeIp
+    | distinct Int;
 union
-  (print Column = "Active TI Indicators (24h)", Value = toscalar(TI | count)),
-  (print Column = "TI IP Hits (24h)", Value = toscalar(ipHits | count)),
-  (print Column = "TI Domain Hits (24h)", Value = toscalar(domHits | count)),
-  (print Column = "Non-MDE Devices Touching TI (24h)", Value = toscalar(nonMdeDev | count))
+    (print Column = "Active TI Indicators (14d)",       Value = toscalar(TI | count)),
+    (print Column = "TI IP Hits (24h)",                  Value = toscalar(ipHits | count)),
+    (print Column = "TI Domain Hits (24h)",              Value = toscalar(domMatches | count)),
+    (print Column = "Non-MDE Devices Touching TI (24h)", Value = toscalar(nonMdeDev | count))

@@ -28,18 +28,44 @@ let domMatches = suffixes
 let ipHits = union
     (NetFlow_CL | where TimeGenerated > ago(24h) | extend Ip = case(not(ipv4_is_private(SrcIP)), SrcIP, DstIP) | where Ip in (TIip) | project Ip),
     (ZeekLogs_CL | where TimeGenerated > ago(24h) and logType_s == "conn" | extend Ip = case(not(ipv4_is_private(src_ip_s)), src_ip_s, dst_ip_s) | where Ip in (TIip) | project Ip),
-    (DeviceNetworkEvents | where TimeGenerated > ago(24h) | where RemoteIP in (TIip) | project Ip = RemoteIP)
+    (DeviceNetworkEvents | where TimeGenerated > ago(24h) | where RemoteIP in (TIip) | project Ip = RemoteIP),
+    (Suricata_CL | where TimeGenerated > ago(24h) | extend e = parse_json(_raw_s) | extend Src = tostring(e.src_ip), Dst = tostring(e.dest_ip) | extend Ip = case(not(ipv4_is_private(Src)), Src, Dst) | where isnotempty(Ip) and Ip in (TIip) | project Ip),
+    (Syslog | where TimeGenerated > ago(24h) | where Facility in ("local0","local1","local2","local3","local4","local5","local6","local7") or ProcessName has_any ("kernel","iptables","ufw","pf","unifi") | extend Ip = extract(@'\b(?:SRC|DST|src|dst)=(\d+\.\d+\.\d+\.\d+)\b', 1, SyslogMessage) | where isnotempty(Ip) and not(ipv4_is_private(Ip)) and Ip in (TIip) | project Ip)
     | distinct Ip;
 let nonMdeFromDom = domMatches
     | extend IntsArr = todynamic(Ints)
     | mv-expand Int = IntsArr to typeof(string)
     | where isnotempty(Int)
     | distinct Int;
-let nonMdeFromIp = ZeekLogs_CL
-    | where TimeGenerated > ago(24h) and logType_s == "conn"
-    | extend Ext = case(not(ipv4_is_private(dst_ip_s)), dst_ip_s, src_ip_s),
-             Int = case(ipv4_is_private(src_ip_s), src_ip_s, dst_ip_s)
-    | where Ext in (TIip) and isnotempty(Int)
+let nonMdeFromIp = union
+    (ZeekLogs_CL
+        | where TimeGenerated > ago(24h) and logType_s == "conn"
+        | extend Ext = case(not(ipv4_is_private(dst_ip_s)), dst_ip_s, src_ip_s),
+                 Int = case(ipv4_is_private(src_ip_s), src_ip_s, dst_ip_s)
+        | where Ext in (TIip) and isnotempty(Int)
+        | project Int),
+    (NetFlow_CL
+        | where TimeGenerated > ago(24h)
+        | extend Ext = case(not(ipv4_is_private(DstIP)), DstIP, SrcIP),
+                 Int = case(ipv4_is_private(SrcIP), SrcIP, DstIP)
+        | where Ext in (TIip) and isnotempty(Int)
+        | project Int),
+    (Suricata_CL
+        | where TimeGenerated > ago(24h)
+        | extend e = parse_json(_raw_s)
+        | extend Src = tostring(e.src_ip), Dst = tostring(e.dest_ip)
+        | extend Ext = case(not(ipv4_is_private(Dst)), Dst, Src),
+                 Int = case(ipv4_is_private(Src), Src, Dst)
+        | where Ext in (TIip) and isnotempty(Int)
+        | project Int),
+    (Syslog
+        | where TimeGenerated > ago(24h)
+        | extend SrcIp = extract(@'\bSRC=(\d+\.\d+\.\d+\.\d+)\b', 1, SyslogMessage),
+                 DstIp = extract(@'\bDST=(\d+\.\d+\.\d+\.\d+)\b', 1, SyslogMessage)
+        | extend Ext = case(not(ipv4_is_private(DstIp)), DstIp, SrcIp),
+                 Int = case(ipv4_is_private(SrcIp), SrcIp, DstIp)
+        | where Ext in (TIip) and isnotempty(Int)
+        | project Int)
     | distinct Int;
 let nonMdeDev = union nonMdeFromDom, nonMdeFromIp
     | join kind=leftanti (

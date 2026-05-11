@@ -1,0 +1,344 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Post Arc Onboarding Checklist</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+:root { color-scheme: light dark; }
+body { font-family: -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+       max-width: 980px; margin: 2rem auto; padding: 0 1.25rem; line-height: 1.55; }
+h1, h2, h3, h4 { line-height: 1.25; }
+h1 { border-bottom: 1px solid #8884; padding-bottom: .3em; }
+h2 { border-bottom: 1px solid #8884; padding-bottom: .2em; margin-top: 2em; }
+code { font-family: SFMono-Regular, Consolas, Liberation Mono, monospace;
+        background: #8881; padding: .15em .35em; border-radius: 4px; font-size: .92em; }
+pre { background: #8881; padding: 1em; border-radius: 6px; overflow:auto; }
+pre code { background: transparent; padding: 0; }
+table { border-collapse: collapse; margin: 1em 0; }
+th, td { border: 1px solid #8884; padding: .4em .7em; text-align: left; }
+th { background: #8882; }
+blockquote { border-left: 4px solid #8886; margin: 0; padding: .25em 1em; color: inherit; opacity: .9; }
+a { color: #2a7ae2; }
+</style>
+</head>
+<body>
+<h1 id="post-azure-arc-onboarding-verification-best-practice-checklist">Post Azure Arc Onboarding — Verification &amp; Best-Practice Checklist</h1>
+<p>Scope: machines onboarded <strong>manually</strong> (interactive <code>azcmagent connect</code> or generated install script) to Azure Arc, mixed Windows Server + Linux, with <strong>Microsoft Entra ID P2</strong> and (assumed) <strong>Defender for Servers P2</strong> available.</p>
+<p>The Arc onboarding script only installs and registers the <strong>Connected Machine agent (azcmagent)</strong>. Everything below is what you still have to enable, verify, or wire up <em>after</em> the script finishes — almost all of it lives in blades outside the onboarding flow.</p>
+<hr />
+<h2 id="0-sanity-check-the-agent-itself-do-this-first-on-every-box">0. Sanity check the agent itself (do this first on every box)</h2>
+<p>On the machine:</p>
+<pre class="codehilite"><code class="language-powershell"># Windows
+azcmagent show
+azcmagent check
+</code></pre>
+
+<pre class="codehilite"><code class="language-bash"># Linux
+sudo azcmagent show
+sudo azcmagent check
+</code></pre>
+
+<p>You want:</p>
+<ul>
+<li><code>Agent Status: Connected</code></li>
+<li><code>Agent version</code> current (compare to <a href="https://learn.microsoft.com/azure/azure-arc/servers/agent-release-notes">What's new</a>)</li>
+<li><code>azcmagent check</code> — all endpoints reachable (especially <code>*.guestconfiguration.azure.com</code>, <code>*.his.arc.azure.com</code>, <code>*.waconazure.com</code>, <code>download.microsoft.com</code>).</li>
+</ul>
+<p>In the portal: <strong>Azure Arc → Machines → \&lt;server&gt; → Overview</strong> should show <strong>Status: Connected</strong> and a recent <strong>Last seen</strong> timestamp.</p>
+<hr />
+<h2 id="1-resource-hygiene-overview-tags-properties-locks">1. Resource hygiene (Overview / Tags / Properties / Locks)</h2>
+<table>
+<thead>
+<tr>
+<th>Blade</th>
+<th>What to set / verify</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Overview</strong></td>
+<td>Status = Connected, OS detected correctly, correct subscription + resource group.</td>
+</tr>
+<tr>
+<td><strong>Tags</strong></td>
+<td>Apply your standard tags (<code>environment</code>, <code>owner</code>, <code>costcenter</code>, <code>criticality</code>, <code>patchgroup</code>). Many downstream policies and Update Manager schedules target by tag — do this before you wire anything else up.</td>
+</tr>
+<tr>
+<td><strong>Properties</strong></td>
+<td>Confirm <strong>Operating system</strong>, <strong>Cloud provider</strong> (will say "Other" / on-prem), <strong>Domain</strong>, <strong>Public key</strong>.</td>
+</tr>
+<tr>
+<td><strong>Locks</strong></td>
+<td>Optional <code>CanNotDelete</code> lock on production servers so the Arc resource can't be removed accidentally.</td>
+</tr>
+<tr>
+<td><strong>Access control (IAM)</strong></td>
+<td>Grant least-privilege roles. Common ones: <em>Azure Connected Machine Onboarding</em>, <em>Azure Connected Machine Resource Administrator</em>, <em>Monitoring Reader/Contributor</em>. Avoid Owner.</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="2-licensing-windows-server-only-the-blade-in-your-screenshot">2. Licensing — Windows Server only (the blade in your screenshot)</h2>
+<p><strong>Settings → Licenses → Windows Server</strong></p>
+<ul>
+<li><strong>License status</strong> = Licensed.</li>
+<li><strong>Activate Azure benefits</strong> checked — this attests Software Assurance / subscription licensing and is what unlocks:</li>
+<li>Azure Update Manager at no per-server charge for Arc machines covered by SA.</li>
+<li>Extended Security Updates (ESU) eligibility for Server 2012 / 2012 R2 (and the Server 2016/2019 ESU program when those reach EOS).</li>
+<li>Azure Policy guest configuration at no charge.</li>
+<li>If a server is <strong>not</strong> under SA, use <strong>Pay-as-you-go with Azure</strong> instead — but the machine has to be unlicensed (KMS/MAK removed) first, which is why your screenshot shows the warning.</li>
+<li>For Server 2012 / 2012 R2 boxes specifically, also visit <strong>Azure Arc → Extended Security Updates</strong> and link the machine to an ESU license.</li>
+</ul>
+<hr />
+<h2 id="3-connectivity-private-networking-settings-connect">3. Connectivity &amp; private networking (Settings → Connect)</h2>
+<ul>
+<li>Decide <strong>Public endpoint</strong> vs <strong>Private Link Scope (AMPLS-style "Azure Arc Private Link Scope")</strong>. If you committed to private, create the scope and associate the machines; the agent will then resolve <code>*.his.arc.azure.com</code>, guest config, and extension endpoints over private IPs.</li>
+<li>Configure proxy if you use one: <code>azcmagent config set proxy.url http://proxy:8080</code> and proxy bypass for the required endpoints.</li>
+</ul>
+<hr />
+<h2 id="4-defender-for-servers-plan-2-microsoft-defender-for-cloud">4. Defender for Servers Plan 2 (Microsoft Defender for Cloud)</h2>
+<p>This is where most of the P2 value lives, and <strong>none of it gets turned on by the Arc onboarding script</strong>.</p>
+<ol>
+<li><strong>Defender for Cloud → Environment settings → \&lt;subscription&gt; → Defender plans</strong>
+   - Turn <strong>Servers</strong> ON, set plan to <strong>Plan 2</strong>.
+   - Under the Servers row → <strong>Settings</strong>, verify these are <strong>On</strong>:<ul>
+<li><strong>Vulnerability assessment for machines</strong> → <em>Microsoft Defender Vulnerability Management</em> (the integrated MDVM, not the legacy Qualys).</li>
+<li><strong>Endpoint protection</strong> (Defender for Endpoint integration / MDE.Windows / MDE.Linux extension auto-deploy).</li>
+<li><strong>Agentless scanning for machines</strong> (P2 only — gives you software inventory + secrets scanning without an agent on the disk; for Arc this needs the machine to be a VM whose disk Defender can snapshot, or it falls back to MDE telemetry).</li>
+<li><strong>File Integrity Monitoring</strong> (P2 only, AMA-based).</li>
+<li><strong>Log Analytics agent / Azure Monitor Agent autoprovisioning</strong> — pick <strong>AMA</strong> (MMA is retired).</li>
+</ul>
+</li>
+<li><strong>Defender for Cloud → Environment settings → \&lt;subscription&gt; → Data collection</strong> — confirm a <strong>Log Analytics workspace</strong> is selected (yours, not the default) and security events level (Minimal / Common / All).</li>
+<li><strong>Defender for Cloud → Inventory</strong> — your Arc machines should appear within ~30 min with a Defender plan badge. Investigate any with "Not covered".</li>
+<li><strong>Defender for Cloud → Recommendations</strong> — work the list; first ones to expect on fresh Arc boxes:
+   - "Machines should have a vulnerability assessment solution"
+   - "Endpoint protection should be installed"
+   - "Azure Monitor Agent should be installed"
+   - "System updates should be installed"</li>
+<li><strong>MDE onboarding sanity check</strong> on the box:
+   - Windows: <code>Get-MpComputerStatus</code> → <code>AMRunningMode</code> should be <code>Normal</code> or <code>EDR Block Mode</code>; <code>Get-Service Sense</code> running.
+   - Linux: <code>mdatp health</code> → <code>healthy : true</code>, <code>org_id</code> populated.</li>
+</ol>
+<hr />
+<h2 id="5-monitoring-azure-monitor-agent-dcrs">5. Monitoring (Azure Monitor Agent + DCRs)</h2>
+<p>The AMA extension can be auto-deployed by Defender, but if you want logs/perf/Sentinel you must explicitly create <strong>Data Collection Rules</strong>.</p>
+<ul>
+<li><strong>Monitor → Data Collection Rules → + Create</strong></li>
+<li>Platform: Windows / Linux (one DCR per platform is cleanest).</li>
+<li>Resources: pick the Arc machines (they show up alongside Azure VMs).</li>
+<li>Data sources you'll typically want:<ul>
+<li>Windows Event Logs (Security, System, Application, Microsoft-Windows-Sysmon/Operational if you use Sysmon).</li>
+<li>Performance counters (Processor, Memory, LogicalDisk, Network).</li>
+<li>Linux Syslog (auth, daemon, kern, syslog at LOG_INFO+).</li>
+<li>Linux performance.</li>
+</ul>
+</li>
+<li>Destination: your Log Analytics workspace.</li>
+<li>On the Arc machine blade: <strong>Monitoring → Insights → Enable</strong> → confirms VM Insights DCR + Dependency agent.</li>
+<li><strong>Monitoring → Logs</strong> — run <code>Heartbeat | where Computer == "DC007" | take 5</code> to confirm ingestion. If empty after 15 min, check the AzureMonitorWindowsAgent / AzureMonitorLinuxAgent extension status under <strong>Settings → Extensions</strong>.</li>
+</ul>
+<hr />
+<h2 id="6-microsoft-sentinel-if-you-use-it">6. Microsoft Sentinel (if you use it)</h2>
+<ul>
+<li><strong>Sentinel → Data connectors</strong>: enable</li>
+<li><em>Windows Security Events via AMA</em> (uses the same DCR pattern above).</li>
+<li><em>Microsoft Defender for Cloud</em> (alerts).</li>
+<li><em>Microsoft Defender XDR</em> if MDE is connected.</li>
+<li><em>Syslog via AMA</em> / <em>Common Event Format via AMA</em> for Linux.</li>
+<li>Verify analytics rules and workbooks see the new hosts (<code>Heartbeat</code>, <code>SecurityEvent</code>, <code>Syslog</code> tables).</li>
+</ul>
+<hr />
+<h2 id="7-azure-update-manager">7. Azure Update Manager</h2>
+<ul>
+<li><strong>Azure Update Manager → Machines</strong> — Arc machines appear automatically once connected.</li>
+<li>For each new box (or via a tag-based dynamic scope):</li>
+<li>Run <strong>Check for updates</strong> (one-time assessment).</li>
+<li>Create / attach a <strong>Maintenance configuration</strong> (schedule, reboot setting, classifications, pre/post scripts).</li>
+<li>For Linux, confirm the package manager (apt/yum/dnf/zypper) is detected on the <strong>Updates</strong> tab.</li>
+<li>Set <strong>Patch orchestration</strong> = <em>Customer Managed Schedules (Preview)</em> via Azure Policy "Configure periodic checking for missing system updates" so assessments run every 24h without you scheduling them.</li>
+</ul>
+<hr />
+<h2 id="8-machine-configuration-guest-configuration-operations-machine-configuration">8. Machine Configuration / Guest Configuration (Operations → Machine Configuration)</h2>
+<p>This is the Arc equivalent of Azure Policy <em>inside</em> the OS. Free for Arc machines with SA / PAYG.</p>
+<ul>
+<li><strong>Policy → Definitions</strong> — assign built-in initiatives that matter:</li>
+<li><em>[Preview]: Windows machines should meet requirements for the Azure compute security baseline</em> (CIS-aligned).</li>
+<li><em>Linux machines should meet requirements for the Azure compute security baseline</em>.</li>
+<li><em>Configure time zone on Windows machines</em> (if applicable).</li>
+<li><em>Deploy prerequisites to enable Guest Configuration policies on virtual machines</em> — required, also covers Arc.</li>
+<li>After ~30–60 min, <strong>Machine Configuration</strong> blade on the server shows compliance per assignment. Remediate or exempt.</li>
+</ul>
+<hr />
+<h2 id="9-extensions-youll-commonly-want-settings-extensions">9. Extensions you'll commonly want (Settings → Extensions)</h2>
+<p>Either deploy per-machine here, or (better) via Azure Policy "Deploy if not exists" to the resource group / subscription:</p>
+<table>
+<thead>
+<tr>
+<th>Extension</th>
+<th>Purpose</th>
+<th style="text-align: center;">Win</th>
+<th style="text-align: center;">Linux</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>AzureMonitorWindowsAgent</code> / <code>AzureMonitorLinuxAgent</code></td>
+<td>AMA for logs/metrics</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td><code>MDE.Windows</code> / <code>MDE.Linux</code></td>
+<td>Defender for Endpoint</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td><code>ChangeTracking-Windows</code> / <code>-Linux</code></td>
+<td>File/registry/software change tracking (AMA-based)</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td><code>AzureSecurityWindowsAgent</code> / <code>AzureSecurityLinuxAgent</code></td>
+<td>Defender for Cloud agent</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td><code>WindowsAdminCenter</code></td>
+<td>Browser-based RDP-less admin from the portal</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">–</td>
+</tr>
+<tr>
+<td><code>AzurePolicyforWindows</code> / <code>ConfigurationforLinux</code></td>
+<td>Guest configuration engine</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td><code>KeyVaultForWindows</code> / <code>KeyVaultForLinux</code></td>
+<td>Auto-rotate certs from Key Vault</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td><code>RunCommandHandlerWindows</code> / <code>Linux</code></td>
+<td>Portal Run Command (preview blade)</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+</tr>
+<tr>
+<td><code>CustomScriptExtension</code></td>
+<td>Ad-hoc bootstrap scripts</td>
+<td style="text-align: center;">✓</td>
+<td style="text-align: center;">✓</td>
+</tr>
+</tbody>
+</table>
+<p>Verify each one shows <strong>Provisioning state: Succeeded</strong>. Failed extensions are the #1 source of "Defender thinks the box is unhealthy" tickets.</p>
+<hr />
+<h2 id="10-identity-rbac-and-the-system-assigned-managed-identity">10. Identity, RBAC, and the system-assigned managed identity</h2>
+<ul>
+<li>Every Arc machine automatically gets a <strong>system-assigned managed identity</strong>. Check <strong>Settings → Identity</strong> → Object (principal) ID is present.</li>
+<li>Use that identity (not stored secrets) when scripts on the box need to talk to Azure:</li>
+<li>Grant it scoped roles (e.g., <code>Key Vault Secrets User</code> on a specific vault, <code>Storage Blob Data Reader</code> on a container).</li>
+<li>On the box, fetch a token from <code>http://localhost:40342/metadata/identity/oauth2/token</code> (Arc's IMDS-equivalent endpoint — different port than Azure VMs).</li>
+<li>Because you have <strong>Entra ID P2</strong>, also turn on for the Arc machine principal where relevant:</li>
+<li><strong>Privileged Identity Management</strong> for any human admins assigned roles on the Arc resources.</li>
+<li><strong>Conditional Access</strong> policies covering Azure management (the agent itself is exempt, but admin sign-ins are not).</li>
+<li><strong>Identity Protection</strong> risk policies for the admin accounts.</li>
+<li>For Windows Server boxes that you want <strong>Entra-joined / Entra login enabled</strong>, that's a separate extension (<code>AADLoginForWindows</code> is Azure-VM-only today; for Arc Windows Servers SSH-with-Entra is via the <code>SshPosh</code>/<code>AADSSHLoginForLinux</code> model on Linux only — confirm current support before relying on it).</li>
+</ul>
+<hr />
+<h2 id="11-ssh-windows-admin-center-over-arc-no-inbound-ports">11. SSH / Windows Admin Center over Arc (no inbound ports)</h2>
+<p>P2 plan or not, this is a huge quality-of-life win:</p>
+<ul>
+<li><strong>Settings → Connect → SSH</strong> (or run <code>az ssh arc --name DC007 --resource-group &lt;rg&gt;</code>): tunneled SSH/RDP through the Arc agent — no public IP, no VPN.</li>
+<li><strong>Windows management → Windows Admin Center</strong>: deploy the WAC extension, then manage the server in-browser from the portal.</li>
+<li>For both, your admin account needs <strong>Virtual Machine Local User Login</strong> (or Administrator Login) RBAC on the Arc resource.</li>
+</ul>
+<hr />
+<h2 id="12-backup-dr-inventory-change-tracking">12. Backup, DR, inventory, change tracking</h2>
+<ul>
+<li><strong>Operations → Inventory</strong> and <strong>Change tracking</strong> — turn on; both now use AMA + DCR. Useful for audit and for spotting drift after patching.</li>
+<li><strong>Azure Backup for Arc-enabled servers</strong> (MARS agent or workload backup for SQL on Arc) is a separate install — not done by the Arc agent.</li>
+<li>If these are domain controllers (your <code>DC007</code> naming suggests yes), make sure your existing AD backup strategy is intact; Arc doesn't change it but Update Manager reboots can surprise you.</li>
+</ul>
+<hr />
+<h2 id="13-sql-server-on-the-box-operations-sql-server-configuration">13. SQL Server on the box? (Operations → SQL Server Configuration)</h2>
+<p>If any of these servers run SQL Server, the Arc agent auto-discovers instances and registers them as <strong>Arc-enabled SQL Server</strong> resources. Then:</p>
+<ul>
+<li>License each instance (PAYG or BYOL with SA) — same Azure Benefits attestation pattern as the Windows Server license.</li>
+<li>Enable <strong>Defender for SQL servers on machines</strong> in Defender for Cloud (separate plan toggle).</li>
+<li>Turn on <strong>Best practices assessment</strong>, <strong>Automated backups to Azure Blob</strong>, and <strong>Microsoft Entra authentication for SQL</strong> from the SQL – Azure Arc resource blade.</li>
+</ul>
+<hr />
+<h2 id="14-alerts-you-should-create-on-day-one">14. Alerts you should create on day one</h2>
+<p>In <strong>Monitor → Alerts</strong> (or Defender for Cloud → Workflow automation):</p>
+<ul>
+<li><strong>Heartbeat missing &gt; 15 min</strong> (Arc machine offline). Use the <code>Heartbeat</code> table or Resource Health signal <code>ConnectedMachine - Disconnected</code>.</li>
+<li><strong>Agent version older than N-2</strong> (use Resource Graph + workbook).</li>
+<li><strong>Defender for Cloud high-severity alerts</strong> on the subscription, routed to a Logic App / Action Group / Sentinel incident.</li>
+<li><strong>Update Manager — pending security updates &gt; 0 for &gt; 7 days</strong>.</li>
+<li><strong>Extension provisioning failed</strong> (<code>Microsoft.HybridCompute/machines/extensions</code> Activity Log).</li>
+</ul>
+<hr />
+<h2 id="15-quick-did-i-miss-anything-kql-pack">15. Quick "did I miss anything?" KQL pack</h2>
+<p>Run these in <strong>Azure Resource Graph Explorer</strong> or Logs:</p>
+<pre class="codehilite"><code class="language-kusto">// Arc machines and their current agent + status
+resources
+| where type == &quot;microsoft.hybridcompute/machines&quot;
+| extend status = properties.status, agent = properties.agentVersion, os = properties.osName
+| project name, resourceGroup, location, status, agent, os, lastStatusChange = properties.lastStatusChange
+| order by status asc, name asc
+</code></pre>
+
+<pre class="codehilite"><code class="language-kusto">// Which Arc machines are missing key extensions?
+resources
+| where type == &quot;microsoft.hybridcompute/machines&quot;
+| project machine = id, name
+| join kind=leftouter (
+    resources
+    | where type == &quot;microsoft.hybridcompute/machines/extensions&quot;
+    | extend machine = tostring(split(id, &quot;/extensions/&quot;)[0])
+    | summarize extensions = make_set(name) by machine
+) on machine
+| extend hasAMA      = extensions has_any (&quot;AzureMonitorWindowsAgent&quot;,&quot;AzureMonitorLinuxAgent&quot;),
+         hasMDE      = extensions has_any (&quot;MDE.Windows&quot;,&quot;MDE.Linux&quot;),
+         hasDefender = extensions has_any (&quot;AzureSecurityWindowsAgent&quot;,&quot;AzureSecurityLinuxAgent&quot;)
+| project name, hasAMA, hasMDE, hasDefender, extensions
+| where hasAMA == false or hasMDE == false or hasDefender == false
+</code></pre>
+
+<pre class="codehilite"><code class="language-kusto">// Heartbeat health over the last 24h
+Heartbeat
+| where TimeGenerated &gt; ago(24h)
+| summarize lastSeen = max(TimeGenerated), beats = count() by Computer, ResourceType
+| extend stale = iff(lastSeen &lt; ago(15m), &quot;STALE&quot;, &quot;ok&quot;)
+| order by stale desc, lastSeen asc
+</code></pre>
+
+<hr />
+<h2 id="tldr-ordered-checklist-per-new-machine">TL;DR ordered checklist per new machine</h2>
+<ol>
+<li><code>azcmagent show</code> / <code>azcmagent check</code> — Connected, endpoints OK.</li>
+<li>Tag it (env, owner, patchgroup).</li>
+<li><strong>Licenses → Windows Server</strong>: attest Azure Benefits (Windows only).</li>
+<li><strong>Defender for Cloud → Environment settings</strong>: Servers Plan 2 ON, MDVM + MDE + Agentless + FIM + AMA autoprovision ON.</li>
+<li><strong>Monitor → DCR</strong>: associate machine to Windows or Linux DCR → workspace.</li>
+<li><strong>Insights → Enable</strong> (VM Insights).</li>
+<li><strong>Update Manager</strong>: assess + attach maintenance configuration.</li>
+<li><strong>Machine Configuration</strong>: assign security baseline initiative.</li>
+<li><strong>Extensions</strong>: confirm AMA, MDE, Defender, ChangeTracking, Policy = Succeeded.</li>
+<li><strong>Identity</strong>: confirm system-assigned MI; grant only the Azure RBAC the box actually needs.</li>
+<li>(If SQL) license + Defender for SQL + best-practices assessment.</li>
+<li><strong>Sentinel</strong> connectors (if applicable).</li>
+<li>Alerts: heartbeat-missing, agent-stale, extension-failed, high-sev Defender alerts, overdue updates.</li>
+<li>Re-run the Resource Graph/KQL queries above weekly until all servers are clean.</li>
+</ol>
+</body>
+</html>

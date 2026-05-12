@@ -33,31 +33,46 @@ This workbook gives network and security teams one place to review every layer o
 ## Workbook Overview Screenshots
 
 ### 1. Executive Dashboard
-<!-- paste screenshot here -->
+
+<img width="2603" height="1047" alt="image" src="https://github.com/user-attachments/assets/5ac56251-e71f-4248-a6ed-0e0c39ec8df8" />
+<img width="2618" height="726" alt="image" src="https://github.com/user-attachments/assets/61c13f22-7f20-4265-8278-7a0c3d391ec5" />
 
 ### 2. DNS Intelligence
-<!-- paste screenshot here -->
+<img width="2604" height="1074" alt="image" src="https://github.com/user-attachments/assets/a4278a73-8f12-46e0-96fb-b3700cfb3de2" />
+<img width="2593" height="1080" alt="image" src="https://github.com/user-attachments/assets/801d2372-851b-4560-b4d1-2d834432b4c9" />
 
 ### 3. NetFlow Analytics
-<!-- paste screenshot here -->
+<img width="2598" height="1054" alt="image" src="https://github.com/user-attachments/assets/c1aacd77-568f-4b5c-aa7d-925e84372a4c" />
+
 
 ### 4. Firewall and LAN
-<!-- paste screenshot here -->
+<img width="2610" height="1074" alt="image" src="https://github.com/user-attachments/assets/3fed0623-d8f3-49ed-9d77-2a8f0139c44d" />
 
-### 5. Zeek IDS
-<!-- paste screenshot here -->
+
+### 5. Zeek & Suricata
+<img width="2598" height="1066" alt="image" src="https://github.com/user-attachments/assets/cf711963-8525-438a-a3cf-db332097ed72" />
+
 
 ### 6. Threat Correlation
-<!-- paste screenshot here -->
+<img width="2596" height="955" alt="image" src="https://github.com/user-attachments/assets/d74c3faf-2b90-4c0b-9c77-b200fdcb3724" />
+<img width="2589" height="1039" alt="image" src="https://github.com/user-attachments/assets/56a288f6-8a21-4572-a167-a8cba8b880c7" />
+
 
 ### 7. Threat Hunting
-<!-- paste screenshot here -->
+<img width="2611" height="1060" alt="image" src="https://github.com/user-attachments/assets/ce54a2cb-ba2e-4dae-9010-b69b160ee2b4" />
+
 
 ### 8. Global Threat Map
-<!-- paste screenshot here -->
+<img width="2592" height="1035" alt="image" src="https://github.com/user-attachments/assets/4d478f4b-59ae-440a-ad2f-ff515280985b" />
+
 
 ### 9. Investigation Portal
-<!-- paste screenshot here -->
+<img width="2609" height="975" alt="image" src="https://github.com/user-attachments/assets/742bdac6-2b22-4b64-9a13-bbe8988c010b" />
+
+### 9. Unmanaged & IoT
+<img width="2600" height="1128" alt="image" src="https://github.com/user-attachments/assets/f7c43049-af5c-442b-8cb5-75507eb129ee" />
+
+
 
 ## Section Details And What Each One Does
 

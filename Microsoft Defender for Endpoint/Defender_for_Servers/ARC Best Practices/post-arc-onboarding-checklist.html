@@ -323,6 +323,265 @@ Heartbeat
 </code></pre>
 
 <hr />
+<h2 id="16-troubleshooting-when-something-on-the-arc-machine-breaks">16. Troubleshooting — when something on the Arc machine breaks</h2>
+<p>This is the playbook for the most common failure: an <strong>extension</strong> (AMA, MDE, ChangeTracking, Defender agent, Update Manager, Guest Config) shows <strong>Provisioning state: Failed</strong> or <strong>Transitioning</strong> for hours. The pattern is the same for every extension — only the directory names differ.</p>
+<h3 id="161-where-to-look-in-the-portal-first">16.1 Where to look in the portal first</h3>
+<ol>
+<li><strong>Azure Arc → Machines → \&lt;server&gt; → Settings → Extensions</strong>
+   - Click the failed extension. The <strong>Status message</strong> at the top is the single most useful field — it almost always quotes the underlying error (download failure, dependency missing, exit code, conflict with another extension).
+   - Note the <strong>Type handler version</strong> — extension issues are often fixed by bumping <code>autoUpgradeMinorVersion: true</code> or by uninstalling and reinstalling so the latest handler is pulled.</li>
+<li><strong>Activity log</strong> on the machine resource — filter to the last 24h, operation <code>Microsoft.HybridCompute/machines/extensions/write</code>. You'll see who/what triggered the install and the exact deployment correlation ID.</li>
+<li><strong>Resource Health</strong> (left nav of the machine) — tells you if the <em>agent</em> itself (not an extension) is the problem (Disconnected / Expired).</li>
+<li><strong>Defender for Cloud → Inventory → \&lt;machine&gt;</strong> — under "Recommendations" it will explicitly call out failed Defender / MDE / AMA installs and usually links straight to the right remediation.</li>
+</ol>
+<h3 id="162-on-box-log-locations-the-ones-that-actually-matter">16.2 On-box log locations (the ones that actually matter)</h3>
+<p>The Connected Machine agent and every extension write logs to predictable paths. These are what Microsoft Support will ask for first.</p>
+<p><strong>Windows</strong></p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Connected Machine agent (<code>himds</code>)</td>
+<td><code>C:\ProgramData\AzureConnectedMachineAgent\Log\himds.log</code></td>
+</tr>
+<tr>
+<td>Extension manager (decides what to install/upgrade)</td>
+<td><code>C:\ProgramData\AzureConnectedMachineAgent\Log\gcm.log</code></td>
+</tr>
+<tr>
+<td>Guest Configuration agent</td>
+<td><code>C:\ProgramData\GuestConfig\arc_policy_logs\gc_agent.log</code></td>
+</tr>
+<tr>
+<td>Per-extension handler logs</td>
+<td><code>C:\ProgramData\GuestConfig\extension_logs\&lt;ExtensionName&gt;\</code></td>
+</tr>
+<tr>
+<td>AMA (Azure Monitor Agent)</td>
+<td><code>C:\WindowsAzure\Resources\AMADataStore.&lt;machine&gt;\Tables\</code> and <code>C:\WindowsAzure\Logs\Plugins\Microsoft.Azure.Monitor.AzureMonitorWindowsAgent\&lt;version&gt;\</code></td>
+</tr>
+<tr>
+<td>MDE (<code>MDE.Windows</code>) handler</td>
+<td><code>C:\WindowsAzure\Logs\Plugins\Microsoft.Azure.AzureDefenderForServers.MDE.Windows\&lt;version&gt;\</code> plus on-box MDE: <code>Get-MpComputerStatus</code>, <code>mpcmdrun.exe -getfiles</code> for full Defender diagnostics</td>
+</tr>
+<tr>
+<td>Defender for Cloud agent</td>
+<td><code>C:\WindowsAzure\Logs\Plugins\Microsoft.Azure.AzureDefenderForServers.AzureSecurityWindowsAgent\&lt;version&gt;\</code></td>
+</tr>
+<tr>
+<td>Update Manager assessment / install</td>
+<td><code>C:\ProgramData\GuestConfig\extension_logs\Microsoft.SoftwareUpdateManagement.WindowsOsUpdateExtension\</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Linux</strong></p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Path</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Connected Machine agent</td>
+<td><code>/var/opt/azcmagent/log/himds.log</code></td>
+</tr>
+<tr>
+<td>Extension manager</td>
+<td><code>/var/opt/azcmagent/log/gcm.log</code></td>
+</tr>
+<tr>
+<td><code>azcmagent</code> CLI logs</td>
+<td><code>/var/opt/azcmagent/log/azcmagent.log</code></td>
+</tr>
+<tr>
+<td>Per-extension handler logs</td>
+<td><code>/var/lib/GuestConfig/extension_logs/&lt;ExtensionName&gt;/</code></td>
+</tr>
+<tr>
+<td>AMA</td>
+<td><code>/var/opt/microsoft/azuremonitoragent/log/mdsd.*</code> and <code>/var/log/azure/Microsoft.Azure.Monitor.AzureMonitorLinuxAgent/</code></td>
+</tr>
+<tr>
+<td>MDE (<code>MDE.Linux</code>) handler</td>
+<td><code>/var/log/azure/Microsoft.Azure.AzureDefenderForServers.MDE.Linux/</code> plus on-box: <code>mdatp health</code>, <code>sudo mdatp diagnostic create</code></td>
+</tr>
+<tr>
+<td>Defender for Cloud agent</td>
+<td><code>/var/log/azure/Microsoft.Azure.AzureDefenderForServers.AzureSecurityLinuxAgent/</code></td>
+</tr>
+<tr>
+<td>Guest Configuration</td>
+<td><code>/var/lib/GuestConfig/arc_policy_logs/gc_agent.log</code></td>
+</tr>
+<tr>
+<td>Update Manager (Linux patch ext)</td>
+<td><code>/var/log/azure/Microsoft.SoftwareUpdateManagement.LinuxOsUpdateExtension/</code></td>
+</tr>
+<tr>
+<td>systemd journal for the agent</td>
+<td><code>journalctl -u himdsd -u gcad -u extd --since "1 hour ago"</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="163-what-the-logs-actually-look-like-so-you-know-what-to-grep-for">16.3 What the logs actually look like (so you know what to grep for)</h3>
+<p><code>himds.log</code> lines look like this — useful when the agent shows <strong>Disconnected</strong> or token errors:</p>
+<pre class="codehilite"><code>time=&quot;2026-05-11T19:42:08Z&quot; level=info  msg=&quot;Sending heartbeat&quot; correlationId=2c1f...
+time=&quot;2026-05-11T19:42:09Z&quot; level=error msg=&quot;Failed to acquire MSI token: AADSTS70043: The refresh token has expired&quot; endpoint=&quot;login.microsoftonline.com&quot;
+time=&quot;2026-05-11T19:42:09Z&quot; level=warn  msg=&quot;Disconnecting; will retry in 60s&quot;
+</code></pre>
+
+<p>Grep targets: <code>level=error</code>, <code>correlationId=</code>, <code>AADSTS</code>, <code>proxy</code>, <code>certificate</code>, <code>endpoint=</code>.</p>
+<p><code>gcm.log</code> (extension manager) — this is the one that tells you <em>why</em> an extension never installed:</p>
+<pre class="codehilite"><code>[gcm] INFO  Received goal state: install Microsoft.Azure.Monitor.AzureMonitorWindowsAgent v1.24
+[gcm] INFO  Downloading handler package from https://...blob.core.windows.net/...
+[gcm] ERROR Failed to download handler: 403 AuthenticationFailed (proxy returned 403)
+[gcm] ERROR Handler 'AzureMonitorWindowsAgent' transitioned to state 'Failed' (exit code 51)
+</code></pre>
+
+<p>Per-handler logs (e.g. <code>extension_logs\AzureMonitorWindowsAgent\CommandExecution.log</code> or <code>.../enable.log</code>) look like:</p>
+<pre class="codehilite"><code>2026/05/11 19:55:01 [Info] Handler is starting enable command
+2026/05/11 19:55:03 [Info] Calling: MonAgentLauncher.exe -configFile ...
+2026/05/11 19:55:14 [Error] MonAgentLauncher exited with code 4 — invalid DCR association
+2026/05/11 19:55:14 [Error] enable command failed; reporting status=error
+</code></pre>
+
+<h3 id="164-exit-codes-and-what-they-usually-mean">16.4 Exit codes and what they usually mean</h3>
+<p>Extension handlers report a numeric exit code that surfaces in the portal Status message. Cheat sheet:</p>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+<th>Typical fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0</code></td>
+<td>Success</td>
+<td>–</td>
+</tr>
+<tr>
+<td><code>1</code></td>
+<td>Generic failure — read the handler log</td>
+<td>Read <code>enable.log</code> / <code>CommandExecution.log</code></td>
+</tr>
+<tr>
+<td><code>3</code></td>
+<td>Handler already running / already installed</td>
+<td>Wait, then re-check; if stuck, restart agent</td>
+</tr>
+<tr>
+<td><code>9</code></td>
+<td>Missing dependency on the OS</td>
+<td>Install prereq (e.g., <code>libssl</code>, .NET, <code>python</code>)</td>
+</tr>
+<tr>
+<td><code>20</code></td>
+<td>Configuration error in extension settings</td>
+<td>Fix DCR association / workspace key / settings JSON</td>
+</tr>
+<tr>
+<td><code>51</code></td>
+<td>Network / proxy blocking download</td>
+<td>Open required FQDNs; check proxy env vars</td>
+</tr>
+<tr>
+<td><code>52</code></td>
+<td>Disk full or no space in <code>/var</code> or <code>C:\ProgramData</code></td>
+<td>Free space; AMA needs ≥1 GB free</td>
+</tr>
+<tr>
+<td><code>53</code></td>
+<td>Conflicting extension (e.g., old MMA + AMA together)</td>
+<td>Remove the legacy MMA / OMS agent</td>
+</tr>
+<tr>
+<td><code>100</code>+</td>
+<td>Handler-specific — check that handler's docs</td>
+<td>–</td>
+</tr>
+</tbody>
+</table>
+<h3 id="165-the-7-fixes-that-resolve-90-of-arc-extension-failures">16.5 The 7 fixes that resolve ~90% of Arc extension failures</h3>
+<ol>
+<li><strong>Restart the agent stack</strong> — this alone fixes most transient <code>Transitioning</code>/<code>Unknown</code> states:
+   <code>powershell
+   # Windows
+   Restart-Service himds, gcarcservice, ExtensionService</code>
+   <code>bash
+   # Linux
+   sudo systemctl restart himdsd gcad extd</code></li>
+<li><strong><code>azcmagent check</code></strong> — confirms every required endpoint. A single blocked FQDN (commonly <code>*.guestconfiguration.azure.com</code> or <code>*.his.arc.azure.com</code>) kills extension delivery.</li>
+<li><strong>Update the Connected Machine agent</strong>. Many "extension X failed" issues are actually old <code>azcmagent</code>. Target N-2 max.
+   <code>powershell
+   # Windows: re-run the MSI from https://aka.ms/AzureConnectedMachineAgent</code>
+   <code>bash
+   sudo apt-get update &amp;&amp; sudo apt-get install --only-upgrade azcmagent   # Debian/Ubuntu
+   sudo dnf upgrade azcmagent                                              # RHEL/Alma/Rocky
+   sudo zypper update azcmagent                                            # SLES</code></li>
+<li><strong>Uninstall and reinstall the extension</strong> from the portal. Forces a fresh handler package download — fixes corrupt-package and "stuck since first deploy" cases.</li>
+<li><strong>Disk space</strong>: AMA in particular needs ~1 GB free in <code>C:\WindowsAzure\Resources</code> / <code>/var/opt/microsoft/azuremonitoragent</code>. A full disk silently breaks every extension.</li>
+<li><strong>Time skew</strong>: clock drift &gt;5 min breaks Entra token acquisition. <code>w32tm /resync</code> / <code>chronyc makestep</code>.</li>
+<li><strong>Remove conflicting legacy agents</strong>: the <strong>MMA / OMS agent</strong> must be off before AMA installs cleanly; an old <strong>System Center Endpoint Protection</strong> must be removed before MDE enables in active mode.</li>
+</ol>
+<h3 id="166-component-specific-gotchas">16.6 Component-specific gotchas</h3>
+<ul>
+<li><strong>AMA</strong>: extension installed but no data in Log Analytics → you forgot the <strong>Data Collection Rule association</strong>. The extension cannot ingest without one.</li>
+<li><strong>MDE.Windows / MDE.Linux</strong>: handler succeeds but <code>mdatp health</code> shows <code>org_id = null</code> → Defender for Cloud connector to MDE is not enabled, or the machine onboarded into the <em>wrong</em> tenant. Offboard with <code>MdeClientAnalyzer</code> / <code>mdatp config --offboard</code> and let Defender for Cloud reapply.</li>
+<li><strong>ChangeTracking</strong>: requires AMA + a DCR with the ChangeTracking data source. Without the DCR it installs cleanly but emits no data.</li>
+<li><strong>Update Manager / WindowsOsUpdateExtension</strong>: failure with code 20 usually = the machine isn't licensed for Azure Benefits or doesn't have a valid Windows Update source (WSUS pointing at a dead server, no internet on a private box).</li>
+<li><strong>Guest Configuration (AzurePolicyforWindows / ConfigurationforLinux)</strong>: stuck <code>Compliant: false</code> for hours → look in <code>gc_agent.log</code>; PowerShell DSC / Inspec module download failed (proxy or AMPLS missing the <code>guestconfiguration</code> endpoint).</li>
+<li><strong>Private Link (AMPLS for Arc)</strong>: if you enabled it after onboarding, the agent keeps using public endpoints until you set <code>azcmagent config set connection.type private</code> and restart the service.</li>
+</ul>
+<h3 id="167-collect-everything-for-a-support-ticket">16.7 Collect everything for a support ticket</h3>
+<p>When you've tried the above and want to open a case, run the built-in collector — it bundles every log path above into a single zip/tarball:</p>
+<pre class="codehilite"><code class="language-powershell"># Windows — produces a zip in the working directory
+&amp; &quot;C:\Program Files\AzureConnectedMachineAgent\azcmagent.exe&quot; logs
+</code></pre>
+
+<pre class="codehilite"><code class="language-bash"># Linux
+sudo azcmagent logs
+</code></pre>
+
+<p>Attach that file plus the <strong>correlation ID</strong> from <code>gcm.log</code> to the Azure support request.</p>
+<h3 id="168-quick-kql-for-portal-side-triage">16.8 Quick KQL for portal-side triage</h3>
+<pre class="codehilite"><code class="language-kusto">// Extensions in a non-success state
+resources
+| where type == &quot;microsoft.hybridcompute/machines/extensions&quot;
+| extend state = tostring(properties.provisioningState),
+         status = tostring(properties.instanceView.status.message),
+         machine = tostring(split(id, &quot;/extensions/&quot;)[0])
+| where state != &quot;Succeeded&quot;
+| project machine, name, state, status, lastModified = properties.instanceView.status.time
+| order by lastModified desc
+</code></pre>
+
+<pre class="codehilite"><code class="language-kusto">// Arc machines that stopped heart-beating in the last 6h
+Heartbeat
+| where TimeGenerated &gt; ago(24h)
+| where Category == &quot;Direct Agent&quot; or ResourceType == &quot;machines&quot;
+| summarize lastSeen = max(TimeGenerated) by Computer
+| where lastSeen &lt; ago(6h)
+| order by lastSeen asc
+</code></pre>
+
+<pre class="codehilite"><code class="language-kusto">// Recent extension write operations (success + failure) with correlation IDs
+AzureActivity
+| where TimeGenerated &gt; ago(24h)
+| where OperationNameValue endswith &quot;/extensions/write&quot;
+| project TimeGenerated, Resource, ActivityStatusValue, Caller, CorrelationId, Properties
+| order by TimeGenerated desc
+</code></pre>
+
+<hr />
 <h2 id="tldr-ordered-checklist-per-new-machine">TL;DR ordered checklist per new machine</h2>
 <ol>
 <li><code>azcmagent show</code> / <code>azcmagent check</code> — Connected, endpoints OK.</li>

@@ -44,7 +44,7 @@ In the portal: **Azure Arc → Machines → \<server\> → Overview** should sho
 
 ---
 
-## 2. Licensing — Windows Server only (the blade in your screenshot)
+## 2. Licensing — Windows Server only
 
 **Settings → Licenses → Windows Server**
 

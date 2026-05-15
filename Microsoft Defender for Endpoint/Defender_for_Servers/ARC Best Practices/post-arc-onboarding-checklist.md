@@ -412,7 +412,21 @@ The AMA extension can be auto-deployed by Defender, but if you want logs / perf 
   - *Common Event Format (CEF) via AMA* — `CommonSecurityLog` table. Use the Arc machine as a CEF forwarder for appliances (firewalls, proxies, NDR) when a dedicated collector isn't justified.
   - *Windows DHCP Server* — `ASimDhcpEventLogs` (preview) for IP↔host attribution in investigations.
   - *Windows IIS logs* — set the IIS log directory as a custom **Text Logs** source in your DCR; lands in `W3CIISLog`. Only relevant on web-tier servers.
-  - *PowerShell + Command Line logging* — enable PowerShell module/script-block logging via GPO/Intune and add the `Microsoft-Windows-PowerShell/Operational` channel to the DCR (EventID 4103/4104). High-signal for living-off-the-land detections.
+  - *PowerShell + Command Line logging* — single highest-signal source for living-off-the-land detection on Windows servers. Turn on **all four** layers, then ship to Sentinel via the DCR:
+    1. **Process Creation auditing with command line** — *Computer Configuration → Policies → Windows Settings → Security Settings → Advanced Audit Policy Configuration → Detailed Tracking → Audit Process Creation* = **Success**, plus *Administrative Templates → System → Audit Process Creation → Include command line in process creation events* = **Enabled** (`HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit!ProcessCreationIncludeCmdLine_Enabled = 1`). Lands as **Security 4688** with `CommandLine` populated — already captured by the *Windows Security Events via AMA* connector if you're on the `Common` or `All Events` tier.
+    2. **PowerShell Module logging** → `Microsoft-Windows-PowerShell/Operational` **EventID 4103**. *Admin Templates → Windows Components → Windows PowerShell → Turn on Module Logging* = **Enabled**, module names = `*`. Captures parameter binding / pipeline data per cmdlet.
+    3. **PowerShell Script Block logging** → same channel, **EventID 4104** (and 4105/4106 for start/stop). *Turn on PowerShell Script Block Logging* = **Enabled**; check **Log script block invocation start / stop events** for long-running scripts. Captures the **deobfuscated** script body — catches base64 / `IEX` / `FromBase64String` payloads after decode.
+    4. **PowerShell Transcription** (optional, host-side artifact) → *Turn on PowerShell Transcription* = **Enabled**, output dir = a write-only share or local protected path. Useful for IR even if AMA is down.
+    - **PowerShell v2 engine** must be removed (`Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2,MicrosoftWindowsPowerShellV2Root`) — v2 silently bypasses 4103/4104.
+    - **DCR change**: add a **Windows Event Logs** data source with XPath `Microsoft-Windows-PowerShell/Operational!*[System[(EventID=4103 or EventID=4104)]]` → lands in the `Event` table (`Source == "Microsoft-Windows-PowerShell"`).
+    - **Sentinel content to enable after**: "Suspicious PowerShell command line" (analytics rule), "PowerShell Empire / Cobalt Strike artifact" hunts, and the **PowerShell** workbook — all key off 4104 `ScriptBlockText`.
+    - Quick verify after the DCR push (replace `<server>`):
+      ```kusto
+      Event
+      | where TimeGenerated > ago(1h) and Computer == "<server>"
+      | where Source == "Microsoft-Windows-PowerShell" and EventID in (4103, 4104)
+      | summarize count(), any(RenderedDescription) by EventID
+      ```
   - *File Integrity Monitoring (FIM)* — turn on in Defender for Cloud (P2). Uses AMA + ChangeTracking DCR; writes to `ConfigurationChange` / `ConfigurationData` tables, surfaces in Sentinel as-is.
   - *Threat Intelligence — TAXII / Upload Indicators API* — not host-specific, but enable so the Arc/MDE telemetry can be matched against your TI feeds.
 - Custom DCR add-ons worth considering per role:

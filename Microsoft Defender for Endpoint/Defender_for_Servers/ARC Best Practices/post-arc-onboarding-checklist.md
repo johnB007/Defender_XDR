@@ -118,7 +118,7 @@ The Arc equivalent of Azure Policy *inside* the OS. Free for Arc machines under 
 
 Big quality-of-life win regardless of plan:
 
-- **Settings → Connect → SSH** (or run `az ssh arc --name DC007 --resource-group <rg>`): tunneled SSH/RDP through the Arc agent — no public IP, no VPN.
+- **Settings → Connect → SSH** (or run `az ssh arc --name <server> --resource-group <rg>`): tunneled SSH/RDP through the Arc agent — no public IP, no VPN.
 - **Windows management → Windows Admin Center**: deploy the WAC extension, then manage the server in-browser from the portal.
 - Both require the admin to have **Virtual Machine Local User Login** (or Administrator Login) RBAC on the Arc resource.
 
@@ -395,7 +395,7 @@ The AMA extension can be auto-deployed by Defender, but if you want logs / perf 
     - Linux performance.
   - Destination: your Log Analytics workspace.
 - On the Arc machine blade: **Monitoring → Insights → Enable** → confirms VM Insights DCR + Dependency agent.
-- **Monitoring → Logs** — run `Heartbeat | where Computer == "DC007" | take 5` to confirm ingestion. If empty after 15 min, check the AzureMonitorWindowsAgent / AzureMonitorLinuxAgent extension status under **Settings → Extensions**.
+- **Monitoring → Logs** — run `Heartbeat | where Computer == "<server>" | take 5` to confirm ingestion. If empty after 15 min, check the AzureMonitorWindowsAgent / AzureMonitorLinuxAgent extension status under **Settings → Extensions**.
 
 ---
 

@@ -447,6 +447,15 @@ arg("").resources
 ```kusto
 // Which Arc machines are missing key extensions? (per-OS aware)
 // Single arg() call — the LA/Sentinel arg() proxy does not allow joining across two arg() invocations.
+//
+// IMPORTANT — what "false" actually means here:
+//   * hasMDE = false  =>  the Arc auto-deploy extension MDE.Windows / MDE.Linux is NOT present.
+//                         It does NOT mean MDE is missing. MDE may be onboarded directly via
+//                         WindowsDefenderATPOnboardingScript.cmd, GPO, Intune/MEM, MECM, or built-in
+//                         Server 2019+. Use the DeviceInfo cross-check query below to verify.
+//   * hasDefenderForCloudExt = false  =>  the legacy AzureSecurity*Agent extension is not deployed.
+//                         This is EXPECTED on modern Defender for Servers Plan 2 setups that use
+//                         AMA + agentless scanning instead of the legacy agent. Don't treat as a fail.
 arg("").resources
 | where type in~ ("microsoft.hybridcompute/machines","microsoft.hybridcompute/machines/extensions")
 | extend machineId = iff(type =~ "microsoft.hybridcompute/machines",
@@ -460,26 +469,53 @@ arg("").resources
     by machineId
 | where isnotempty(machineName)
 | extend
-    hasAMA            = iff(osName == "windows",
-                            extensions has "AzureMonitorWindowsAgent",
-                            extensions has "AzureMonitorLinuxAgent"),
-    hasMDE            = iff(osName == "windows",
-                            extensions has "MDE.Windows",
-                            extensions has "MDE.Linux"),
-    hasDefender       = iff(osName == "windows",
-                            extensions has "AzureSecurityWindowsAgent",
-                            extensions has "AzureSecurityLinuxAgent"),
-    hasChangeTracking = iff(osName == "windows",
-                            extensions has "ChangeTracking-Windows",
-                            extensions has "ChangeTracking-Linux"),
-    hasGuestConfig    = iff(osName == "windows",
-                            extensions has "AzurePolicyforWindows",
-                            extensions has "ConfigurationforLinux")
-| where hasAMA == false or hasMDE == false or hasDefender == false
-       or hasChangeTracking == false or hasGuestConfig == false
-| project machineName, osName, hasAMA, hasMDE, hasDefender, hasChangeTracking, hasGuestConfig, extensions
+    hasAMA                   = iff(osName == "windows",
+                                   extensions has "AzureMonitorWindowsAgent",
+                                   extensions has "AzureMonitorLinuxAgent"),
+    hasMDEExt                = iff(osName == "windows",
+                                   extensions has "MDE.Windows",
+                                   extensions has "MDE.Linux"),
+    hasDefenderForCloudExt   = iff(osName == "windows",
+                                   extensions has "AzureSecurityWindowsAgent",
+                                   extensions has "AzureSecurityLinuxAgent"),
+    hasChangeTracking        = iff(osName == "windows",
+                                   extensions has "ChangeTracking-Windows",
+                                   extensions has "ChangeTracking-Linux"),
+    hasGuestConfig           = iff(osName == "windows",
+                                   extensions has "AzurePolicyforWindows",
+                                   extensions has "ConfigurationforLinux")
+// Only the truly-required extensions in the filter. Defender-for-Cloud-Agent is legacy/optional under P2.
+| where hasAMA == false or hasChangeTracking == false or hasGuestConfig == false
+| project machineName, osName, hasAMA, hasMDEExt, hasDefenderForCloudExt, hasChangeTracking, hasGuestConfig, extensions
 | order by osName asc, machineName asc
 ```
+
+```kusto
+// Real MDE coverage — cross-check Arc inventory against Defender XDR DeviceInfo
+// Use this when the query above shows hasMDEExt=false but you believe MDE is onboarded
+// via GPO / Intune / MECM / direct script / built-in Server 2019+.
+// Requires the M365 Defender connector enabled in Sentinel (DeviceInfo table available).
+let arcMachines =
+    arg("").resources
+    | where type == "microsoft.hybridcompute/machines"
+    | extend osName = tolower(tostring(properties.osName)),
+             arcName = tolower(name)
+    | project arcName, osName, arcId = tolower(id);
+let mdeDevices =
+    DeviceInfo
+    | where Timestamp > ago(7d)
+    | summarize arg_max(Timestamp, *) by DeviceName
+    | extend deviceNameLower = tolower(DeviceName)
+    | project deviceNameLower, OnboardingStatus, OSPlatform, DeviceId,
+              MachineGroup, mdeLastSeen = Timestamp;
+arcMachines
+| join kind=leftouter mdeDevices on $left.arcName == $right.deviceNameLower
+| extend mdeOnboarded = (OnboardingStatus == "Onboarded")
+| project arcName, osName, mdeOnboarded, OnboardingStatus, mdeLastSeen, DeviceId, MachineGroup
+| order by mdeOnboarded asc, arcName asc
+```
+
+> If `mdeOnboarded = false` *and* `OnboardingStatus` is blank, MDE genuinely isn't reporting for that host. If `mdeOnboarded = true` but the earlier query shows `hasMDEExt = false`, the device is onboarded outside Arc auto-deploy — that's fine, it just means Defender for Cloud P2 didn't push the extension because something else got there first.
 
 ```kusto
 // Heartbeat health over the last 24h — Windows + Linux Arc machines

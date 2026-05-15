@@ -219,45 +219,75 @@ In **Monitor → Alerts** (or Defender for Cloud → Workflow automation):
 
 ## 15. Quick "did I miss anything?" KQL pack
 
-Run these from **Microsoft Sentinel → Logs** (or the Defender XDR **Advanced Hunting** blade when querying the same workspace). The two Arc-resource queries use the cross-service `arg("")` function so Resource Graph data is reachable from inside the Sentinel workspace — you don't need to switch to Azure Resource Graph Explorer.
+Run these from **Microsoft Sentinel → Logs** (or the Defender XDR **Advanced Hunting** blade when querying the same workspace). The Resource-Graph queries use the cross-service `arg("")` function so they run inside the Sentinel workspace — you don't need to switch to Azure Resource Graph Explorer. Every query is OS-aware so Windows and Linux Arc machines both surface.
 
 ```kusto
-// Arc machines and their current agent + status (Sentinel / Advanced Hunting)
+// Arc inventory + agent + OS split (Windows / Linux)
 arg("").resources
 | where type == "microsoft.hybridcompute/machines"
-| extend status = tostring(properties.status),
-         agent  = tostring(properties.agentVersion),
-         os     = tostring(properties.osName),
+| extend status     = tostring(properties.status),
+         agent      = tostring(properties.agentVersion),
+         osName     = tostring(properties.osName),     // "windows" | "linux"
+         osVersion  = tostring(properties.osVersion),
+         osSku      = tostring(properties.osSku),      // e.g. "Windows Server 2022 Datacenter", "Ubuntu 22.04"
          lastStatusChange = todatetime(properties.lastStatusChange)
-| project name, resourceGroup, location, status, agent, os, lastStatusChange
-| order by status asc, name asc
+| project name, resourceGroup, location, status, agent, osName, osSku, osVersion, lastStatusChange
+| order by osName asc, status asc, name asc
 ```
 
 ```kusto
-// Which Arc machines are missing key extensions? (Sentinel / Advanced Hunting)
-arg("").resources
-| where type == "microsoft.hybridcompute/machines"
-| project machine = tolower(id), name
-| join kind=leftouter (
+// Which Arc machines are missing key extensions? (per-OS aware)
+let machines =
+    arg("").resources
+    | where type == "microsoft.hybridcompute/machines"
+    | extend osName = tolower(tostring(properties.osName))
+    | project machine = tolower(id), name, osName;
+let exts =
     arg("").resources
     | where type == "microsoft.hybridcompute/machines/extensions"
     | extend machine = tolower(tostring(split(id, "/extensions/")[0]))
-    | summarize extensions = make_set(name) by machine
-) on machine
-| extend hasAMA      = extensions has_any ("AzureMonitorWindowsAgent","AzureMonitorLinuxAgent"),
-         hasMDE      = extensions has_any ("MDE.Windows","MDE.Linux"),
-         hasDefender = extensions has_any ("AzureSecurityWindowsAgent","AzureSecurityLinuxAgent")
-| project name, hasAMA, hasMDE, hasDefender, extensions
+    | summarize extensions = make_set(name) by machine;
+machines
+| join kind=leftouter exts on machine
+| extend
+    hasAMA            = iff(osName == "windows",
+                            extensions has "AzureMonitorWindowsAgent",
+                            extensions has "AzureMonitorLinuxAgent"),
+    hasMDE            = iff(osName == "windows",
+                            extensions has "MDE.Windows",
+                            extensions has "MDE.Linux"),
+    hasDefender       = iff(osName == "windows",
+                            extensions has "AzureSecurityWindowsAgent",
+                            extensions has "AzureSecurityLinuxAgent"),
+    hasChangeTracking = iff(osName == "windows",
+                            extensions has "ChangeTracking-Windows",
+                            extensions has "ChangeTracking-Linux"),
+    hasGuestConfig    = iff(osName == "windows",
+                            extensions has "AzurePolicyforWindows",
+                            extensions has "ConfigurationforLinux")
+| project name, osName, hasAMA, hasMDE, hasDefender, hasChangeTracking, hasGuestConfig, extensions
 | where hasAMA == false or hasMDE == false or hasDefender == false
+       or hasChangeTracking == false or hasGuestConfig == false
+| order by osName asc, name asc
 ```
 
 ```kusto
-// Heartbeat health over the last 24h (native Log Analytics / Sentinel table)
+// Heartbeat health over the last 24h — Windows + Linux Arc machines
+// Category is "Azure Monitor Agent" for AMA; "Direct Agent" only for legacy MMA holdouts.
+// ResourceType "machines" comes from microsoft.hybridcompute/machines (works for both OSes).
 Heartbeat
 | where TimeGenerated > ago(24h)
-| summarize lastSeen = max(TimeGenerated), beats = count() by Computer, ResourceType
+| where ResourceType == "machines"
+       or Category in ("Azure Monitor Agent","Direct Agent")
+| summarize lastSeen = max(TimeGenerated),
+            beats   = count(),
+            os      = any(OSType),       // "Windows" or "Linux"
+            osName  = any(OSName),
+            agent   = any(Category),
+            version = any(Version)
+            by Computer
 | extend stale = iff(lastSeen < ago(15m), "STALE", "ok")
-| order by stale desc, lastSeen asc
+| order by os asc, stale desc, lastSeen asc
 ```
 
 ---
@@ -406,30 +436,38 @@ Attach that file plus the **correlation ID** from `gcm.log` to the Azure support
 
 ### 16.8 Quick KQL for portal-side triage
 
-> **Heartbeat `Category` note (AMA vs MMA):** with **Azure Monitor Agent** the value is `"Azure Monitor Agent"`, not `"Direct Agent"` (that was the legacy MMA/OMS string). To target Arc machines regardless of agent type, filter on `ResourceType == "machines"` — that comes from `microsoft.hybridcompute/machines`. The queries below use both.
+> **Heartbeat `Category` note (AMA vs MMA):** with **Azure Monitor Agent** the value is `"Azure Monitor Agent"`, not `"Direct Agent"` (that was the legacy MMA/OMS string). To target Arc machines regardless of agent type, filter on `ResourceType == "machines"` (from `microsoft.hybridcompute/machines`). Every query below works for both Windows and Linux Arc machines.
 
 ```kusto
-// Extensions in a non-success state (Sentinel / Advanced Hunting via arg)
+// Failed/stuck extensions across all Arc machines — Windows + Linux
 arg("").resources
 | where type == "microsoft.hybridcompute/machines/extensions"
-| extend state    = tostring(properties.provisioningState),
-         status   = tostring(properties.instanceView.status.message),
-         machine  = tolower(tostring(split(id, "/extensions/")[0])),
-         lastModified = todatetime(properties.instanceView.status.time)
+| extend machine      = tolower(tostring(split(id, "/extensions/")[0])),
+         state        = tostring(properties.provisioningState),
+         status       = tostring(properties.instanceView.status.message),
+         lastModified = todatetime(properties.instanceView.status.time),
+         platform     = case(
+                            name has_any ("Windows","MDE.Windows","AzurePolicyforWindows"), "Windows",
+                            name has_any ("Linux","MDE.Linux","ConfigurationforLinux"),     "Linux",
+                            "Unknown")
 | where state != "Succeeded"
-| project machine, name, state, status, lastModified
-| order by lastModified desc
+| project machine, name, platform, state, status, lastModified
+| order by platform asc, lastModified desc
 ```
 
 ```kusto
-// Arc machines that stopped heart-beating in the last 6h
+// Arc machines that stopped heart-beating in the last 6h — Windows + Linux
 Heartbeat
 | where TimeGenerated > ago(24h)
-| where ResourceType == "machines"                         // Arc machines (microsoft.hybridcompute/machines)
-       or Category in ("Azure Monitor Agent","Direct Agent") // AMA today; "Direct Agent" only for legacy MMA holdouts
-| summarize lastSeen = max(TimeGenerated), agent = any(Category) by Computer
+| where ResourceType == "machines"
+       or Category in ("Azure Monitor Agent","Direct Agent")
+| summarize lastSeen = max(TimeGenerated),
+            os      = any(OSType),     // Windows | Linux
+            osName  = any(OSName),
+            agent   = any(Category)
+            by Computer
 | where lastSeen < ago(6h)
-| order by lastSeen asc
+| order by os asc, lastSeen asc
 ```
 
 ```kusto
@@ -437,8 +475,22 @@ Heartbeat
 AzureActivity
 | where TimeGenerated > ago(24h)
 | where OperationNameValue endswith "/extensions/write"
-| project TimeGenerated, Resource, ActivityStatusValue, Caller, CorrelationId, Properties
+| extend extName = tostring(split(_ResourceId, "/extensions/")[1]),
+         platform = case(
+            extName has_any ("Windows","MDE.Windows","AzurePolicyforWindows"), "Windows",
+            extName has_any ("Linux","MDE.Linux","ConfigurationforLinux"),     "Linux",
+            "Unknown")
+| project TimeGenerated, Resource, extName, platform, ActivityStatusValue, Caller, CorrelationId, Properties
 | order by TimeGenerated desc
+```
+
+```kusto
+// AMA ingestion sanity — last hour of perf/events split by OS (catches "AMA installed but DCR missing")
+union withsource=TableName Perf, Syslog, Event, SecurityEvent
+| where TimeGenerated > ago(1h)
+| extend Computer = tolower(Computer)
+| summarize lastIngest = max(TimeGenerated), rows = count() by Computer, TableName
+| order by Computer asc, TableName asc
 ```
 
 ---

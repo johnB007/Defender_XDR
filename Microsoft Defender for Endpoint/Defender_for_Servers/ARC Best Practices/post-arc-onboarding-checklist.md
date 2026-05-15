@@ -108,10 +108,10 @@ The AMA extension can be auto-deployed by Defender, but if you want logs/perf/Se
 
 ---
 
-## 6. Microsoft Sentinel (if you use it)
+## 6. Microsoft Sentinel
 
 - **Sentinel → Data connectors**: enable
-  - *Windows Security Events via AMA* (uses the same DCR pattern above).
+  - *Windows Security Events via AMA* (uses the same DCR pattern above). Add the **Windows Firewall** data source to that same DCR so the `Microsoft-Windows-Windows Firewall With Advanced Security/Firewall` and `.../ConnectionSecurity` event logs (and the `MicrosoftWindowsWindowsFirewall` provider) ship into Sentinel alongside Security/System/Application — one DCR, one AMA, one connector.
   - *Microsoft Defender for Cloud* (alerts).
   - *Microsoft Defender XDR* if MDE is connected.
   - *Syslog via AMA* / *Common Event Format via AMA* for Linux.

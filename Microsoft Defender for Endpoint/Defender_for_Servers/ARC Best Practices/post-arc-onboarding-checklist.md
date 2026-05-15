@@ -401,12 +401,25 @@ The AMA extension can be auto-deployed by Defender, but if you want logs / perf 
 
 ## 10. Microsoft Sentinel
 
+> Defender for Cloud and Defender XDR connectors are already enabled in this tenant — skip those. The list below is the **per-Arc-machine log surface** you can add on top, all delivered through the same AMA + DCR pipeline so there's no second agent to deploy.
+
 - **Sentinel → Data connectors**: enable
-  - *Windows Security Events via AMA* (uses the same DCR pattern above). Add the **Windows Firewall** data source to that same DCR so the `Microsoft-Windows-Windows Firewall With Advanced Security/Firewall` and `.../ConnectionSecurity` event logs (and the `MicrosoftWindowsWindowsFirewall` provider) ship into Sentinel alongside Security/System/Application — one DCR, one AMA, one connector.
-  - *Microsoft Defender for Cloud* (alerts).
-  - *Microsoft Defender XDR* if MDE is connected.
-  - *Syslog via AMA* / *Common Event Format via AMA* for Linux.
-- Verify analytics rules and workbooks see the new hosts (`Heartbeat`, `SecurityEvent`, `Syslog` tables).
+  - *Windows Security Events via AMA* — `SecurityEvent` table. Add the **Windows Firewall** data source to the same DCR so `Microsoft-Windows-Windows Firewall With Advanced Security/Firewall` and `.../ConnectionSecurity` event logs ship alongside Security/System/Application.
+  - *Windows Forwarded Events* — `WindowsEvent` table. Use if you have a WEC/WEF collector forwarding events from non-Arc endpoints to an Arc-enabled collector server.
+  - *DNS Essentials (AMA)* — DNS analytics/audit logs from Windows DNS Server role (`ASimDnsActivityLogs`). Only enable on DNS servers.
+  - *Microsoft Sysmon For Linux* / *Sysmon (Windows)* via AMA — process/network/file telemetry into `Event` or `WindowsEvent` (Sysmon channel). Pairs well with MDE for forensic depth on critical servers.
+  - *Syslog via AMA* — `Syslog` table for Linux daemons (auth, cron, kern, daemon facilities).
+  - *Common Event Format (CEF) via AMA* — `CommonSecurityLog` table. Use the Arc machine as a CEF forwarder for appliances (firewalls, proxies, NDR) when a dedicated collector isn't justified.
+  - *Windows DHCP Server* — `ASimDhcpEventLogs` (preview) for IP↔host attribution in investigations.
+  - *Windows IIS logs* — set the IIS log directory as a custom **Text Logs** source in your DCR; lands in `W3CIISLog`. Only relevant on web-tier servers.
+  - *PowerShell + Command Line logging* — enable PowerShell module/script-block logging via GPO/Intune and add the `Microsoft-Windows-PowerShell/Operational` channel to the DCR (EventID 4103/4104). High-signal for living-off-the-land detections.
+  - *File Integrity Monitoring (FIM)* — turn on in Defender for Cloud (P2). Uses AMA + ChangeTracking DCR; writes to `ConfigurationChange` / `ConfigurationData` tables, surfaces in Sentinel as-is.
+  - *Threat Intelligence — TAXII / Upload Indicators API* — not host-specific, but enable so the Arc/MDE telemetry can be matched against your TI feeds.
+- Custom DCR add-ons worth considering per role:
+  - **Domain controllers**: `Directory Service`, `DNS Server`, `Microsoft-Windows-PrintService/Operational` (PrintNightmare).
+  - **SQL on Arc**: SQL Audit to file → custom text log → `SqlAtpStatus_CL` or your own `_CL`. Defender for SQL also lights up automatically once Arc + SQL extension are present.
+  - **AD CS / certificate servers**: `Microsoft-Windows-CertificationAuthority` channel.
+- Verify analytics rules, watchlists, and workbooks see the new hosts: query `Heartbeat`, `SecurityEvent`, `Syslog`, `Event`, `CommonSecurityLog`, `ConfigurationChange`, `W3CIISLog` filtered to `Computer == "<server>"`.
 
 ---
 

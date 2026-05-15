@@ -178,6 +178,14 @@ If any of these servers run SQL Server, the Arc agent auto-discovers instances a
 
 ## 6. Migration → Savings and readiness (preview)
 
+> **If you do not see this blade**, that is expected in several scenarios. It does **not** indicate a misconfiguration:
+> - **Azure Government / USGovDoD (IL5)** — the Migration → Savings and readiness preview is not generally available in sovereign clouds yet. Use Azure Migrate (commercial) tooling, or skip this section entirely.
+> - **Subscriptions without the preview feature flag enabled** — register the `Microsoft.Migrate` resource provider on the subscription, and confirm the tenant is opted into the preview.
+> - **Missing RBAC** — the signed-in user needs at least `Reader` on the subscription **plus** `Microsoft.Migrate/migrateProjects/read` (typically via the **Migration Contributor** or **Contributor** role).
+> - **No Arc machines in scope yet** — the readiness scan only renders the tile once it discovers eligible hybrid machines under the subscription.
+>
+> If the blade is missing and none of the above apply, it is safe to skip. The same recommendations surface elsewhere: ESU eligibility in **Azure Arc → Licenses**, Defender for Servers Plan 2 status in **Defender for Cloud → Environment settings**, and Update Manager readiness in **Azure Update Manager → Overview**.
+
 - Run the readiness assessment after onboarding a wave; it identifies machines eligible to move to Azure Update Manager, Defender for Servers Plan 2 conversions, and ESU savings opportunities. Output is a CSV plus inline portal recommendations.
 
 ---

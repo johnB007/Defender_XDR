@@ -219,26 +219,29 @@ In **Monitor → Alerts** (or Defender for Cloud → Workflow automation):
 
 ## 15. Quick "did I miss anything?" KQL pack
 
-Run these in **Azure Resource Graph Explorer** or Logs:
+Run these from **Microsoft Sentinel → Logs** (or the Defender XDR **Advanced Hunting** blade when querying the same workspace). The two Arc-resource queries use the cross-service `arg("")` function so Resource Graph data is reachable from inside the Sentinel workspace — you don't need to switch to Azure Resource Graph Explorer.
 
 ```kusto
-// Arc machines and their current agent + status
-resources
+// Arc machines and their current agent + status (Sentinel / Advanced Hunting)
+arg("").resources
 | where type == "microsoft.hybridcompute/machines"
-| extend status = properties.status, agent = properties.agentVersion, os = properties.osName
-| project name, resourceGroup, location, status, agent, os, lastStatusChange = properties.lastStatusChange
+| extend status = tostring(properties.status),
+         agent  = tostring(properties.agentVersion),
+         os     = tostring(properties.osName),
+         lastStatusChange = todatetime(properties.lastStatusChange)
+| project name, resourceGroup, location, status, agent, os, lastStatusChange
 | order by status asc, name asc
 ```
 
 ```kusto
-// Which Arc machines are missing key extensions?
-resources
+// Which Arc machines are missing key extensions? (Sentinel / Advanced Hunting)
+arg("").resources
 | where type == "microsoft.hybridcompute/machines"
-| project machine = id, name
+| project machine = tolower(id), name
 | join kind=leftouter (
-    resources
+    arg("").resources
     | where type == "microsoft.hybridcompute/machines/extensions"
-    | extend machine = tostring(split(id, "/extensions/")[0])
+    | extend machine = tolower(tostring(split(id, "/extensions/")[0]))
     | summarize extensions = make_set(name) by machine
 ) on machine
 | extend hasAMA      = extensions has_any ("AzureMonitorWindowsAgent","AzureMonitorLinuxAgent"),
@@ -249,7 +252,7 @@ resources
 ```
 
 ```kusto
-// Heartbeat health over the last 24h
+// Heartbeat health over the last 24h (native Log Analytics / Sentinel table)
 Heartbeat
 | where TimeGenerated > ago(24h)
 | summarize lastSeen = max(TimeGenerated), beats = count() by Computer, ResourceType
@@ -403,15 +406,18 @@ Attach that file plus the **correlation ID** from `gcm.log` to the Azure support
 
 ### 16.8 Quick KQL for portal-side triage
 
+> **Heartbeat `Category` note (AMA vs MMA):** with **Azure Monitor Agent** the value is `"Azure Monitor Agent"`, not `"Direct Agent"` (that was the legacy MMA/OMS string). To target Arc machines regardless of agent type, filter on `ResourceType == "machines"` — that comes from `microsoft.hybridcompute/machines`. The queries below use both.
+
 ```kusto
-// Extensions in a non-success state
-resources
+// Extensions in a non-success state (Sentinel / Advanced Hunting via arg)
+arg("").resources
 | where type == "microsoft.hybridcompute/machines/extensions"
-| extend state = tostring(properties.provisioningState),
-         status = tostring(properties.instanceView.status.message),
-         machine = tostring(split(id, "/extensions/")[0])
+| extend state    = tostring(properties.provisioningState),
+         status   = tostring(properties.instanceView.status.message),
+         machine  = tolower(tostring(split(id, "/extensions/")[0])),
+         lastModified = todatetime(properties.instanceView.status.time)
 | where state != "Succeeded"
-| project machine, name, state, status, lastModified = properties.instanceView.status.time
+| project machine, name, state, status, lastModified
 | order by lastModified desc
 ```
 
@@ -419,8 +425,9 @@ resources
 // Arc machines that stopped heart-beating in the last 6h
 Heartbeat
 | where TimeGenerated > ago(24h)
-| where Category == "Direct Agent" or ResourceType == "machines"
-| summarize lastSeen = max(TimeGenerated) by Computer
+| where ResourceType == "machines"                         // Arc machines (microsoft.hybridcompute/machines)
+       or Category in ("Azure Monitor Agent","Direct Agent") // AMA today; "Direct Agent" only for legacy MMA holdouts
+| summarize lastSeen = max(TimeGenerated), agent = any(Category) by Computer
 | where lastSeen < ago(6h)
 | order by lastSeen asc
 ```

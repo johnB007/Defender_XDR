@@ -540,17 +540,18 @@ Heartbeat
 // Failed/stuck extensions across all Arc machines — Windows + Linux
 arg("").resources
 | where type == "microsoft.hybridcompute/machines/extensions"
-| extend machine      = tolower(tostring(split(id, "/extensions/")[0])),
-         state        = tostring(properties.provisioningState),
-         status       = tostring(properties.instanceView.status.message),
-         lastModified = todatetime(properties.instanceView.status.time),
-         platform     = case(
-                            name has_any ("Windows","MDE.Windows","AzurePolicyforWindows"), "Windows",
-                            name has_any ("Linux","MDE.Linux","ConfigurationforLinux"),     "Linux",
-                            "Unknown")
+| extend machine     = tolower(tostring(split(id, "/extensions/")[0])),
+         state       = tostring(properties.provisioningState),
+         statusCode  = tostring(properties.instanceView.status.code),
+         statusLevel = tostring(properties.instanceView.status.level),
+         statusMsg   = tostring(properties.instanceView.status.message)
+| extend platform = case(
+            name has_any ("Windows","MDE.Windows","AzurePolicyforWindows"), "Windows",
+            name has_any ("Linux","MDE.Linux","ConfigurationforLinux"),     "Linux",
+            "Unknown")
 | where state != "Succeeded"
-| project machine, name, platform, state, status, lastModified
-| order by platform asc, lastModified desc
+| project machine, name, platform, state, statusLevel, statusCode, statusMsg
+| order by platform asc, machine asc
 ```
 
 ```kusto
@@ -558,8 +559,8 @@ arg("").resources
 AzureActivity
 | where TimeGenerated > ago(24h)
 | where OperationNameValue endswith "/extensions/write"
-| extend extName = tostring(split(_ResourceId, "/extensions/")[1]),
-         platform = case(
+| extend extName = tostring(split(_ResourceId, "/extensions/")[1])
+| extend platform = case(
             extName has_any ("Windows","MDE.Windows","AzurePolicyforWindows"), "Windows",
             extName has_any ("Linux","MDE.Linux","ConfigurationforLinux"),     "Linux",
             "Unknown")

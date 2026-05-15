@@ -237,18 +237,19 @@ arg("").resources
 
 ```kusto
 // Which Arc machines are missing key extensions? (per-OS aware)
-let machines =
-    arg("").resources
-    | where type == "microsoft.hybridcompute/machines"
-    | extend osName = tolower(tostring(properties.osName))
-    | project machine = tolower(id), name, osName;
-let exts =
-    arg("").resources
-    | where type == "microsoft.hybridcompute/machines/extensions"
-    | extend machine = tolower(tostring(split(id, "/extensions/")[0]))
-    | summarize extensions = make_set(name) by machine;
-machines
-| join kind=leftouter exts on machine
+// Single arg() call — the LA/Sentinel arg() proxy does not allow joining across two arg() invocations.
+arg("").resources
+| where type in~ ("microsoft.hybridcompute/machines","microsoft.hybridcompute/machines/extensions")
+| extend machineId = iff(type =~ "microsoft.hybridcompute/machines",
+                          tolower(id),
+                          tolower(tostring(split(id, "/extensions/")[0])))
+| extend isMachine = (type =~ "microsoft.hybridcompute/machines")
+| summarize
+    machineName = take_anyif(name, isMachine),
+    osName      = tolower(take_anyif(tostring(properties.osName), isMachine)),
+    extensions  = make_set_if(name, not(isMachine))
+    by machineId
+| where isnotempty(machineName)
 | extend
     hasAMA            = iff(osName == "windows",
                             extensions has "AzureMonitorWindowsAgent",
@@ -265,10 +266,10 @@ machines
     hasGuestConfig    = iff(osName == "windows",
                             extensions has "AzurePolicyforWindows",
                             extensions has "ConfigurationforLinux")
-| project name, osName, hasAMA, hasMDE, hasDefender, hasChangeTracking, hasGuestConfig, extensions
 | where hasAMA == false or hasMDE == false or hasDefender == false
        or hasChangeTracking == false or hasGuestConfig == false
-| order by osName asc, name asc
+| project machineName, osName, hasAMA, hasMDE, hasDefender, hasChangeTracking, hasGuestConfig, extensions
+| order by osName asc, machineName asc
 ```
 
 ```kusto

@@ -537,21 +537,39 @@ Heartbeat
 ```
 
 ```kusto
-// Failed/stuck extensions across all Arc machines — Windows + Linux
+// Extensions that are not fully healthy — covers provisioning failures AND runtime warnings/errors
+// 0 rows = clean fleet. To sanity-check the filter, see the health-distribution query below.
 arg("").resources
 | where type == "microsoft.hybridcompute/machines/extensions"
 | extend machine     = tolower(tostring(split(id, "/extensions/")[0])),
          state       = tostring(properties.provisioningState),
          statusCode  = tostring(properties.instanceView.status.code),
          statusLevel = tostring(properties.instanceView.status.level),
-         statusMsg   = tostring(properties.instanceView.status.message)
+         statusMsg   = tostring(properties.instanceView.status.message),
+         version     = tostring(properties.typeHandlerVersion)
 | extend platform = case(
             name has_any ("Windows","MDE.Windows","AzurePolicyforWindows"), "Windows",
             name has_any ("Linux","MDE.Linux","ConfigurationforLinux"),     "Linux",
             "Unknown")
-| where state != "Succeeded"
-| project machine, name, platform, state, statusLevel, statusCode, statusMsg
-| order by platform asc, machine asc
+| extend reason = case(
+            state in ("Failed","Canceled"),                          strcat("provisioning ", state),
+            state in ("Creating","Deleting","Updating","Accepted"),  strcat("stuck in ", state),
+            statusLevel in ("Error","Warning"),                      strcat("runtime ", statusLevel),
+            "ok")
+| where reason != "ok"
+| project machine, name, platform, reason, state, statusLevel, statusCode, statusMsg, version
+| order by platform asc, machine asc, name asc
+```
+
+```kusto
+// Extension health distribution across the fleet — sanity check for the query above.
+// Healthy result: a single row "Succeeded / Information" matching your total extension count.
+arg("").resources
+| where type == "microsoft.hybridcompute/machines/extensions"
+| extend state       = tostring(properties.provisioningState),
+         statusLevel = tostring(properties.instanceView.status.level)
+| summarize count() by state, statusLevel
+| order by state asc
 ```
 
 ```kusto

@@ -125,13 +125,7 @@
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": { "showExportToExcel": true, "rowLimit": 25,
-                "formatters": [
-                  { "columnMatch": "Hits",    "formatter": 11, "formatOptions": { "thresholdsOptions": "colors", "thresholdsGrid": [ { "operator": ">=", "thresholdValue": "1000", "representation": "redBright", "text": "{0}{1}" }, { "operator": ">=", "thresholdValue": "500",  "representation": "orange",    "text": "{0}{1}" }, { "operator": ">=", "thresholdValue": "100",  "representation": "yellow",    "text": "{0}{1}" }, { "operator": "Default",                          "representation": "green",     "text": "{0}{1}" } ] } },
-                  { "columnMatch": "Users",   "formatter": 4,  "formatOptions": { "palette": "blue" } },
-                  { "columnMatch": "Devices", "formatter": 4,  "formatOptions": { "palette": "blue" } }
-                ]
-              }
+              "gridSettings": { "showExportToExcel": true, "rowLimit": 25 }
             },
             "customWidth": "50",
             "name": "ovw-domain"

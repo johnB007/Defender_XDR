@@ -90,7 +90,7 @@
 </tr>
 <tr>
 <td>URL contains</td>
-<td>Free text substring matched against <code>RemoteUrl</code> using the <code>has</code> operator.</td>
+<td>Free text substring matched against <code>RemoteUrl</code> using the <code>has</code> operator. <strong>Press Enter (or Tab) to apply</strong> — Sentinel TextBox parameters commit on Enter/blur, not on every keystroke.</td>
 </tr>
 </tbody>
 </table>
@@ -122,7 +122,7 @@
 <tr>
 <td>4</td>
 <td>Web Content Filter (Category)</td>
-<td>All three policy outcomes on one tab via a <strong>Policy outcome</strong> selector (<code>All</code> / <code>Audited</code> / <code>Blocked</code> / <code>Allowed</code>, defaults to <code>Audited</code>). Unions <code>ExploitGuardNetworkProtectionBlocked</code> and <code>ExploitGuardNetworkProtectionAudited</code> (which carry <code>ResponseCategory</code>) with <code>DeviceNetworkEvents</code> for <strong>Allow-mode</strong> policy traffic — the only place Allow-mode Web Content Filter activity surfaces in advanced hunting. A built-in host classifier maps destinations to <strong>Adult content</strong>, <strong>Gambling</strong>, <strong>Dating</strong>, <strong>Gaming</strong>, and <strong>Streaming media</strong> so Allowed traffic gets categorized even though Microsoft does not stamp a <code>ResponseCategory</code> on it. Keyword lists are inline in the KQL and easy to extend. Includes a dedicated Risky Category by User and Domain summary.</td>
+<td>All three policy outcomes on one tab via a <strong>Policy outcome</strong> selector (<code>All</code> / <code>Audited</code> / <code>Blocked</code> / <code>Allowed</code>, defaults to <code>Audited</code>) plus a <strong>Web category</strong> selector populated dynamically from your data (<code>All</code> plus every category seen in the current time range — <code>Adult content</code>, <code>Gambling</code>, <code>CustomBlockList</code>, <code>Malicious</code>, and so on). At 200K+ identity scale, low-volume categories can get masked by top-N grids; pick a single category to see <strong>every</strong> destination visited in it. Unions <code>ExploitGuardNetworkProtectionBlocked</code> and <code>ExploitGuardNetworkProtectionAudited</code> (which carry <code>ResponseCategory</code>) with <code>DeviceNetworkEvents</code> for <strong>Allow-mode</strong> policy traffic — the only place Allow-mode Web Content Filter activity surfaces in advanced hunting. A built-in host classifier maps destinations to <strong>Adult content</strong>, <strong>Gambling</strong>, <strong>Dating</strong>, <strong>Gaming</strong>, and <strong>Streaming media</strong> so Allowed traffic gets categorized even though Microsoft does not stamp a <code>ResponseCategory</code> on it. Keyword lists are inline in the KQL and easy to extend. Includes a dedicated Risky Category by User and Domain summary.</td>
 </tr>
 <tr>
 <td>5</td>

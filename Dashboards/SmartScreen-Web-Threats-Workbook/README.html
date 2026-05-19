@@ -1,6 +1,6 @@
-<!doctype html><meta charset=utf-8><title>README</title><h1 id="smartscreen-web-threats">SmartScreen Web Threats</h1>
+<!doctype html><html><head><meta charset=utf-8><title>README</title><style>body{font-family:Segoe UI,Arial,sans-serif;max-width:980px;margin:2em auto;padding:0 1em;line-height:1.5;color:#222}code,pre{background:#f5f5f5;padding:.1em .3em;border-radius:3px}pre{padding:.8em;overflow:auto}table{border-collapse:collapse;margin:1em 0}th,td{border:1px solid #ccc;padding:.4em .8em}th{background:#f0f0f0}blockquote{border-left:4px solid #ddd;color:#555;padding:.2em 1em;margin:1em 0}</style></head><body><h1>SmartScreen Web Threats</h1>
 <p>A Microsoft Sentinel workbook for hunting risky web activity surfaced by Microsoft Defender SmartScreen and Microsoft Defender Web Content Filtering (Network Protection) in <code>DeviceEvents</code>. It answers the question: which users are visiting risky or non business categories such as adult, gambling, dating, gaming, or streaming sites, and which of those visits turned into malicious, phishing, or tech scam blocks.</p>
-<h2 id="what-this-workbook-is-built-around">What this workbook is built around</h2>
+<h2>What this workbook is built around</h2>
 <p>Microsoft Defender for Endpoint surfaces user web activity through two related signals in <code>DeviceEvents</code>:</p>
 <table>
 <thead>
@@ -44,30 +44,30 @@
 </tbody>
 </table>
 <p>The two streams overlap. A user clicks an ad on a non business category site, Network Protection blocks the destination by category, and seconds later SmartScreen flags the next redirect as <code>Malicious</code>. This workbook joins both streams to the same <code>InitiatingProcessAccountUpn</code> (Entra UPN) so you can see that path in a single grid.</p>
-<h2 id="how-to-use-this-workbook">How to use this workbook</h2>
-<h3 id="soc-analysts-and-threat-hunters">SOC analysts and threat hunters</h3>
+<h2>How to use this workbook</h2>
+<h3>SOC analysts and threat hunters</h3>
 <ol>
 <li>Start on the Top Users / Domains tab. Sort the user grid by the red MaliciousHits column, then the orange RiskyHits column. Anything red on the left is the first thing to look at.</li>
 <li>Switch to Risky User Correlation. This tab only lists users who triggered both risky non business category events (Adult, Gambling, Dating, Gaming, Streaming) and malicious, phishing, or tech scam events in the selected window. The MinutesRiskyToMalicious column is a strong indicator of malvertising or drive by activity from low reputation ad networks.</li>
 <li>Drop the user UPN into the User (Entra UPN) filter at the top of the workbook. Every tab now scopes to that user.</li>
 <li>Use URL contains to pivot on a domain or keyword (for example <code>bet365</code>, <code>crack</code>, <code>stream</code>, or a suspicious TLD) across all users.</li>
-<li>The Web Content Filter (Category) tab shows the categorized destination. This is the only place to see whether the site was tagged as Adult, Gambling, Dating, Gaming, Streaming, Liability, or similar.</li>
+<li>The Web Content Filter (Category) tab shows the categorized destination across all three policy outcomes. Use the <strong>Policy outcome</strong> selector to switch between <code>Audited</code> (the default and where most policies live), <code>Blocked</code>, <code>Allowed</code>, or <code>All</code>. The <code>Allowed</code> view is the only way to see Allow-mode policy hits — including users reaching Adult, Gambling, Dating, Gaming, and Streaming destinations that an Audit/Block policy is <strong>not</strong> evaluating.</li>
 <li>Every event level grid surfaces <code>InitiatingProcessFileName</code> and <code>InitiatingProcessCommandLine</code> so you can confirm which browser or process triggered the block, such as Edge, Chrome, an Outlook redirector, or a Teams click through.</li>
 </ol>
-<h3 id="sysadmins-and-it-operations">Sysadmins and IT operations</h3>
+<h3>Sysadmins and IT operations</h3>
 <ul>
 <li>Weekly review of the Top Users / Domains tab to identify repeat offenders and noisy non business destinations to add to your Web Content Filtering policy.</li>
 <li>Onboarding new endpoints. Filter by Device to verify a freshly imaged device is not already triggering reputation hits.</li>
 <li>Policy tuning. When Network Protection or a Custom Block List is in audit mode, the Web Content Filter tab includes the <code>IsAudit</code> column so you can see what would be blocked before flipping the policy to enforce.</li>
 </ul>
-<h3 id="compliance-and-audit">Compliance and audit</h3>
+<h3>Compliance and audit</h3>
 <ul>
 <li>Non business browsing on corporate endpoints is a common acceptable use policy and HR finding. The Web Content Filter (Category) tab includes a Risky Category by User and Domain grid that can be exported for that conversation.</li>
 <li>All grids honor the standard Export to CSV and Export to Excel options after running.</li>
 </ul>
-<h2 id="what-it-shows">What it shows</h2>
+<h2>What it shows</h2>
 <p>A single top level filter row plus seven tabs.</p>
-<h3 id="global-filters-apply-to-every-tab">Global filters (apply to every tab)</h3>
+<h3>Global filters (apply to every tab)</h3>
 <table>
 <thead>
 <tr>
@@ -94,7 +94,7 @@
 </tr>
 </tbody>
 </table>
-<h3 id="tabs">Tabs</h3>
+<h3>Tabs</h3>
 <table>
 <thead>
 <tr>
@@ -122,7 +122,7 @@
 <tr>
 <td>4</td>
 <td>Web Content Filter (Category)</td>
-<td><code>ExploitGuardNetworkProtectionBlocked</code> and <code>ExploitGuardNetworkProtectionAudited</code> events parsed for <code>ResponseCategory</code>, <code>ResponseCategoryGroup</code>, and <code>IsAudit</code>. Audit rows expose what would have been blocked if the policy were enforced. Includes a dedicated Risky Category by User and Domain summary.</td>
+<td>All three policy outcomes on one tab via a <strong>Policy outcome</strong> selector (<code>All</code> / <code>Audited</code> / <code>Blocked</code> / <code>Allowed</code>, defaults to <code>Audited</code>). Unions <code>ExploitGuardNetworkProtectionBlocked</code> and <code>ExploitGuardNetworkProtectionAudited</code> (which carry <code>ResponseCategory</code>) with <code>DeviceNetworkEvents</code> for <strong>Allow-mode</strong> policy traffic — the only place Allow-mode Web Content Filter activity surfaces in advanced hunting. A built-in host classifier maps destinations to <strong>Adult content</strong>, <strong>Gambling</strong>, <strong>Dating</strong>, <strong>Gaming</strong>, and <strong>Streaming media</strong> so Allowed traffic gets categorized even though Microsoft does not stamp a <code>ResponseCategory</code> on it. Keyword lists are inline in the KQL and easy to extend. Includes a dedicated Risky Category by User and Domain summary.</td>
 </tr>
 <tr>
 <td>5</td>
@@ -141,44 +141,45 @@
 </tr>
 </tbody>
 </table>
-<h3 id="data-sources">Data sources</h3>
+<h3>Data sources</h3>
 <ul>
 <li><code>DeviceEvents</code> where <code>ActionType</code> is <code>SmartScreenUrlWarning</code>, <code>SmartScreenAppWarning</code>, <code>SmartScreenUserOverride</code>, <code>NetworkProtectionUserBypassEvent</code>, <code>ExploitGuardNetworkProtectionBlocked</code>, or <code>ExploitGuardNetworkProtectionAudited</code>.</li>
+<li><code>DeviceNetworkEvents</code> for <strong>Allow-mode</strong> Web Content Filter traffic (no <code>ResponseCategory</code> is emitted for Allow policies, so the workbook classifies hosts via a built-in keyword list).</li>
 <li><code>AdditionalFields.Experience</code> for the SmartScreen verdict label.</li>
-<li><code>AdditionalFields.ResponseCategory</code> and <code>ResponseCategoryGroup</code> for the Web Content Filtering category.</li>
+<li><code>AdditionalFields.ResponseCategory</code> and <code>ResponseCategoryGroup</code> for the Web Content Filtering category on Audited/Blocked events.</li>
 <li><code>AdditionalFields.IsAudit</code> for whether the WCF rule was in audit mode.</li>
 <li><code>InitiatingProcessAccountUpn</code> for the Entra UPN of the user whose process triggered the block.</li>
 </ul>
 <blockquote>
-<p>Important. The content category (Adult, Gambling, Dating, Gaming, Streaming, and so on) comes only from Web Content Filtering on <code>ExploitGuardNetworkProtectionBlocked</code> events. The SmartScreen <code>Experience</code> field does not include content type, only verdict. If you do not see categorized data in the Web Content Filter tab, you likely do not have Web Content Filtering enabled or no WCF policy is assigned to your devices. See <a href="https://learn.microsoft.com/defender-endpoint/web-content-filtering">Web content filtering in Microsoft Defender for Endpoint</a> to enable it.</p>
+<p>Important. For Audited and Blocked policies the content category (Adult, Gambling, Dating, Gaming, Streaming, and so on) comes from <code>AdditionalFields.ResponseCategory</code> on the <code>ExploitGuardNetworkProtection*</code> events. <strong>For Allow-mode policies Microsoft does not stamp a <code>ResponseCategory</code> on the event</strong>, so the workbook classifies the destination host with an inline keyword list (easily editable in the KQL). The SmartScreen <code>Experience</code> field does not include content type, only verdict. If you do not see any Audited/Blocked categorized data in the Web Content Filter tab, you likely do not have Web Content Filtering enabled or no enforcing WCF policy is assigned to your devices. See <a href="https://learn.microsoft.com/defender-endpoint/web-content-filtering">Web content filtering in Microsoft Defender for Endpoint</a> to enable it.</p>
 </blockquote>
-<h2 id="files-in-this-folder">Files in this folder</h2>
+<h2>Files in this folder</h2>
 <ul>
 <li><code>SmartScreen-Web-Threats.json</code>. Workbook JSON payload for manual import via the Sentinel Advanced Editor.</li>
 <li><code>azuredeploy.json</code>. One click ARM deployment template (Azure Commercial and Azure Government).</li>
 <li><code>README.md</code>. This file.</li>
 </ul>
-<h2 id="how-to-deploy">How to deploy</h2>
+<h2>How to deploy</h2>
 <p>Use one of the deployment buttons below.</p>
 <p><a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FDashboards%2FSmartScreen-Web-Threats-Workbook%2Fazuredeploy.json"><img alt="Deploy to Azure" src="https://aka.ms/deploytoazurebutton" /></a></p>
 <p><a href="https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FDashboards%2FSmartScreen-Web-Threats-Workbook%2Fazuredeploy.json"><img alt="Deploy to Azure Gov" src="https://aka.ms/deploytoazuregovbutton" /></a></p>
-<h3 id="deployment-inputs">Deployment inputs</h3>
+<h3>Deployment inputs</h3>
 <p>When the deployment blade opens, provide:</p>
 <ul>
 <li><code>workspaceName</code>. The Log Analytics workspace name. Default is <code>SOC-Central</code>.</li>
 <li><code>workbookDisplayName</code>. Default is <code>SmartScreen Web Threats</code>.</li>
 <li><code>workbookId</code>. Leave the <code>newGuid()</code> default to create a new workbook instance.</li>
 </ul>
-<h3 id="deployment-notes">Deployment notes</h3>
+<h3>Deployment notes</h3>
 <ul>
 <li>The workbook is deployed as <code>kind: shared</code> and is scoped to the selected Log Analytics workspace.</li>
 <li>To import the workbook manually instead, open Sentinel Workbooks, click Add workbook, click the pencil (Edit) icon, then Advanced Editor, and paste the contents of <code>SmartScreen-Web-Threats.json</code>.</li>
 </ul>
-<h3 id="cli-deployment">CLI deployment</h3>
+<h3>CLI deployment</h3>
 <pre><code class="language-bash">az deployment group create \
   --resource-group &lt;your-rg&gt; \
   --template-file azuredeploy.json \
   --parameters workspaceName=&lt;your-workspace&gt;
 </code></pre>
-<h2 id="license">License</h2>
-<p>MIT, same as the parent <a href="https://github.com/johnB007/Defender_XDR">Defender_XDR</a> repo.</p>
+<h2>License</h2>
+<p>MIT, same as the parent <a href="https://github.com/johnB007/Defender_XDR">Defender_XDR</a> repo.</p></body></html>

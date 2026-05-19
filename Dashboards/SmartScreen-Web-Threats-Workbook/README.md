@@ -25,7 +25,7 @@ The two streams overlap. A user clicks an ad on a non business category site, Ne
 2. Switch to Risky User Correlation. This tab only lists users who triggered both risky non business category events (Adult, Gambling, Dating, Gaming, Streaming) and malicious, phishing, or tech scam events in the selected window. The MinutesRiskyToMalicious column is a strong indicator of malvertising or drive by activity from low reputation ad networks.
 3. Drop the user UPN into the User (Entra UPN) filter at the top of the workbook. Every tab now scopes to that user.
 4. Use URL contains to pivot on a domain or keyword (for example `bet365`, `crack`, `stream`, or a suspicious TLD) across all users.
-5. The Web Content Filter (Category) tab shows the categorized destination. This is the only place to see whether the site was tagged as Adult, Gambling, Dating, Gaming, Streaming, Liability, or similar.
+5. The Web Content Filter (Category) tab shows the categorized destination across all three policy outcomes. Use the **Policy outcome** selector to switch between `Audited` (the default and where most policies live), `Blocked`, `Allowed`, or `All`. The `Allowed` view is the only way to see Allow-mode policy hits — including users reaching Adult, Gambling, Dating, Gaming, and Streaming destinations that an Audit/Block policy is **not** evaluating.
 6. Every event level grid surfaces `InitiatingProcessFileName` and `InitiatingProcessCommandLine` so you can confirm which browser or process triggered the block, such as Edge, Chrome, an Outlook redirector, or a Teams click through.
 
 ### Sysadmins and IT operations
@@ -59,7 +59,7 @@ A single top level filter row plus seven tabs.
 | 1 | Top Users / Domains | Triage landing page. Events by category bar chart, Top 25 domains (hits, users, devices), Top 25 users with colored MaliciousHits (red) and RiskyHits (orange) columns. |
 | 2 | Risky User Correlation | Users who triggered both risky non business category events and malicious, phishing, or tech scam SmartScreen events. Includes FirstRisky, FirstMalicious, MinutesRiskyToMalicious, sample URLs from each side, and a full filtered event timeline with a Severity icon column. |
 | 3 | All Categories (URL + Files) | Combined `SmartScreenUrlWarning` and `SmartScreenAppWarning` timechart and event grid. Brush select on the chart to drill into a window. |
-| 4 | Web Content Filter (Category) | `ExploitGuardNetworkProtectionBlocked` and `ExploitGuardNetworkProtectionAudited` events parsed for `ResponseCategory`, `ResponseCategoryGroup`, and `IsAudit`. Audit rows expose what would have been blocked if the policy were enforced. Includes a dedicated Risky Category by User and Domain summary. |
+| 4 | Web Content Filter (Category) | All three policy outcomes on one tab via a **Policy outcome** selector (`All` / `Audited` / `Blocked` / `Allowed`, defaults to `Audited`). Unions `ExploitGuardNetworkProtectionBlocked` and `ExploitGuardNetworkProtectionAudited` (which carry `ResponseCategory`) with `DeviceNetworkEvents` for **Allow-mode** policy traffic — the only place Allow-mode Web Content Filter activity surfaces in advanced hunting. A built-in host classifier maps destinations to **Adult content**, **Gambling**, **Dating**, **Gaming**, and **Streaming media** so Allowed traffic gets categorized even though Microsoft does not stamp a `ResponseCategory` on it. Keyword lists are inline in the KQL and easy to extend. Includes a dedicated Risky Category by User and Domain summary. |
 | 5 | Files (SmartScreenApp) | `SmartScreenAppWarning` only. File download SmartScreen blocks. |
 | 6 | SmartScreen URL Categories | Single tab driven by an `Experience` dropdown that switches between `Malicious`, `Phishing`, `TechScam`, `Untrusted`, `CustomBlockList`, and `CustomPolicy`. Replaces six separate tabs with no data loss. Time chart plus event grid with brush selection. |
 | 7 | User Overrides & Bypasses | `SmartScreenUserOverride` and `NetworkProtectionUserBypassEvent` events. Top users who clicked through a warning, the browser they used (Edge, Chrome, Firefox, Opera, Brave, Other), the categories they overrode, and a full event grid with parsed `Allow`, `IsAudit`, `UserSid`, and `Application` fields. |
@@ -67,12 +67,13 @@ A single top level filter row plus seven tabs.
 ### Data sources
 
 * `DeviceEvents` where `ActionType` is `SmartScreenUrlWarning`, `SmartScreenAppWarning`, `SmartScreenUserOverride`, `NetworkProtectionUserBypassEvent`, `ExploitGuardNetworkProtectionBlocked`, or `ExploitGuardNetworkProtectionAudited`.
+* `DeviceNetworkEvents` for **Allow-mode** Web Content Filter traffic (no `ResponseCategory` is emitted for Allow policies, so the workbook classifies hosts via a built-in keyword list).
 * `AdditionalFields.Experience` for the SmartScreen verdict label.
-* `AdditionalFields.ResponseCategory` and `ResponseCategoryGroup` for the Web Content Filtering category.
+* `AdditionalFields.ResponseCategory` and `ResponseCategoryGroup` for the Web Content Filtering category on Audited/Blocked events.
 * `AdditionalFields.IsAudit` for whether the WCF rule was in audit mode.
 * `InitiatingProcessAccountUpn` for the Entra UPN of the user whose process triggered the block.
 
-> Important. The content category (Adult, Gambling, Dating, Gaming, Streaming, and so on) comes only from Web Content Filtering on `ExploitGuardNetworkProtectionBlocked` events. The SmartScreen `Experience` field does not include content type, only verdict. If you do not see categorized data in the Web Content Filter tab, you likely do not have Web Content Filtering enabled or no WCF policy is assigned to your devices. See [Web content filtering in Microsoft Defender for Endpoint](https://learn.microsoft.com/defender-endpoint/web-content-filtering) to enable it.
+> Important. For Audited and Blocked policies the content category (Adult, Gambling, Dating, Gaming, Streaming, and so on) comes from `AdditionalFields.ResponseCategory` on the `ExploitGuardNetworkProtection*` events. **For Allow-mode policies Microsoft does not stamp a `ResponseCategory` on the event**, so the workbook classifies the destination host with an inline keyword list (easily editable in the KQL). The SmartScreen `Experience` field does not include content type, only verdict. If you do not see any Audited/Blocked categorized data in the Web Content Filter tab, you likely do not have Web Content Filtering enabled or no enforcing WCF policy is assigned to your devices. See [Web content filtering in Microsoft Defender for Endpoint](https://learn.microsoft.com/defender-endpoint/web-content-filtering) to enable it.
 
 ## Files in this folder
 

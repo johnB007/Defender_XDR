@@ -11,6 +11,7 @@ Microsoft Defender for Endpoint surfaces user web activity through two related s
 | SmartScreen URL warning | `SmartScreenUrlWarning` | The Microsoft SmartScreen reputation service blocked a URL with an `Experience` label of `Malicious`, `Phishing`, `TechScam`, `Untrusted`, `CustomBlockList`, or `CustomPolicy`. |
 | SmartScreen App warning | `SmartScreenAppWarning` | A downloaded executable was blocked by SmartScreen App reputation. |
 | Web Content Filter or Network Protection block | `ExploitGuardNetworkProtectionBlocked` | A request was blocked by Network Protection. When Web Content Filtering policy is assigned, `AdditionalFields.ResponseCategory` carries the content category (`Adult content`, `Gambling`, `Dating`, `Gaming`, `Streaming media`, `Liability`, `High bandwidth`, `Leisure`, and so on) and `ResponseCategoryGroup` carries the parent group. |
+| Web Content Filter or Network Protection audit | `ExploitGuardNetworkProtectionAudited` | Same shape as the block event but the policy was in audit mode, so the request was logged and allowed. Useful for tuning a policy before flipping it to enforce, and for catching low reputation destinations the user reached even though no block fired. |
 
 The two streams overlap. A user clicks an ad on a non business category site, Network Protection blocks the destination by category, and seconds later SmartScreen flags the next redirect as `Malicious`. This workbook joins both streams to the same `InitiatingProcessAccountUpn` (Entra UPN) so you can see that path in a single grid.
 
@@ -56,7 +57,7 @@ A single top level filter row plus eleven tabs.
 | 1 | Top Users / Domains | Triage landing page. Events by category bar chart, Top 25 domains (hits, users, devices), Top 25 users with colored MaliciousHits (red) and RiskyHits (orange) columns. |
 | 2 | Risky User Correlation | Users who triggered both risky non business category events and malicious, phishing, or tech scam SmartScreen events. Includes FirstRisky, FirstMalicious, MinutesRiskyToMalicious, sample URLs from each side, and a full filtered event timeline with a Severity icon column. |
 | 3 | All Categories (URL + Files) | Combined `SmartScreenUrlWarning` and `SmartScreenAppWarning` timechart and event grid. Brush select on the chart to drill into a window. |
-| 4 | Web Content Filter (Category) | `ExploitGuardNetworkProtectionBlocked` events parsed for `ResponseCategory`, `ResponseCategoryGroup`, and `IsAudit`. Includes a dedicated Risky Category by User and Domain summary. |
+| 4 | Web Content Filter (Category) | `ExploitGuardNetworkProtectionBlocked` and `ExploitGuardNetworkProtectionAudited` events parsed for `ResponseCategory`, `ResponseCategoryGroup`, and `IsAudit`. Audit rows expose what would have been blocked if the policy were enforced. Includes a dedicated Risky Category by User and Domain summary. |
 | 5 | Files (SmartScreenApp) | `SmartScreenAppWarning` only. File download SmartScreen blocks. |
 | 6 | TechScam (URL) | SmartScreen `TechScam` experience. |
 | 7 | Phishing (URL) | SmartScreen `Phishing` experience. |
@@ -67,7 +68,7 @@ A single top level filter row plus eleven tabs.
 
 ### Data sources
 
-* `DeviceEvents` where `ActionType` is `SmartScreenUrlWarning`, `SmartScreenAppWarning`, or `ExploitGuardNetworkProtectionBlocked`.
+* `DeviceEvents` where `ActionType` is `SmartScreenUrlWarning`, `SmartScreenAppWarning`, `ExploitGuardNetworkProtectionBlocked`, or `ExploitGuardNetworkProtectionAudited`.
 * `AdditionalFields.Experience` for the SmartScreen verdict label.
 * `AdditionalFields.ResponseCategory` and `ResponseCategoryGroup` for the Web Content Filtering category.
 * `AdditionalFields.IsAudit` for whether the WCF rule was in audit mode.

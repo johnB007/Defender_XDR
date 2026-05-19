@@ -109,7 +109,8 @@
           { "id": "tab-untrusted",   "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "Untrusted (URL)",           "subTarget": "Fourth",    "style": "link" },
           { "id": "tab-malicious",   "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "Malicious (URL)",           "subTarget": "Fifth",     "style": "link" },
           { "id": "tab-customblock", "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "Custom Block List (URL)",   "subTarget": "Sixth",     "style": "link" },
-          { "id": "tab-custompol",   "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "Custom Policy (URL)",       "subTarget": "Seventh",   "style": "link" }
+          { "id": "tab-custompol",   "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "Custom Policy (URL)",       "subTarget": "Seventh",   "style": "link" },
+          { "id": "tab-overrides",   "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "User Overrides & Bypasses",  "subTarget": "Override",  "style": "link" }
         ]
       },
       "name": "links - 2"
@@ -631,6 +632,94 @@
       },
       "conditionalVisibility": { "parameterName": "Tab", "comparison": "isEqualTo", "value": "Seventh" },
       "name": "Group7"
+    },
+
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "User Overrides & Bypasses",
+        "items": [
+          {
+            "type": 1,
+            "content": { "json": "Events where a user **clicked through** a SmartScreen warning (`SmartScreenUserOverride`) or **bypassed** a Network Protection block (`NetworkProtectionUserBypassEvent`). These users acknowledged the risk and proceeded anyway — they are the highest-priority follow-ups in any web-threat hunt. The grid below also tags the browser that initiated the override so you can spot 3rd-party-browser bypass patterns." },
+            "name": "ov-text"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenUserOverride\",\"NetworkProtectionUserBypassEvent\")\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| summarize Events = count() by ActionType, bin(TimeGenerated, 1h)",
+              "size": 0,
+              "title": "Override / Bypass events over time",
+              "timeContextFromParameter": "TimePicker",
+              "timeBrushParameterName": "TimeBrushOv",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "timechart"
+            },
+            "name": "ov-chart"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenUserOverride\",\"NetworkProtectionUserBypassEvent\")\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend Browser = case(\r\n     InitiatingProcessFileName has \"msedge\", \"Edge\",\r\n     InitiatingProcessFileName has \"chrome\", \"Chrome\",\r\n     InitiatingProcessFileName has \"firefox\", \"Firefox\",\r\n     InitiatingProcessFileName has \"opera\", \"Opera\",\r\n     InitiatingProcessFileName has \"brave\", \"Brave\",\r\n     \"Other\")\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Category = tostring(coalesce(P.Experience, P.ResponseCategory))\r\n| summarize Overrides = count(),\r\n            Devices  = dcount(DeviceName),\r\n            Domains  = dcount(tostring(parse_url(RemoteUrl).Host)),\r\n            Browsers = make_set(Browser, 10),\r\n            Categories = make_set(Category, 10),\r\n            LastSeen = max(TimeGenerated),\r\n            SampleUrls = make_set(RemoteUrl, 5)\r\n         by User = InitiatingProcessAccountUpn\r\n| where isnotempty(User)\r\n| order by Overrides desc",
+              "size": 1,
+              "title": "Top users who overrode warnings (with browser & category)",
+              "timeContextFromParameter": "TimePicker",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "rowLimit": 500,
+                "formatters": [
+                  { "columnMatch": "Overrides", "formatter": 8, "formatOptions": { "palette": "redBright" } },
+                  { "columnMatch": "User",      "formatter": 1 }
+                ]
+              }
+            },
+            "name": "ov-users"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenUserOverride\",\"NetworkProtectionUserBypassEvent\")\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Category = tostring(coalesce(P.Experience, P.ResponseCategory))\r\n| where isnotempty(Category)\r\n| summarize Hits = count() by Category\r\n| order by Hits desc",
+              "size": 0,
+              "title": "What categories users clicked through",
+              "timeContextFromParameter": "TimePicker",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart"
+            },
+            "name": "ov-cat"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenUserOverride\",\"NetworkProtectionUserBypassEvent\")\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Browser = case(\r\n     InitiatingProcessFileName has \"msedge\", \"Edge\",\r\n     InitiatingProcessFileName has \"chrome\", \"Chrome\",\r\n     InitiatingProcessFileName has \"firefox\", \"Firefox\",\r\n     InitiatingProcessFileName has \"opera\", \"Opera\",\r\n     InitiatingProcessFileName has \"brave\", \"Brave\",\r\n     \"Other\")\r\n| extend Category   = tostring(coalesce(P.Experience, P.ResponseCategory)),\r\n         Application = tostring(coalesce(P.ApplicationName, P.DisplayName)),\r\n         Allow       = tostring(P.Allow),\r\n         IsAudit     = tostring(P.IsAudit),\r\n         UserSid     = tostring(P.UserSid)\r\n| project TimeGenerated, User = InitiatingProcessAccountUpn, DeviceName, Browser, ActionType, Category, RemoteUrl, Application, Allow, IsAudit, UserSid, InitiatingProcessFileName, InitiatingProcessCommandLine\r\n| order by TimeGenerated desc",
+              "size": 2,
+              "title": "Override / Bypass events",
+              "timeContextFromParameter": "TimeBrushOv",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "rowLimit": 3000,
+                "formatters": [
+                  { "columnMatch": "ActionType", "formatter": 1 },
+                  { "columnMatch": "Browser",    "formatter": 1 },
+                  { "columnMatch": "Category",   "formatter": 1 }
+                ]
+              }
+            },
+            "name": "ov-grid"
+          }
+        ]
+      },
+      "conditionalVisibility": { "parameterName": "Tab", "comparison": "isEqualTo", "value": "Override" },
+      "name": "Group8"
     }
   ],
   "fallbackResourceIds": [

@@ -10,6 +10,8 @@ Microsoft Defender for Endpoint surfaces user web activity through two related s
 |---|---|---|
 | SmartScreen URL warning | `SmartScreenUrlWarning` | The Microsoft SmartScreen reputation service blocked a URL with an `Experience` label of `Malicious`, `Phishing`, `TechScam`, `Untrusted`, `CustomBlockList`, or `CustomPolicy`. |
 | SmartScreen App warning | `SmartScreenAppWarning` | A downloaded executable was blocked by SmartScreen App reputation. |
+| SmartScreen user override | `SmartScreenUserOverride` | A user clicked through a SmartScreen warning and proceeded to the blocked destination anyway. High-priority follow-up. |
+| Network Protection user bypass | `NetworkProtectionUserBypassEvent` | A user bypassed a Network Protection block. Same acknowledged-risk pattern as the SmartScreen override above. |
 | Web Content Filter or Network Protection block | `ExploitGuardNetworkProtectionBlocked` | A request was blocked by Network Protection. When Web Content Filtering policy is assigned, `AdditionalFields.ResponseCategory` carries the content category (`Adult content`, `Gambling`, `Dating`, `Gaming`, `Streaming media`, `Liability`, `High bandwidth`, `Leisure`, and so on) and `ResponseCategoryGroup` carries the parent group. |
 | Web Content Filter or Network Protection audit | `ExploitGuardNetworkProtectionAudited` | Same shape as the block event but the policy was in audit mode, so the request was logged and allowed. Useful for tuning a policy before flipping it to enforce, and for catching low reputation destinations the user reached even though no block fired. |
 
@@ -65,10 +67,11 @@ A single top level filter row plus eleven tabs.
 | 9 | Malicious (URL) | SmartScreen `Malicious` experience. |
 | 10 | Custom Block List (URL) | SmartScreen `CustomBlockList` experience. Your custom indicator hits. |
 | 11 | Custom Policy (URL) | SmartScreen `CustomPolicy` experience. Your Web Content Filter policy hits. |
+| 12 | User Overrides & Bypasses | `SmartScreenUserOverride` and `NetworkProtectionUserBypassEvent` events. Top users who clicked through a warning, the browser they used (Edge, Chrome, Firefox, Opera, Brave, Other), the categories they overrode, and a full event grid with parsed `Allow`, `IsAudit`, `UserSid`, and `Application` fields. |
 
 ### Data sources
 
-* `DeviceEvents` where `ActionType` is `SmartScreenUrlWarning`, `SmartScreenAppWarning`, `ExploitGuardNetworkProtectionBlocked`, or `ExploitGuardNetworkProtectionAudited`.
+* `DeviceEvents` where `ActionType` is `SmartScreenUrlWarning`, `SmartScreenAppWarning`, `SmartScreenUserOverride`, `NetworkProtectionUserBypassEvent`, `ExploitGuardNetworkProtectionBlocked`, or `ExploitGuardNetworkProtectionAudited`.
 * `AdditionalFields.Experience` for the SmartScreen verdict label.
 * `AdditionalFields.ResponseCategory` and `ResponseCategoryGroup` for the Web Content Filtering category.
 * `AdditionalFields.IsAudit` for whether the WCF rule was in audit mode.

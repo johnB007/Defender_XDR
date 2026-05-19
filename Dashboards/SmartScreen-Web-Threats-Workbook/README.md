@@ -1,95 +1,87 @@
 # SmartScreen Web Threats
 
-A Microsoft Sentinel workbook for hunting risky web activity surfaced by **Microsoft Defender SmartScreen** and **Microsoft Defender Web Content Filtering (Network Protection)** in `DeviceEvents`. Built for SOC analysts who need to answer the question: *"Which users are going to bad websites, adult sites, or gambling/dating sites — and which of those visits turned into malicious/phishing/techscam blocks?"*
+A Microsoft Sentinel workbook for hunting risky web activity surfaced by Microsoft Defender SmartScreen and Microsoft Defender Web Content Filtering (Network Protection) in `DeviceEvents`. It answers the question: which users are visiting risky or non business categories such as adult, gambling, dating, gaming, or streaming sites, and which of those visits turned into malicious, phishing, or tech scam blocks.
 
----
+## What this workbook is built around
 
-## What This Workbook Is Built Around
+Microsoft Defender for Endpoint surfaces user web activity through two related signals in `DeviceEvents`:
 
-Microsoft Defender for Endpoint surfaces user web activity through two complementary signals in `DeviceEvents`:
-
-| Signal | `ActionType` | What It Tells You |
+| Signal | ActionType | What it tells you |
 |---|---|---|
-| **SmartScreen URL warning** | `SmartScreenUrlWarning` | The Microsoft SmartScreen reputation service blocked a URL with an `Experience` label of `Malicious`, `Phishing`, `TechScam`, `Untrusted`, `CustomBlockList`, or `CustomPolicy`. |
-| **SmartScreen App warning** | `SmartScreenAppWarning` | A downloaded executable was blocked by SmartScreen App reputation. |
-| **Web Content Filter / Network Protection block** | `ExploitGuardNetworkProtectionBlocked` | A request was blocked by Network Protection. When Web Content Filtering policy is assigned, `AdditionalFields.ResponseCategory` carries the **content category** (`Adult content`, `Pornography`, `Nudity`, `Gambling`, `Dating`, `Liability`, `Hate`, etc.) and `ResponseCategoryGroup` carries the parent group. |
+| SmartScreen URL warning | `SmartScreenUrlWarning` | The Microsoft SmartScreen reputation service blocked a URL with an `Experience` label of `Malicious`, `Phishing`, `TechScam`, `Untrusted`, `CustomBlockList`, or `CustomPolicy`. |
+| SmartScreen App warning | `SmartScreenAppWarning` | A downloaded executable was blocked by SmartScreen App reputation. |
+| Web Content Filter or Network Protection block | `ExploitGuardNetworkProtectionBlocked` | A request was blocked by Network Protection. When Web Content Filtering policy is assigned, `AdditionalFields.ResponseCategory` carries the content category (`Adult content`, `Gambling`, `Dating`, `Gaming`, `Streaming media`, `Liability`, `High bandwidth`, `Leisure`, and so on) and `ResponseCategoryGroup` carries the parent group. |
 
-The two streams overlap: a user clicks an ad on an adult site → Network Protection blocks the destination as `Adult content` → seconds later SmartScreen flags the next redirect as `Malicious`. This workbook **stitches both streams to the same `InitiatingProcessAccountUpn` (Entra UPN)** so you can see that path in a single grid.
+The two streams overlap. A user clicks an ad on a non business category site, Network Protection blocks the destination by category, and seconds later SmartScreen flags the next redirect as `Malicious`. This workbook joins both streams to the same `InitiatingProcessAccountUpn` (Entra UPN) so you can see that path in a single grid.
 
----
+## How to use this workbook
 
-## How To Use This Workbook
+### SOC analysts and threat hunters
 
-### SOC Analysts and Threat Hunters
+1. Start on the Top Users / Domains tab. Sort the user grid by the red MaliciousHits column, then the orange RiskyHits column. Anything red on the left is the first thing to look at.
+2. Switch to Risky User Correlation. This tab only lists users who triggered both risky non business category events (Adult, Gambling, Dating, Gaming, Streaming) and malicious, phishing, or tech scam events in the selected window. The MinutesRiskyToMalicious column is a strong indicator of malvertising or drive by activity from low reputation ad networks.
+3. Drop the user UPN into the User (Entra UPN) filter at the top of the workbook. Every tab now scopes to that user.
+4. Use URL contains to pivot on a domain or keyword (for example `bet365`, `crack`, `stream`, or a suspicious TLD) across all users.
+5. The Web Content Filter (Category) tab shows the categorized destination. This is the only place to see whether the site was tagged as Adult, Gambling, Dating, Gaming, Streaming, Liability, or similar.
+6. Every event level grid surfaces `InitiatingProcessFileName` and `InitiatingProcessCommandLine` so you can confirm which browser or process triggered the block, such as Edge, Chrome, an Outlook redirector, or a Teams click through.
 
-1. Start on the **Top Users / Domains** tab. Sort the user grid by the red **MaliciousHits** column, then the orange **AdultHits** column. Anything red on the left is your hottest lead.
-2. Switch to **Risky User Correlation**. This tab only lists users who triggered **both** adult/gambling/dating *and* malicious/phishing/techscam events in the selected window. The **MinutesAdultToMalicious** column is a strong indicator of malvertising or drive-by from the adult/gambling ecosystem.
-3. Drop the user's UPN into the **User (Entra UPN)** filter at the top of the workbook. Every tab now scopes to that user.
-4. Use **URL contains** to pivot on a domain or keyword (e.g. `xvideos`, `bet365`, `crack`, a suspicious TLD) across all users.
-5. The **Web Content Filter (Adult/Category)** tab shows the categorized destination — this is the only place to see whether the site was tagged *Adult*, *Pornography*, *Nudity*, *Gambling*, *Dating*, *Liability*, etc.
-6. Every event-level grid surfaces `InitiatingProcessFileName` and `InitiatingProcessCommandLine` so you can confirm which **browser or process** triggered the block (Edge, Chrome, Outlook redirector, Teams click-through, etc.).
+### Sysadmins and IT operations
 
-### Sysadmins and IT Operations
+* Weekly review of the Top Users / Domains tab to identify repeat offenders and noisy non business destinations to add to your Web Content Filtering policy.
+* Onboarding new endpoints. Filter by Device to verify a freshly imaged device is not already triggering reputation hits.
+* Policy tuning. When Network Protection or a Custom Block List is in audit mode, the Web Content Filter tab includes the `IsAudit` column so you can see what would be blocked before flipping the policy to enforce.
 
-- **Weekly review** of the *Top Users / Domains* tab to identify repeat offenders and noisy adult/gambling destinations to add to your Web Content Filtering policy.
-- **Onboarding new endpoints**: filter by *Device* to verify a freshly imaged device isn't already triggering reputation hits.
-- **Policy tuning**: when Network Protection or a Custom Block List is in *audit* mode, the **Web Content Filter** tab includes the `IsAudit` column so you can see what *would* be blocked before flipping the policy to enforce.
+### Compliance and audit
 
-### Compliance and Audit
+* Non business browsing on corporate endpoints is a common acceptable use policy and HR finding. The Web Content Filter (Category) tab includes a Risky Category by User and Domain grid that can be exported for that conversation.
+* All grids honor the standard Export to CSV and Export to Excel options after running.
 
-- Adult / NSFW / Gambling browsing on corporate endpoints is a common acceptable-use-policy and HR finding. The *Web Content Filter (Adult/Category)* tab's **Adult / NSFW / Gambling — by User & Domain** grid is the system-of-record artifact for that conversation.
-- All grids honor the standard *Export to CSV* / *Export to Excel* affordances after running.
+## What it shows
 
----
+A single top level filter row plus eleven tabs.
 
-## What It Shows
-
-A single top-level filter row plus **eleven tabs**.
-
-### Global Filters (apply to every tab)
+### Global filters (apply to every tab)
 
 | Filter | Purpose |
 |---|---|
-| **Time Range** | `30m, 1h, 4h, 12h, 1d, 3d, 7d, 14d, 30d, 60d, 90d`, plus **custom range**. |
-| **User (Entra UPN)** | Multi-select dropdown populated from `InitiatingProcessAccountUpn`. `All` by default. |
-| **Device** | Multi-select dropdown populated from `DeviceName`. `All` by default. |
-| **URL contains** | Free-text substring matched against `RemoteUrl` (`has` operator). |
+| Time Range | 30m, 1h, 4h, 12h, 1d, 3d, 7d, 14d, 30d, 60d, 90d, plus custom range. |
+| User (Entra UPN) | Multi select dropdown populated from `InitiatingProcessAccountUpn`. `All` by default. |
+| Device | Multi select dropdown populated from `DeviceName`. `All` by default. |
+| URL contains | Free text substring matched against `RemoteUrl` using the `has` operator. |
 
 ### Tabs
 
 | # | Tab | Purpose |
 |---|---|---|
-| 1 | **Top Users / Domains** | Triage landing page. Events-by-category bar chart, Top 25 domains (hits / users / devices), Top 25 users with colored `MaliciousHits` (red) and `AdultHits` (orange) columns. |
-| 2 | **Risky User Correlation** | Users who triggered **both** adult/risky web-content events *and* malicious/phishing/techscam SmartScreen events. Includes `FirstAdult`, `FirstMalicious`, `MinutesAdultToMalicious`, sample URLs from each side, and a full filtered event timeline with a `Severity` icon column. |
-| 3 | **All Categories (URL+Files)** | Combined `SmartScreenUrlWarning` + `SmartScreenAppWarning` timechart and event grid. Brush-select on the chart to drill into a window. |
-| 4 | **Web Content Filter (Adult/Category)** | `ExploitGuardNetworkProtectionBlocked` events parsed for `ResponseCategory` / `ResponseCategoryGroup` / `IsAudit`. Includes a dedicated **Adult / NSFW / Gambling by User & Domain** summary. |
-| 5 | **Files (SmartScreenApp)** | `SmartScreenAppWarning` only — file-download SmartScreen blocks. |
-| 6 | **TechScam (URL)** | SmartScreen `TechScam` experience. |
-| 7 | **Phishing (URL)** | SmartScreen `Phishing` experience. |
-| 8 | **Untrusted (URL)** | SmartScreen `Untrusted` experience. |
-| 9 | **Malicious (URL)** | SmartScreen `Malicious` experience. |
-| 10 | **Custom Block List (URL)** | SmartScreen `CustomBlockList` experience — your custom indicator hits. |
-| 11 | **Custom Policy (URL)** | SmartScreen `CustomPolicy` experience — your Web Content Filter policy hits. |
+| 1 | Top Users / Domains | Triage landing page. Events by category bar chart, Top 25 domains (hits, users, devices), Top 25 users with colored MaliciousHits (red) and RiskyHits (orange) columns. |
+| 2 | Risky User Correlation | Users who triggered both risky non business category events and malicious, phishing, or tech scam SmartScreen events. Includes FirstRisky, FirstMalicious, MinutesRiskyToMalicious, sample URLs from each side, and a full filtered event timeline with a Severity icon column. |
+| 3 | All Categories (URL + Files) | Combined `SmartScreenUrlWarning` and `SmartScreenAppWarning` timechart and event grid. Brush select on the chart to drill into a window. |
+| 4 | Web Content Filter (Category) | `ExploitGuardNetworkProtectionBlocked` events parsed for `ResponseCategory`, `ResponseCategoryGroup`, and `IsAudit`. Includes a dedicated Risky Category by User and Domain summary. |
+| 5 | Files (SmartScreenApp) | `SmartScreenAppWarning` only. File download SmartScreen blocks. |
+| 6 | TechScam (URL) | SmartScreen `TechScam` experience. |
+| 7 | Phishing (URL) | SmartScreen `Phishing` experience. |
+| 8 | Untrusted (URL) | SmartScreen `Untrusted` experience. |
+| 9 | Malicious (URL) | SmartScreen `Malicious` experience. |
+| 10 | Custom Block List (URL) | SmartScreen `CustomBlockList` experience. Your custom indicator hits. |
+| 11 | Custom Policy (URL) | SmartScreen `CustomPolicy` experience. Your Web Content Filter policy hits. |
 
-### Data Sources
+### Data sources
 
-- `DeviceEvents` (`ActionType` = `SmartScreenUrlWarning`, `SmartScreenAppWarning`, `ExploitGuardNetworkProtectionBlocked`)
-- `AdditionalFields.Experience` — SmartScreen verdict label.
-- `AdditionalFields.ResponseCategory` and `ResponseCategoryGroup` — Web Content Filtering category.
-- `AdditionalFields.IsAudit` — whether the WCF rule was in audit mode.
-- `InitiatingProcessAccountUpn` — the Entra UPN of the user whose process triggered the block.
+* `DeviceEvents` where `ActionType` is `SmartScreenUrlWarning`, `SmartScreenAppWarning`, or `ExploitGuardNetworkProtectionBlocked`.
+* `AdditionalFields.Experience` for the SmartScreen verdict label.
+* `AdditionalFields.ResponseCategory` and `ResponseCategoryGroup` for the Web Content Filtering category.
+* `AdditionalFields.IsAudit` for whether the WCF rule was in audit mode.
+* `InitiatingProcessAccountUpn` for the Entra UPN of the user whose process triggered the block.
 
-> **Important:** the *content category* (Adult, Pornography, Gambling, etc.) comes **only** from Web Content Filtering on `ExploitGuardNetworkProtectionBlocked` events. SmartScreen's own `Experience` field does **not** include content type — only verdict. If you don't see categorized data in the *Web Content Filter* tab, you likely don't have Web Content Filtering enabled or no WCF policy is assigned to your devices. See [Web content filtering — Microsoft Defender for Endpoint](https://learn.microsoft.com/defender-endpoint/web-content-filtering) to enable it.
+> Important. The content category (Adult, Gambling, Dating, Gaming, Streaming, and so on) comes only from Web Content Filtering on `ExploitGuardNetworkProtectionBlocked` events. The SmartScreen `Experience` field does not include content type, only verdict. If you do not see categorized data in the Web Content Filter tab, you likely do not have Web Content Filtering enabled or no WCF policy is assigned to your devices. See [Web content filtering in Microsoft Defender for Endpoint](https://learn.microsoft.com/defender-endpoint/web-content-filtering) to enable it.
 
----
+## Files in this folder
 
-## Files in This Folder
+* `SmartScreen-Web-Threats.json`. Workbook JSON payload for manual import via the Sentinel Advanced Editor.
+* `azuredeploy.json`. One click ARM deployment template (Azure Commercial and Azure Government).
+* `README.md`. This file.
 
-- `SmartScreen-Web-Threats.json` — workbook JSON payload for manual import via the Sentinel **Advanced Editor**.
-- `azuredeploy.json` — one-click ARM deployment template (Azure Commercial and Azure Government).
-- `README.md` — this file.
-
-## How To Deploy
+## How to deploy
 
 Use one of the deployment buttons below.
 
@@ -97,19 +89,20 @@ Use one of the deployment buttons below.
 
 [![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FDashboards%2FSmartScreen-Web-Threats-Workbook%2Fazuredeploy.json)
 
-### Deployment Inputs
+### Deployment inputs
 
 When the deployment blade opens, provide:
-- `workspaceName`: the Log Analytics workspace name (default: `SOC-Central`).
-- `workbookDisplayName` default: `SmartScreen Web Threats`.
-- `workbookId`: leave the `newGuid()` default to create a new workbook instance.
 
-### Deployment Note
+* `workspaceName`. The Log Analytics workspace name. Default is `SOC-Central`.
+* `workbookDisplayName`. Default is `SmartScreen Web Threats`.
+* `workbookId`. Leave the `newGuid()` default to create a new workbook instance.
 
-- The workbook is deployed as `kind: shared` and is scoped to the selected Log Analytics workspace.
-- To import the workbook manually instead, open Sentinel **Workbooks** > **+ Add workbook**, click the pencil (Edit) icon, then **Advanced Editor**, and paste the contents of `SmartScreen-Web-Threats.json`.
+### Deployment notes
 
-### CLI Deployment
+* The workbook is deployed as `kind: shared` and is scoped to the selected Log Analytics workspace.
+* To import the workbook manually instead, open Sentinel Workbooks, click Add workbook, click the pencil (Edit) icon, then Advanced Editor, and paste the contents of `SmartScreen-Web-Threats.json`.
+
+### CLI deployment
 
 ```bash
 az deployment group create \
@@ -118,9 +111,7 @@ az deployment group create \
   --parameters workspaceName=<your-workspace>
 ```
 
----
-
-## KQL Validation
+## KQL validation
 
 All workbook queries were validated against a live Microsoft Sentinel workspace using `az monitor log-analytics query`. Result summary:
 
@@ -128,19 +119,17 @@ All workbook queries were validated against a live Microsoft Sentinel workspace 
 |---|---|
 | User UPN dropdown | SUCCESS |
 | Device dropdown | SUCCESS |
-| Overview — Events by Category | SUCCESS |
-| Overview — Top 25 Domains | SUCCESS |
-| Overview — Top 25 Users | SUCCESS |
+| Overview, Events by Category | SUCCESS |
+| Overview, Top 25 Domains | SUCCESS |
+| Overview, Top 25 Users | SUCCESS |
 | Risky User Correlation grid | SUCCESS |
 | Risky User Correlation timeline | SUCCESS |
 | All Categories chart | SUCCESS |
 | Web Content Filter chart | SUCCESS |
 | Web Content Filter grid | SUCCESS |
-| Adult/NSFW/Gambling by User & Domain | SUCCESS |
+| Risky Category by User and Domain | SUCCESS |
 | Files (SmartScreenApp) grid | SUCCESS |
 | Malicious (URL) grid | SUCCESS |
-
----
 
 ## License
 

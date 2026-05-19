@@ -272,7 +272,7 @@
         "items": [
           {
             "type": 1,
-            "content": { "json": "All three Web Content Filter outcomes on one tab: **Blocked** + **Audited** from `DeviceEvents.ExploitGuardNetworkProtection*`, plus **Allowed** traffic from `DeviceNetworkEvents` (the only source for Allow-mode WCF in advanced hunting).\r\n\r\nUse the **Policy outcome** + **Web category** selectors to drill into a single outcome/category — at 200K-user scale low-volume categories get dropped from overview grids.\r\n\r\nA built-in host classifier tags **Adult / Gambling / Dating / Gaming / Streaming media** when no `ResponseCategory` is present (Allow-mode)." },
+            "content": { "json": "All three Web Content Filter outcomes on one tab: **Blocked** + **Audited** from `DeviceEvents.ExploitGuardNetworkProtection*`, plus **Allowed** traffic from `DeviceNetworkEvents` (the only source for Allow-mode WCF in advanced hunting)." },
             "name": "wc-text"
           },
           {

@@ -278,7 +278,7 @@
         "items": [
           {
             "type": 1,
-            "content": { "json": "Microsoft Defender **Web Content Filtering** categorizes browsing destinations. This tab covers **all three policy outcomes**: **Blocked** and **Audited** events from `DeviceEvents` (`ExploitGuardNetworkProtection*`), plus **Allowed** traffic from `DeviceNetworkEvents` — the only source that surfaces Allow-mode WCF activity in advanced hunting. Use the **Policy outcome** selector (*Audited* / *Blocked* / *Allowed* / *All*) and the **Web category** selector (populated dynamically from your data, plus an *All* option) to drill into any single category — important at scale where overview grids can drop low-volume categories. A built-in classifier maps destination hosts to **Adult content**, **Gambling**, **Dating**, **Gaming**, and **Streaming media** when no `ResponseCategory` is present (e.g. Allow-mode policies)." },
+            "content": { "json": "All three Web Content Filter outcomes on one tab: **Blocked** + **Audited** from `DeviceEvents.ExploitGuardNetworkProtection*`, plus **Allowed** traffic from `DeviceNetworkEvents` (the only source for Allow-mode WCF in advanced hunting).\r\n\r\nUse the **Policy outcome** + **Web category** selectors to drill into a single outcome/category — at 200K-user scale low-volume categories get dropped from overview grids.\r\n\r\nA built-in host classifier tags **Adult / Gambling / Dating / Gaming / Streaming media** when no `ResponseCategory` is present (Allow-mode)." },
             "name": "wc-text"
           },
           {

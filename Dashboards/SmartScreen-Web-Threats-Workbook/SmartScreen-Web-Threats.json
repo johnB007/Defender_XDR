@@ -43,39 +43,17 @@
             "id": "f1a1b8e1-1111-4111-aaaa-111111111111",
             "version": "KqlParameterItem/1.0",
             "name": "UserUPN",
-            "label": "User (Entra UPN)",
-            "type": 2,
-            "multiSelect": true,
-            "quote": "'",
-            "delimiter": ",",
-            "typeSettings": {
-              "additionalResourceOptions": [ "value::all" ],
-              "showDefault": false
-            },
-            "query": "DeviceEvents\r\n| where ActionType in (\"SmartScreenAppWarning\",\"SmartScreenUrlWarning\",\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where isnotempty(InitiatingProcessAccountUpn)\r\n| distinct InitiatingProcessAccountUpn\r\n| order by InitiatingProcessAccountUpn asc\r\n| project value = InitiatingProcessAccountUpn, label = InitiatingProcessAccountUpn",
-            "timeContextFromParameter": "TimePicker",
-            "queryType": 0,
-            "resourceType": "microsoft.operationalinsights/workspaces",
-            "value": [ "value::all" ]
+            "label": "User UPN (use * for all, supports partial match)",
+            "type": 1,
+            "value": "*"
           },
           {
             "id": "f1a1b8e1-2222-4222-aaaa-222222222222",
             "version": "KqlParameterItem/1.0",
             "name": "DeviceName",
-            "label": "Device",
-            "type": 2,
-            "multiSelect": true,
-            "quote": "'",
-            "delimiter": ",",
-            "typeSettings": {
-              "additionalResourceOptions": [ "value::all" ],
-              "showDefault": false
-            },
-            "query": "DeviceEvents\r\n| where ActionType in (\"SmartScreenAppWarning\",\"SmartScreenUrlWarning\",\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where isnotempty(DeviceName)\r\n| distinct DeviceName\r\n| order by DeviceName asc\r\n| project value = DeviceName, label = DeviceName",
-            "timeContextFromParameter": "TimePicker",
-            "queryType": 0,
-            "resourceType": "microsoft.operationalinsights/workspaces",
-            "value": [ "value::all" ]
+            "label": "Device (use * for all, supports partial match)",
+            "type": 1,
+            "value": "*"
           },
           {
             "id": "f1a1b8e1-3333-4333-aaaa-333333333333",
@@ -104,12 +82,7 @@
           { "id": "tab-all",         "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "All Categories (URL+Files)","subTarget": "First",     "style": "link" },
           { "id": "tab-webcat",      "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "Web Content Filter (Category)", "subTarget": "WebCat", "style": "link" },
           { "id": "tab-files",       "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "Files (SmartScreenApp)",    "subTarget": "Eighth",    "style": "link" },
-          { "id": "tab-techscam",    "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "TechScam (URL)",            "subTarget": "Second",    "style": "link" },
-          { "id": "tab-phishing",    "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "Phishing (URL)",            "subTarget": "Third",     "style": "link" },
-          { "id": "tab-untrusted",   "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "Untrusted (URL)",           "subTarget": "Fourth",    "style": "link" },
-          { "id": "tab-malicious",   "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "Malicious (URL)",           "subTarget": "Fifth",     "style": "link" },
-          { "id": "tab-customblock", "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "Custom Block List (URL)",   "subTarget": "Sixth",     "style": "link" },
-          { "id": "tab-custompol",   "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "Custom Policy (URL)",       "subTarget": "Seventh",   "style": "link" },
+          { "id": "tab-smartscreen", "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "SmartScreen URL Categories", "subTarget": "URL",       "style": "link" },
           { "id": "tab-overrides",   "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "User Overrides & Bypasses",  "subTarget": "Override",  "style": "link" }
         ]
       },
@@ -132,7 +105,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenAppWarning\",\"SmartScreenUrlWarning\",\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Category    = tostring(P.Experience),\r\n         WebCategory = tostring(P.ResponseCategory)\r\n| extend Bucket = case(\r\n     ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\"), strcat(\"WebContent: \", iff(isempty(WebCategory),\"(uncategorized)\",WebCategory)),\r\n     isnotempty(Category), Category,\r\n     ActionType)\r\n| summarize Events = count() by Bucket\r\n| top 20 by Events desc\r\n| render barchart",
+              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenAppWarning\",\"SmartScreenUrlWarning\",\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountUpn has \"{UserUPN}\"\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Category    = tostring(P.Experience),\r\n         WebCategory = tostring(P.ResponseCategory)\r\n| extend Bucket = case(\r\n     ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\"), strcat(\"WebContent: \", iff(isempty(WebCategory),\"(uncategorized)\",WebCategory)),\r\n     isnotempty(Category), Category,\r\n     ActionType)\r\n| summarize Events = count() by Bucket\r\n| top 20 by Events desc\r\n| render barchart",
               "size": 1,
               "title": "Events by Category",
               "timeContextFromParameter": "TimePicker",
@@ -146,7 +119,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenAppWarning\",\"SmartScreenUrlWarning\",\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend Domain = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| where isnotempty(Domain)\r\n| summarize Hits = count(), Users = dcount(InitiatingProcessAccountUpn), Devices = dcount(DeviceName) by Domain\r\n| top 25 by Hits desc",
+              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenAppWarning\",\"SmartScreenUrlWarning\",\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountUpn has \"{UserUPN}\"\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend Domain = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| where isnotempty(Domain)\r\n| summarize Hits = count(), Users = dcount(InitiatingProcessAccountUpn), Devices = dcount(DeviceName) by Domain\r\n| top 25 by Hits desc",
               "size": 1,
               "title": "Top 25 Domains",
               "timeContextFromParameter": "TimePicker",
@@ -161,7 +134,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenAppWarning\",\"SmartScreenUrlWarning\",\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Category = tostring(P.Experience), WebCategory = tostring(P.ResponseCategory)\r\n| summarize Hits = count(),\r\n            Devices = dcount(DeviceName),\r\n            Domains = dcount(tostring(parse_url(RemoteUrl).Host)),\r\n            MaliciousHits = countif(Category in (\"Malicious\",\"Phishing\",\"TechScam\")),\r\n            RiskyHits     = countif(WebCategory has_any (\"Adult\",\"Gambling\",\"Dating\",\"Gaming\",\"Streaming\")),\r\n            LastSeen = max(TimeGenerated)\r\n         by User = InitiatingProcessAccountUpn\r\n| where isnotempty(User)\r\n| top 25 by Hits desc",
+              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenAppWarning\",\"SmartScreenUrlWarning\",\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountUpn has \"{UserUPN}\"\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Category = tostring(P.Experience), WebCategory = tostring(P.ResponseCategory)\r\n| summarize Hits = count(),\r\n            Devices = dcount(DeviceName),\r\n            Domains = dcount(tostring(parse_url(RemoteUrl).Host)),\r\n            MaliciousHits = countif(Category in (\"Malicious\",\"Phishing\",\"TechScam\")),\r\n            RiskyHits     = countif(WebCategory has_any (\"Adult\",\"Gambling\",\"Dating\",\"Gaming\",\"Streaming\")),\r\n            LastSeen = max(TimeGenerated)\r\n         by User = InitiatingProcessAccountUpn\r\n| where isnotempty(User)\r\n| top 25 by Hits desc",
               "size": 1,
               "title": "Top 25 Users (with Malicious & Risky counts)",
               "timeContextFromParameter": "TimePicker",
@@ -200,7 +173,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nlet base =\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenAppWarning\",\"SmartScreenUrlWarning\",\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Category = tostring(P.Experience), WebCategory = tostring(P.ResponseCategory)\r\n| extend IsRisky     = WebCategory has_any (\"Adult\",\"Gambling\",\"Dating\",\"Gaming\",\"Streaming\"),\r\n         IsMalicious = Category in (\"Malicious\",\"Phishing\",\"TechScam\");\r\nbase\r\n| summarize\r\n    RiskyHits      = countif(IsRisky),\r\n    MaliciousHits  = countif(IsMalicious),\r\n    FirstRisky     = minif(TimeGenerated, IsRisky),\r\n    LastRisky      = maxif(TimeGenerated, IsRisky),\r\n    FirstMalicious = minif(TimeGenerated, IsMalicious),\r\n    LastMalicious  = maxif(TimeGenerated, IsMalicious),\r\n    Devices        = make_set(DeviceName, 10),\r\n    SampleRiskyUrls     = make_set_if(RemoteUrl, IsRisky, 5),\r\n    SampleMaliciousUrls = make_set_if(RemoteUrl, IsMalicious, 5)\r\n  by User = InitiatingProcessAccountUpn\r\n| where isnotempty(User) and RiskyHits > 0 and MaliciousHits > 0\r\n| extend MinutesRiskyToMalicious = iff(isnotempty(FirstMalicious) and isnotempty(FirstRisky), datetime_diff('minute', FirstMalicious, FirstRisky), int(null))\r\n| order by MaliciousHits desc, RiskyHits desc",
+              "query": "let urlFilter = '{UrlContains}';\r\nlet base =\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenAppWarning\",\"SmartScreenUrlWarning\",\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountUpn has \"{UserUPN}\"\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Category = tostring(P.Experience), WebCategory = tostring(P.ResponseCategory)\r\n| extend IsRisky     = WebCategory has_any (\"Adult\",\"Gambling\",\"Dating\",\"Gaming\",\"Streaming\"),\r\n         IsMalicious = Category in (\"Malicious\",\"Phishing\",\"TechScam\");\r\nbase\r\n| summarize\r\n    RiskyHits      = countif(IsRisky),\r\n    MaliciousHits  = countif(IsMalicious),\r\n    FirstRisky     = minif(TimeGenerated, IsRisky),\r\n    LastRisky      = maxif(TimeGenerated, IsRisky),\r\n    FirstMalicious = minif(TimeGenerated, IsMalicious),\r\n    LastMalicious  = maxif(TimeGenerated, IsMalicious),\r\n    Devices        = make_set(DeviceName, 10),\r\n    SampleRiskyUrls     = make_set_if(RemoteUrl, IsRisky, 5),\r\n    SampleMaliciousUrls = make_set_if(RemoteUrl, IsMalicious, 5)\r\n  by User = InitiatingProcessAccountUpn\r\n| where isnotempty(User) and RiskyHits > 0 and MaliciousHits > 0\r\n| extend MinutesRiskyToMalicious = iff(isnotempty(FirstMalicious) and isnotempty(FirstRisky), datetime_diff('minute', FirstMalicious, FirstRisky), int(null))\r\n| order by MaliciousHits desc, RiskyHits desc",
               "size": 2,
               "title": "Users with Risky+Malicious activity",
               "timeContextFromParameter": "TimePicker",
@@ -220,7 +193,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenAppWarning\",\"SmartScreenUrlWarning\",\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Category = tostring(P.Experience), WebCategory = tostring(P.ResponseCategory)\r\n| extend Severity = case(\r\n     Category in (\"Malicious\",\"Phishing\",\"TechScam\"), \"High\",\r\n     WebCategory has_any (\"Adult\",\"Gambling\",\"Dating\",\"Gaming\",\"Streaming\"), \"Medium\",\r\n     Category in (\"Untrusted\",\"CustomBlockList\",\"CustomPolicy\"), \"Low\",\r\n     \"Info\")\r\n| project TimeGenerated, User = InitiatingProcessAccountUpn, DeviceName, Severity, Category, WebCategory, ActionType, RemoteUrl, FileName, InitiatingProcessFileName, InitiatingProcessCommandLine\r\n| order by TimeGenerated desc",
+              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenAppWarning\",\"SmartScreenUrlWarning\",\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountUpn has \"{UserUPN}\"\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Category = tostring(P.Experience), WebCategory = tostring(P.ResponseCategory)\r\n| extend Severity = case(\r\n     Category in (\"Malicious\",\"Phishing\",\"TechScam\"), \"High\",\r\n     WebCategory has_any (\"Adult\",\"Gambling\",\"Dating\",\"Gaming\",\"Streaming\"), \"Medium\",\r\n     Category in (\"Untrusted\",\"CustomBlockList\",\"CustomPolicy\"), \"Low\",\r\n     \"Info\")\r\n| project TimeGenerated, User = InitiatingProcessAccountUpn, DeviceName, Severity, Category, WebCategory, ActionType, RemoteUrl, FileName, InitiatingProcessFileName, InitiatingProcessCommandLine\r\n| order by TimeGenerated desc",
               "size": 2,
               "title": "Full event timeline (filtered)",
               "timeContextFromParameter": "TimePicker",
@@ -260,7 +233,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenAppWarning\",\"SmartScreenUrlWarning\")\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend ParsedFields = parse_json(AdditionalFields)\r\n| extend Category = tostring(ParsedFields.Experience)\r\n| where isnotempty(Category)\r\n| summarize count() by Category, bin(TimeGenerated, 1h)",
+              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenAppWarning\",\"SmartScreenUrlWarning\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountUpn has \"{UserUPN}\"\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend ParsedFields = parse_json(AdditionalFields)\r\n| extend Category = tostring(ParsedFields.Experience)\r\n| where isnotempty(Category)\r\n| summarize count() by Category, bin(TimeGenerated, 1h)",
               "size": 2,
               "timeContextFromParameter": "TimePicker",
               "timeBrushParameterName": "TimeBrush",
@@ -275,7 +248,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenAppWarning\",\"SmartScreenUrlWarning\")\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend ParsedFields = parse_json(AdditionalFields)\r\n| extend Category = tostring(ParsedFields.Experience)\r\n| where isnotempty(Category)\r\n| project TimeGenerated, DeviceName, User = InitiatingProcessAccountUpn, FileName, BlockedUrl = RemoteUrl, Category, ActionType, InitiatingProcessFileName, InitiatingProcessCommandLine\r\n| sort by TimeGenerated desc",
+              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenAppWarning\",\"SmartScreenUrlWarning\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountUpn has \"{UserUPN}\"\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend ParsedFields = parse_json(AdditionalFields)\r\n| extend Category = tostring(ParsedFields.Experience)\r\n| where isnotempty(Category)\r\n| project TimeGenerated, DeviceName, User = InitiatingProcessAccountUpn, FileName, BlockedUrl = RemoteUrl, Category, ActionType, InitiatingProcessFileName, InitiatingProcessCommandLine\r\n| sort by TimeGenerated desc",
               "size": 2,
               "timeContextFromParameter": "TimeBrush",
               "queryType": 0,
@@ -306,7 +279,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend WebCategory = tostring(P.ResponseCategory)\r\n| where isnotempty(WebCategory)\r\n| summarize count() by WebCategory, bin(TimeGenerated, 1h)",
+              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountUpn has \"{UserUPN}\"\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend WebCategory = tostring(P.ResponseCategory)\r\n| where isnotempty(WebCategory)\r\n| summarize count() by WebCategory, bin(TimeGenerated, 1h)",
               "size": 0,
               "title": "Web Content Filter blocks by Category",
               "timeContextFromParameter": "TimePicker",
@@ -321,7 +294,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend WebCategory   = tostring(P.ResponseCategory),\r\n         ParentCategory = tostring(P.ResponseCategoryGroup),\r\n         IsAudit        = tobool(P.IsAudit)\r\n| where isnotempty(WebCategory)\r\n| project TimeGenerated, DeviceName, User = InitiatingProcessAccountUpn, BlockedUrl = RemoteUrl, WebCategory, ParentCategory, IsAudit, InitiatingProcessFileName, InitiatingProcessCommandLine\r\n| sort by TimeGenerated desc",
+              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountUpn has \"{UserUPN}\"\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend WebCategory   = tostring(P.ResponseCategory),\r\n         ParentCategory = tostring(P.ResponseCategoryGroup),\r\n         IsAudit        = tobool(P.IsAudit)\r\n| where isnotempty(WebCategory)\r\n| project TimeGenerated, DeviceName, User = InitiatingProcessAccountUpn, BlockedUrl = RemoteUrl, WebCategory, ParentCategory, IsAudit, InitiatingProcessFileName, InitiatingProcessCommandLine\r\n| sort by TimeGenerated desc",
               "size": 2,
               "title": "Web Content Filter events",
               "timeContextFromParameter": "TimeBrushWC",
@@ -340,7 +313,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend WebCategory = tostring(P.ResponseCategory)\r\n| where WebCategory has_any (\"Adult\",\"Gambling\",\"Dating\",\"Gaming\",\"Streaming\")\r\n| extend Domain = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| summarize Hits = count(), Devices = dcount(DeviceName), LastSeen = max(TimeGenerated), SampleUrls = make_set(RemoteUrl, 5) by User = InitiatingProcessAccountUpn, WebCategory, Domain\r\n| where isnotempty(User)\r\n| order by Hits desc",
+              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountUpn has \"{UserUPN}\"\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend WebCategory = tostring(P.ResponseCategory)\r\n| where WebCategory has_any (\"Adult\",\"Gambling\",\"Dating\",\"Gaming\",\"Streaming\")\r\n| extend Domain = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| summarize Hits = count(), Devices = dcount(DeviceName), LastSeen = max(TimeGenerated), SampleUrls = make_set(RemoteUrl, 5) by User = InitiatingProcessAccountUpn, WebCategory, Domain\r\n| where isnotempty(User)\r\n| order by Hits desc",
               "size": 2,
               "title": "Risky Category (Adult / Gambling / Dating / Gaming / Streaming) — by User & Domain",
               "timeContextFromParameter": "TimePicker",
@@ -367,7 +340,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType == \"SmartScreenAppWarning\"\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend ParsedFields = parse_json(AdditionalFields)\r\n| extend Category = tostring(ParsedFields.Experience)\r\n| where isnotempty(Category)\r\n| summarize count() by Category, bin(TimeGenerated, 1h)",
+              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType == \"SmartScreenAppWarning\"\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountUpn has \"{UserUPN}\"\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend ParsedFields = parse_json(AdditionalFields)\r\n| extend Category = tostring(ParsedFields.Experience)\r\n| where isnotempty(Category)\r\n| summarize count() by Category, bin(TimeGenerated, 1h)",
               "size": 0,
               "timeContextFromParameter": "TimePicker",
               "timeBrushParameterName": "TimeBrush9",
@@ -381,7 +354,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType == \"SmartScreenAppWarning\"\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend ParsedFields = parse_json(AdditionalFields)\r\n| extend Category = tostring(ParsedFields.Experience)\r\n| where isnotempty(Category)\r\n| project TimeGenerated, DeviceName, User = InitiatingProcessAccountUpn, FileName, Category, ActionType, InitiatingProcessFileName, InitiatingProcessCommandLine\r\n| sort by TimeGenerated desc",
+              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType == \"SmartScreenAppWarning\"\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountUpn has \"{UserUPN}\"\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend ParsedFields = parse_json(AdditionalFields)\r\n| extend Category = tostring(ParsedFields.Experience)\r\n| where isnotempty(Category)\r\n| project TimeGenerated, DeviceName, User = InitiatingProcessAccountUpn, FileName, Category, ActionType, InitiatingProcessFileName, InitiatingProcessCommandLine\r\n| sort by TimeGenerated desc",
               "size": 2,
               "timeContextFromParameter": "TimeBrush9",
               "queryType": 0,
@@ -402,236 +375,69 @@
       "content": {
         "version": "NotebookGroup/1.0",
         "groupType": "editable",
-        "title": "Techscam",
+        "title": "SmartScreen URL Categories",
         "items": [
           {
-            "type": 3,
+            "type": 9,
             "content": {
-              "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType == \"SmartScreenUrlWarning\"\r\n| where AdditionalFields contains \"TechScam\"\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend ParsedFields = parse_json(AdditionalFields)\r\n| extend Category = tostring(ParsedFields.Experience)\r\n| where isnotempty(Category)\r\n| summarize count() by Category, bin(TimeGenerated, 1h)",
-              "size": 0,
-              "timeContextFromParameter": "TimePicker",
-              "timeBrushParameterName": "TimeBrush1",
-              "queryType": 0,
-              "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "timechart"
-            },
-            "name": "ts-chart"
-          },
-          {
-            "type": 3,
-            "content": {
-              "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType == \"SmartScreenUrlWarning\"\r\n| where AdditionalFields contains \"TechScam\"\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend ParsedFields = parse_json(AdditionalFields)\r\n| extend Category = tostring(ParsedFields.Experience)\r\n| where isnotempty(Category)\r\n| project TimeGenerated, DeviceName, User = InitiatingProcessAccountUpn, BlockedUrl = RemoteUrl, Category\r\n| sort by TimeGenerated desc",
-              "size": 0,
-              "timeContextFromParameter": "TimeBrush1",
-              "queryType": 0,
-              "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": { "rowLimit": 1500, "sortBy": [{ "itemKey": "BlockedUrl", "sortOrder": 1 }] },
-              "sortBy": [{ "itemKey": "BlockedUrl", "sortOrder": 1 }]
-            },
-            "name": "ts-grid"
-          }
-        ]
-      },
-      "conditionalVisibility": { "parameterName": "Tab", "comparison": "isEqualTo", "value": "Second" },
-      "name": "Group2"
-    },
-
-    {
-      "type": 12,
-      "content": {
-        "version": "NotebookGroup/1.0",
-        "groupType": "editable",
-        "title": "Phishing",
-        "items": [
-          {
-            "type": 3,
-            "content": {
-              "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType == \"SmartScreenUrlWarning\"\r\n| where AdditionalFields contains \"Phishing\"\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend ParsedFields = parse_json(AdditionalFields)\r\n| extend Category = tostring(ParsedFields.Experience)\r\n| where isnotempty(Category)\r\n| summarize count() by Category, bin(TimeGenerated, 1h)",
-              "size": 0,
-              "timeContextFromParameter": "TimePicker",
-              "timeBrushParameterName": "Timebrush2",
-              "queryType": 0,
-              "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "timechart"
-            },
-            "name": "ph-chart"
-          },
-          {
-            "type": 3,
-            "content": {
-              "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType == \"SmartScreenUrlWarning\"\r\n| where AdditionalFields contains \"Phishing\"\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend ParsedFields = parse_json(AdditionalFields)\r\n| extend Category = tostring(ParsedFields.Experience)\r\n| where isnotempty(Category)\r\n| project TimeGenerated, DeviceName, User = InitiatingProcessAccountUpn, BlockedUrl = RemoteUrl, Category\r\n| sort by TimeGenerated desc",
-              "size": 0,
-              "timeContextFromParameter": "Timebrush2",
+              "version": "KqlParameterItem/1.0",
+              "parameters": [
+                {
+                  "id": "exp-param-1",
+                  "version": "KqlParameterItem/1.0",
+                  "name": "Experience",
+                  "label": "SmartScreen Experience",
+                  "type": 2,
+                  "isRequired": true,
+                  "value": "Malicious",
+                  "typeSettings": { "showDefault": false },
+                  "jsonData": "[{\"value\":\"Malicious\",\"label\":\"Malicious\"},{\"value\":\"Phishing\",\"label\":\"Phishing\"},{\"value\":\"TechScam\",\"label\":\"TechScam\"},{\"value\":\"Untrusted\",\"label\":\"Untrusted\"},{\"value\":\"CustomBlockList\",\"label\":\"Custom Block List\"},{\"value\":\"CustomPolicy\",\"label\":\"Custom Policy\"}]"
+                }
+              ],
+              "style": "pills",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces"
             },
-            "name": "ph-grid"
-          }
-        ]
-      },
-      "conditionalVisibility": { "parameterName": "Tab", "comparison": "isEqualTo", "value": "Third" },
-      "name": "Group3"
-    },
-
-    {
-      "type": 12,
-      "content": {
-        "version": "NotebookGroup/1.0",
-        "groupType": "editable",
-        "title": "Untrusted",
-        "items": [
+            "name": "exp-params"
+          },
           {
-            "type": 3,
-            "content": {
-              "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType == \"SmartScreenUrlWarning\"\r\n| where AdditionalFields contains \"Untrusted\"\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend ParsedFields = parse_json(AdditionalFields)\r\n| extend Category = tostring(ParsedFields.Experience)\r\n| where isnotempty(Category)\r\n| summarize count() by Category, bin(TimeGenerated, 1h)",
-              "size": 0,
-              "timeContextFromParameter": "TimePicker",
-              "timeBrushParameterName": "TimeBrush2",
-              "queryType": 0,
-              "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "timechart"
-            },
-            "name": "ut-chart"
+            "type": 1,
+            "content": { "json": "Pick a SmartScreen `Experience` above to scope the chart and grid below. Covers TechScam, Phishing, Untrusted, Malicious, Custom Block List (your MDE indicators), and Custom Policy (your Web Content Filter rules)." },
+            "name": "exp-text"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType == \"SmartScreenUrlWarning\"\r\n| where AdditionalFields contains \"Untrusted\"\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend ParsedFields = parse_json(AdditionalFields)\r\n| extend Category = tostring(ParsedFields.Experience)\r\n| where isnotempty(Category)\r\n| project TimeGenerated, DeviceName, User = InitiatingProcessAccountUpn, BlockedUrl = RemoteUrl, Category\r\n| sort by TimeGenerated desc",
+              "query": "let urlFilter = '{UrlContains}';\r\nlet exp = '{Experience}';\r\nDeviceEvents\r\n| where ActionType == \"SmartScreenUrlWarning\"\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountUpn has \"{UserUPN}\"\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Category = tostring(P.Experience)\r\n| where Category =~ exp\r\n| summarize Events = count() by Category, bin(TimeGenerated, 1h)",
               "size": 0,
-              "timeContextFromParameter": "TimeBrush2",
-              "queryType": 0,
-              "resourceType": "microsoft.operationalinsights/workspaces"
-            },
-            "name": "ut-grid"
-          }
-        ]
-      },
-      "conditionalVisibility": { "parameterName": "Tab", "comparison": "isEqualTo", "value": "Fourth" },
-      "name": "Group4"
-    },
-
-    {
-      "type": 12,
-      "content": {
-        "version": "NotebookGroup/1.0",
-        "groupType": "editable",
-        "title": "Malicious",
-        "items": [
-          {
-            "type": 3,
-            "content": {
-              "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType == \"SmartScreenUrlWarning\"\r\n| where AdditionalFields contains \"Malicious\"\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend ParsedFields = parse_json(AdditionalFields)\r\n| extend Category = tostring(ParsedFields.Experience)\r\n| where isnotempty(Category)\r\n| summarize count() by Category, bin(TimeGenerated, 1h)",
-              "size": 0,
+              "title": "Events over time",
               "timeContextFromParameter": "TimePicker",
-              "timeBrushParameterName": "TimeBrush3",
+              "timeBrushParameterName": "TimeBrushExp",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "timechart"
             },
-            "name": "mal-chart"
+            "name": "exp-chart"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType == \"SmartScreenUrlWarning\"\r\n| where AdditionalFields contains \"Malicious\"\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend ParsedFields = parse_json(AdditionalFields)\r\n| extend Category = tostring(ParsedFields.Experience)\r\n| where isnotempty(Category)\r\n| project TimeGenerated, DeviceName, User = InitiatingProcessAccountUpn, BlockedUrl = RemoteUrl, Category, InitiatingProcessFileName, InitiatingProcessCommandLine\r\n| sort by TimeGenerated desc",
-              "size": 0,
-              "timeContextFromParameter": "TimeBrush3",
-              "queryType": 0,
-              "resourceType": "microsoft.operationalinsights/workspaces"
-            },
-            "name": "mal-grid"
-          }
-        ]
-      },
-      "conditionalVisibility": { "parameterName": "Tab", "comparison": "isEqualTo", "value": "Fifth" },
-      "name": "Group5"
-    },
-
-    {
-      "type": 12,
-      "content": {
-        "version": "NotebookGroup/1.0",
-        "groupType": "editable",
-        "title": "Custom Block List",
-        "items": [
-          {
-            "type": 3,
-            "content": {
-              "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType == \"SmartScreenUrlWarning\"\r\n| where AdditionalFields contains \"CustomBlockList\"\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend ParsedFields = parse_json(AdditionalFields)\r\n| extend Category = tostring(ParsedFields.Experience)\r\n| where isnotempty(Category)\r\n| summarize count() by Category, bin(TimeGenerated, 1h)",
-              "size": 0,
-              "timeContextFromParameter": "TimePicker",
-              "timeBrushParameterName": "Timebrush4",
-              "queryType": 0,
-              "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "timechart"
-            },
-            "name": "cbl-chart"
-          },
-          {
-            "type": 3,
-            "content": {
-              "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType == \"SmartScreenUrlWarning\"\r\n| where AdditionalFields contains \"CustomBlockList\"\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend ParsedFields = parse_json(AdditionalFields)\r\n| extend Category = tostring(ParsedFields.Experience)\r\n| where isnotempty(Category)\r\n| project TimeGenerated, DeviceName, User = InitiatingProcessAccountUpn, BlockedUrl = RemoteUrl, Category\r\n| sort by TimeGenerated desc",
-              "size": 0,
-              "timeContextFromParameter": "Timebrush4",
+              "query": "let urlFilter = '{UrlContains}';\r\nlet exp = '{Experience}';\r\nDeviceEvents\r\n| where ActionType == \"SmartScreenUrlWarning\"\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountUpn has \"{UserUPN}\"\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Category = tostring(P.Experience)\r\n| where Category =~ exp\r\n| project TimeGenerated, DeviceName, User = InitiatingProcessAccountUpn, BlockedUrl = RemoteUrl, Category, InitiatingProcessFileName, InitiatingProcessCommandLine\r\n| sort by TimeGenerated desc",
+              "size": 2,
+              "title": "Events",
+              "timeContextFromParameter": "TimeBrushExp",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "gridSettings": { "rowLimit": 1500 }
             },
-            "name": "cbl-grid"
+            "name": "exp-grid"
           }
         ]
       },
-      "conditionalVisibility": { "parameterName": "Tab", "comparison": "isEqualTo", "value": "Sixth" },
-      "name": "Group6"
-    },
-
-    {
-      "type": 12,
-      "content": {
-        "version": "NotebookGroup/1.0",
-        "groupType": "editable",
-        "title": "Custom Policy",
-        "items": [
-          {
-            "type": 3,
-            "content": {
-              "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType == \"SmartScreenUrlWarning\"\r\n| where AdditionalFields contains \"CustomPolicy\"\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend ParsedFields = parse_json(AdditionalFields)\r\n| extend Category = tostring(ParsedFields.Experience)\r\n| where isnotempty(Category)\r\n| summarize count() by Category, bin(TimeGenerated, 1h)",
-              "size": 0,
-              "timeContextFromParameter": "TimePicker",
-              "timeBrushParameterName": "Timebrush6",
-              "queryType": 0,
-              "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "timechart"
-            },
-            "name": "cp-chart"
-          },
-          {
-            "type": 3,
-            "content": {
-              "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType == \"SmartScreenUrlWarning\"\r\n| where AdditionalFields contains \"CustomPolicy\"\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend ParsedFields = parse_json(AdditionalFields)\r\n| extend Category = tostring(ParsedFields.Experience)\r\n| where isnotempty(Category)\r\n| project TimeGenerated, DeviceName, User = InitiatingProcessAccountUpn, BlockedUrl = RemoteUrl, Category\r\n| sort by TimeGenerated desc",
-              "size": 0,
-              "timeContextFromParameter": "Timebrush6",
-              "queryType": 0,
-              "resourceType": "microsoft.operationalinsights/workspaces"
-            },
-            "name": "cp-grid"
-          }
-        ]
-      },
-      "conditionalVisibility": { "parameterName": "Tab", "comparison": "isEqualTo", "value": "Seventh" },
-      "name": "Group7"
+      "conditionalVisibility": { "parameterName": "Tab", "comparison": "isEqualTo", "value": "URL" },
+      "name": "GroupURL"
     },
 
     {
@@ -650,7 +456,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenUserOverride\",\"NetworkProtectionUserBypassEvent\")\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| summarize Events = count() by ActionType, bin(TimeGenerated, 1h)",
+              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenUserOverride\",\"NetworkProtectionUserBypassEvent\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountUpn has \"{UserUPN}\"\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| summarize Events = count() by ActionType, bin(TimeGenerated, 1h)",
               "size": 0,
               "title": "Override / Bypass events over time",
               "timeContextFromParameter": "TimePicker",
@@ -665,7 +471,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenUserOverride\",\"NetworkProtectionUserBypassEvent\")\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend Browser = case(\r\n     InitiatingProcessFileName has \"msedge\", \"Edge\",\r\n     InitiatingProcessFileName has \"chrome\", \"Chrome\",\r\n     InitiatingProcessFileName has \"firefox\", \"Firefox\",\r\n     InitiatingProcessFileName has \"opera\", \"Opera\",\r\n     InitiatingProcessFileName has \"brave\", \"Brave\",\r\n     \"Other\")\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Category = tostring(coalesce(P.Experience, P.ResponseCategory))\r\n| summarize Overrides = count(),\r\n            Devices  = dcount(DeviceName),\r\n            Domains  = dcount(tostring(parse_url(RemoteUrl).Host)),\r\n            Browsers = make_set(Browser, 10),\r\n            Categories = make_set(Category, 10),\r\n            LastSeen = max(TimeGenerated),\r\n            SampleUrls = make_set(RemoteUrl, 5)\r\n         by User = InitiatingProcessAccountUpn\r\n| where isnotempty(User)\r\n| order by Overrides desc",
+              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenUserOverride\",\"NetworkProtectionUserBypassEvent\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountUpn has \"{UserUPN}\"\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend Browser = case(\r\n     InitiatingProcessFileName has \"msedge\", \"Edge\",\r\n     InitiatingProcessFileName has \"chrome\", \"Chrome\",\r\n     InitiatingProcessFileName has \"firefox\", \"Firefox\",\r\n     InitiatingProcessFileName has \"opera\", \"Opera\",\r\n     InitiatingProcessFileName has \"brave\", \"Brave\",\r\n     \"Other\")\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Category = tostring(coalesce(P.Experience, P.ResponseCategory))\r\n| summarize Overrides = count(),\r\n            Devices  = dcount(DeviceName),\r\n            Domains  = dcount(tostring(parse_url(RemoteUrl).Host)),\r\n            Browsers = make_set(Browser, 10),\r\n            Categories = make_set(Category, 10),\r\n            LastSeen = max(TimeGenerated),\r\n            SampleUrls = make_set(RemoteUrl, 5)\r\n         by User = InitiatingProcessAccountUpn\r\n| where isnotempty(User)\r\n| order by Overrides desc",
               "size": 1,
               "title": "Top users who overrode warnings (with browser & category)",
               "timeContextFromParameter": "TimePicker",
@@ -685,7 +491,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenUserOverride\",\"NetworkProtectionUserBypassEvent\")\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Category = tostring(coalesce(P.Experience, P.ResponseCategory))\r\n| where isnotempty(Category)\r\n| summarize Hits = count() by Category\r\n| order by Hits desc",
+              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenUserOverride\",\"NetworkProtectionUserBypassEvent\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountUpn has \"{UserUPN}\"\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Category = tostring(coalesce(P.Experience, P.ResponseCategory))\r\n| where isnotempty(Category)\r\n| summarize Hits = count() by Category\r\n| order by Hits desc",
               "size": 0,
               "title": "What categories users clicked through",
               "timeContextFromParameter": "TimePicker",
@@ -699,7 +505,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenUserOverride\",\"NetworkProtectionUserBypassEvent\")\r\n| where \"*\" in ('{DeviceName}') or DeviceName in ('{DeviceName}')\r\n| where \"*\" in ('{UserUPN}')   or InitiatingProcessAccountUpn in ('{UserUPN}')\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Browser = case(\r\n     InitiatingProcessFileName has \"msedge\", \"Edge\",\r\n     InitiatingProcessFileName has \"chrome\", \"Chrome\",\r\n     InitiatingProcessFileName has \"firefox\", \"Firefox\",\r\n     InitiatingProcessFileName has \"opera\", \"Opera\",\r\n     InitiatingProcessFileName has \"brave\", \"Brave\",\r\n     \"Other\")\r\n| extend Category   = tostring(coalesce(P.Experience, P.ResponseCategory)),\r\n         Application = tostring(coalesce(P.ApplicationName, P.DisplayName)),\r\n         Allow       = tostring(P.Allow),\r\n         IsAudit     = tostring(P.IsAudit),\r\n         UserSid     = tostring(P.UserSid)\r\n| project TimeGenerated, User = InitiatingProcessAccountUpn, DeviceName, Browser, ActionType, Category, RemoteUrl, Application, Allow, IsAudit, UserSid, InitiatingProcessFileName, InitiatingProcessCommandLine\r\n| order by TimeGenerated desc",
+              "query": "let urlFilter = '{UrlContains}';\r\nDeviceEvents\r\n| where ActionType in (\"SmartScreenUserOverride\",\"NetworkProtectionUserBypassEvent\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountUpn has \"{UserUPN}\"\r\n| where isempty(urlFilter) or RemoteUrl has urlFilter\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Browser = case(\r\n     InitiatingProcessFileName has \"msedge\", \"Edge\",\r\n     InitiatingProcessFileName has \"chrome\", \"Chrome\",\r\n     InitiatingProcessFileName has \"firefox\", \"Firefox\",\r\n     InitiatingProcessFileName has \"opera\", \"Opera\",\r\n     InitiatingProcessFileName has \"brave\", \"Brave\",\r\n     \"Other\")\r\n| extend Category   = tostring(coalesce(P.Experience, P.ResponseCategory)),\r\n         Application = tostring(coalesce(P.ApplicationName, P.DisplayName)),\r\n         Allow       = tostring(P.Allow),\r\n         IsAudit     = tostring(P.IsAudit),\r\n         UserSid     = tostring(P.UserSid)\r\n| project TimeGenerated, User = InitiatingProcessAccountUpn, DeviceName, Browser, ActionType, Category, RemoteUrl, Application, Allow, IsAudit, UserSid, InitiatingProcessFileName, InitiatingProcessCommandLine\r\n| order by TimeGenerated desc",
               "size": 2,
               "title": "Override / Bypass events",
               "timeContextFromParameter": "TimeBrushOv",

@@ -115,26 +115,6 @@ az deployment group create \
   --parameters workspaceName=<your-workspace>
 ```
 
-## KQL validation
-
-All workbook queries were validated against a live Microsoft Sentinel workspace using `az monitor log-analytics query`. Result summary:
-
-| Query | Result |
-|---|---|
-| User UPN dropdown | SUCCESS |
-| Device dropdown | SUCCESS |
-| Overview, Events by Category | SUCCESS |
-| Overview, Top 25 Domains | SUCCESS |
-| Overview, Top 25 Users | SUCCESS |
-| Risky User Correlation grid | SUCCESS |
-| Risky User Correlation timeline | SUCCESS |
-| All Categories chart | SUCCESS |
-| Web Content Filter chart | SUCCESS |
-| Web Content Filter grid | SUCCESS |
-| Risky Category by User and Domain | SUCCESS |
-| Files (SmartScreenApp) grid | SUCCESS |
-| Malicious (URL) grid | SUCCESS |
-
 ## License
 
 MIT, same as the parent [Defender_XDR](https://github.com/johnB007/Defender_XDR) repo.

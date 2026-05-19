@@ -4,17 +4,9 @@
     {
       "type": 1,
       "content": {
-        "json": "## SmartScreen Web Threats\r\n\r\nHunt for users browsing to malicious, phishing, tech-scam, untrusted, custom-blocked, or **risky non-business category** sites (Adult, Gambling, Dating, Gaming, Streaming) surfaced by Microsoft Defender SmartScreen and Network Protection (Web Content Filtering).\r\n\r\nUse the **Time Range**, **User (UPN)**, **Device**, and **URL contains** filters to scope. Tabs further narrow the threat category. Start with *Top Users / Domains* for triage, then pivot into *Risky User Correlation* to find users that crossed from non-business browsing into malicious activity."
+        "json": "## SmartScreen Web Threats\r\n\r\nHunt risky web activity (Malicious, Phishing, TechScam, custom blocks, and non-business categories like Adult/Gambling/Dating/Gaming/Streaming) from Microsoft Defender SmartScreen + Web Content Filtering.\r\n\r\nScope with **Time Range / User / Device / URL contains**, then triage on *Top Users / Domains* and pivot to *Risky User Correlation*."
       },
       "name": "header"
-    },
-    {
-      "type": 1,
-      "content": {
-        "json": "> \ud83d\udcc4 **Export results to CSV / Excel.** Every grid below has a built-in export option \u2014 hover the grid, click the three-dot **\u22ef** menu in the top-right of the grid, then choose **Export to Excel** or **Export to CSV**. Brush-selected time ranges and parameter filters are honored in the export.",
-        "style": "info"
-      },
-      "name": "export-hint"
     },
     {
       "type": 9,
@@ -133,7 +125,13 @@
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": { "showExportToExcel": true, "rowLimit": 25 }
+              "gridSettings": { "showExportToExcel": true, "rowLimit": 25,
+                "formatters": [
+                  { "columnMatch": "Hits",    "formatter": 11, "formatOptions": { "thresholdsOptions": "colors", "thresholdsGrid": [ { "operator": ">=", "thresholdValue": "1000", "representation": "redBright", "text": "{0}{1}" }, { "operator": ">=", "thresholdValue": "500",  "representation": "orange",    "text": "{0}{1}" }, { "operator": ">=", "thresholdValue": "100",  "representation": "yellow",    "text": "{0}{1}" }, { "operator": "Default",                          "representation": "green",     "text": "{0}{1}" } ] } },
+                  { "columnMatch": "Users",   "formatter": 4,  "formatOptions": { "palette": "blue" } },
+                  { "columnMatch": "Devices", "formatter": 4,  "formatOptions": { "palette": "blue" } }
+                ]
+              }
             },
             "customWidth": "50",
             "name": "ovw-domain"

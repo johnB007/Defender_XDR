@@ -39,6 +39,17 @@ The two streams overlap. A user clicks an ad on a non business category site, Ne
 * Non business browsing on corporate endpoints is a common acceptable use policy and HR finding. The Web Content Filter (Category) tab includes a Risky Category by User and Domain grid that can be exported for that conversation.
 * All grids honor the standard Export to CSV and Export to Excel options after running.
 
+### Exporting results
+
+Every grid in this workbook has built-in CSV and Excel export. To export:
+
+1. Run the tab (it runs automatically on load when filters are valid).
+2. Hover the grid you want to export.
+3. Click the three-dot **⋯** menu in the top-right of the grid.
+4. Choose **Export to Excel** or **Export to CSV**.
+
+The export respects the current global filters (Time Range, User UPN, Device, URL contains) and any per-tab selectors (Policy outcome, Web category, brush-selected time windows). The info banner at the top of the workbook is a permanent reminder of where to find the export menu.
+
 ## What it shows
 
 A single top level filter row plus seven tabs.

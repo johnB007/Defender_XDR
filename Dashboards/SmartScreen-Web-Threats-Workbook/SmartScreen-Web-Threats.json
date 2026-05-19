@@ -9,6 +9,14 @@
       "name": "header"
     },
     {
+      "type": 1,
+      "content": {
+        "json": "> \ud83d\udcc4 **Export results to CSV / Excel.** Every grid below has a built-in export option \u2014 hover the grid, click the three-dot **\u22ef** menu in the top-right of the grid, then choose **Export to Excel** or **Export to CSV**. Brush-selected time ranges and parameter filters are honored in the export.",
+        "style": "info"
+      },
+      "name": "export-hint"
+    },
+    {
       "type": 9,
       "content": {
         "version": "KqlParameterItem/1.0",
@@ -125,7 +133,7 @@
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": { "rowLimit": 25 }
+              "gridSettings": { "showExportToExcel": true, "rowLimit": 25 }
             },
             "customWidth": "50",
             "name": "ovw-domain"
@@ -140,7 +148,7 @@
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": {
+              "gridSettings": { "showExportToExcel": true,
                 "rowLimit": 25,
                 "formatters": [
                   { "columnMatch": "MaliciousHits", "formatter": 8, "formatOptions": { "palette": "redBright" } },
@@ -179,7 +187,7 @@
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": {
+              "gridSettings": { "showExportToExcel": true,
                 "rowLimit": 200,
                 "formatters": [
                   { "columnMatch": "MaliciousHits", "formatter": 8, "formatOptions": { "palette": "redBright" } },
@@ -199,7 +207,7 @@
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": {
+              "gridSettings": { "showExportToExcel": true,
                 "rowLimit": 2000,
                 "formatters": [
                   { "columnMatch": "Severity", "formatter": 11, "formatOptions": {
@@ -240,7 +248,7 @@
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "timechart",
-              "gridSettings": { "rowLimit": 1500 }
+              "gridSettings": { "showExportToExcel": true, "rowLimit": 1500 }
             },
             "name": "all-chart"
           },
@@ -253,7 +261,7 @@
               "timeContextFromParameter": "TimeBrush",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": { "rowLimit": 3000 }
+              "gridSettings": { "showExportToExcel": true, "rowLimit": 3000 }
             },
             "name": "all-grid"
           }
@@ -335,7 +343,7 @@
               "timeContextFromParameter": "TimeBrushWC",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": {
+              "gridSettings": { "showExportToExcel": true,
                 "rowLimit": 3000,
                 "formatters": [
                   { "columnMatch": "WebCategory", "formatter": 1 },
@@ -355,7 +363,7 @@
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": { "rowLimit": 500, "formatters": [ { "columnMatch": "Blocked", "formatter": 8, "formatOptions": { "palette": "redBright" } }, { "columnMatch": "Audited", "formatter": 8, "formatOptions": { "palette": "orange" } }, { "columnMatch": "Allowed", "formatter": 8, "formatOptions": { "palette": "blue" } } ] }
+              "gridSettings": { "showExportToExcel": true, "rowLimit": 500, "formatters": [ { "columnMatch": "Blocked", "formatter": 8, "formatOptions": { "palette": "redBright" } }, { "columnMatch": "Audited", "formatter": 8, "formatOptions": { "palette": "orange" } }, { "columnMatch": "Allowed", "formatter": 8, "formatOptions": { "palette": "blue" } } ] }
             },
             "name": "wc-adult"
           }
@@ -395,7 +403,7 @@
               "timeContextFromParameter": "TimeBrush9",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": { "rowLimit": 1500, "sortBy": [{ "itemKey": "FileName", "sortOrder": 1 }] },
+              "gridSettings": { "showExportToExcel": true, "rowLimit": 1500, "sortBy": [{ "itemKey": "FileName", "sortOrder": 1 }] },
               "sortBy": [{ "itemKey": "FileName", "sortOrder": 1 }]
             },
             "name": "files-grid"
@@ -466,7 +474,7 @@
               "timeContextFromParameter": "TimeBrushExp",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": { "rowLimit": 1500 }
+              "gridSettings": { "showExportToExcel": true, "rowLimit": 1500 }
             },
             "name": "exp-grid"
           }
@@ -513,7 +521,7 @@
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": {
+              "gridSettings": { "showExportToExcel": true,
                 "rowLimit": 500,
                 "formatters": [
                   { "columnMatch": "Overrides", "formatter": 8, "formatOptions": { "palette": "redBright" } },
@@ -547,7 +555,7 @@
               "timeContextFromParameter": "TimeBrushOv",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": {
+              "gridSettings": { "showExportToExcel": true,
                 "rowLimit": 3000,
                 "formatters": [
                   { "columnMatch": "ActionType", "formatter": 1 },

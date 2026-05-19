@@ -41,15 +41,15 @@ The two streams overlap. A user clicks an ad on a non business category site, Ne
 
 ## What it shows
 
-A single top level filter row plus eleven tabs.
+A single top level filter row plus seven tabs.
 
 ### Global filters (apply to every tab)
 
 | Filter | Purpose |
 |---|---|
 | Time Range | 30m, 1h, 4h, 12h, 1d, 3d, 7d, 14d, 30d, 60d, 90d, plus custom range. |
-| User (Entra UPN) | Multi select dropdown populated from `InitiatingProcessAccountUpn`. `All` by default. |
-| Device | Multi select dropdown populated from `DeviceName`. `All` by default. |
+| User UPN | Free text box matched against `InitiatingProcessAccountUpn` with the `has` operator. Use `*` for all users (default). Supports partial match, for example `jdoe` matches `jdoe@contoso.com`. Designed to scale to tenants with 200K+ identities. |
+| Device | Free text box matched against `DeviceName` with the `has` operator. Use `*` for all devices (default). Supports partial match, for example `LAPTOP-` matches every device starting with `LAPTOP-`. |
 | URL contains | Free text substring matched against `RemoteUrl` using the `has` operator. |
 
 ### Tabs
@@ -61,13 +61,8 @@ A single top level filter row plus eleven tabs.
 | 3 | All Categories (URL + Files) | Combined `SmartScreenUrlWarning` and `SmartScreenAppWarning` timechart and event grid. Brush select on the chart to drill into a window. |
 | 4 | Web Content Filter (Category) | `ExploitGuardNetworkProtectionBlocked` and `ExploitGuardNetworkProtectionAudited` events parsed for `ResponseCategory`, `ResponseCategoryGroup`, and `IsAudit`. Audit rows expose what would have been blocked if the policy were enforced. Includes a dedicated Risky Category by User and Domain summary. |
 | 5 | Files (SmartScreenApp) | `SmartScreenAppWarning` only. File download SmartScreen blocks. |
-| 6 | TechScam (URL) | SmartScreen `TechScam` experience. |
-| 7 | Phishing (URL) | SmartScreen `Phishing` experience. |
-| 8 | Untrusted (URL) | SmartScreen `Untrusted` experience. |
-| 9 | Malicious (URL) | SmartScreen `Malicious` experience. |
-| 10 | Custom Block List (URL) | SmartScreen `CustomBlockList` experience. Your custom indicator hits. |
-| 11 | Custom Policy (URL) | SmartScreen `CustomPolicy` experience. Your Web Content Filter policy hits. |
-| 12 | User Overrides & Bypasses | `SmartScreenUserOverride` and `NetworkProtectionUserBypassEvent` events. Top users who clicked through a warning, the browser they used (Edge, Chrome, Firefox, Opera, Brave, Other), the categories they overrode, and a full event grid with parsed `Allow`, `IsAudit`, `UserSid`, and `Application` fields. |
+| 6 | SmartScreen URL Categories | Single tab driven by an `Experience` dropdown that switches between `Malicious`, `Phishing`, `TechScam`, `Untrusted`, `CustomBlockList`, and `CustomPolicy`. Replaces six separate tabs with no data loss. Time chart plus event grid with brush selection. |
+| 7 | User Overrides & Bypasses | `SmartScreenUserOverride` and `NetworkProtectionUserBypassEvent` events. Top users who clicked through a warning, the browser they used (Edge, Chrome, Firefox, Opera, Brave, Other), the categories they overrode, and a full event grid with parsed `Allow`, `IsAudit`, `UserSid`, and `Application` fields. |
 
 ### Data sources
 

@@ -23,7 +23,7 @@ The two streams overlap. A user clicks an ad on a non business category site, Ne
 
 1. Start on the Top Users / Domains tab. Sort the user grid by the red MaliciousHits column, then the orange RiskyHits column. Anything red on the left is the first thing to look at.
 2. Switch to Risky User Correlation. This tab only lists users who triggered both risky non business category events (Adult, Gambling, Dating, Gaming, Streaming) and malicious, phishing, or tech scam events in the selected window. The MinutesRiskyToMalicious column is a strong indicator of malvertising or drive by activity from low reputation ad networks.
-3. Drop the user UPN into the User (Entra UPN) filter at the top of the workbook. Every tab now scopes to that user.
+3. Drop the user's Windows account name into the User filter at the top of the workbook. Every tab now scopes to that user.
 4. Use URL contains to pivot on a domain or keyword (for example `bet365`, `crack`, `stream`, or a suspicious TLD) across all users.
 5. The Web Content Filter (Category) tab shows the categorized destination across all three policy outcomes. Use the **Policy outcome** selector to switch between `Audited` (the default and where most policies live), `Blocked`, `Allowed`, or `All`. The `Allowed` view is the only way to see Allow-mode policy hits — including users reaching Adult, Gambling, Dating, Gaming, and Streaming destinations that an Audit/Block policy is **not** evaluating.
 6. Every event level grid surfaces `InitiatingProcessFileName` and `InitiatingProcessCommandLine` so you can confirm which browser or process triggered the block, such as Edge, Chrome, an Outlook redirector, or a Teams click through.
@@ -48,7 +48,7 @@ Every grid in this workbook has built-in CSV and Excel export. To export:
 3. Click the three-dot **⋯** menu in the top-right of the grid.
 4. Choose **Export to Excel** or **Export to CSV**.
 
-The export respects the current global filters (Time Range, User UPN, Device, URL contains) and any per-tab selectors (Policy outcome, Web category, brush-selected time windows). The info banner at the top of the workbook is a permanent reminder of where to find the export menu.
+The export respects the current global filters (Time Range, UserN, Device, URL contains) and any per-tab selectors (Policy outcome, Web category, brush-selected time windows). The info banner at the top of the workbook is a permanent reminder of where to find the export menu.
 
 ## What it shows
 
@@ -59,7 +59,7 @@ A single top level filter row plus seven tabs.
 | Filter | Purpose |
 |---|---|
 | Time Range | 30m, 1h, 4h, 12h, 1d, 3d, 7d, 14d, 30d, 60d, 90d, plus custom range. |
-| User UPN | Free text box matched against `InitiatingProcessAccountUpn` with the `has` operator. Use `*` for all users (default). Supports partial match, for example `jdoe` matches `jdoe@contoso.com`. Designed to scale to tenants with 200K+ identities. |
+| User | Free text box matched against `InitiatingProcessAccountName` (the Windows account name from the process token) with the `has` operator. Use `*` for all users (default). Supports partial match, for example `jdoe` matches anyone whose account name contains `jdoe`. **Why not `InitiatingProcessAccountUpn`?** On Entra-registered / Autopilot devices, Microsoft Defender resolves `InitiatingProcessAccountUpn` from the **device's primary user** in Entra ID (see Microsoft's *"if the device is registered in Microsoft Entra ID, the Entra ID UPN ... might be shown instead"* clause on the [DeviceEvents schema](https://learn.microsoft.com/defender-xdr/advanced-hunting-deviceevents-table) page). For SmartScreen / Network Protection / Exploit Guard events the source process is SYSTEM, so the UPN column gets welded to the day-1 enrolling user and never refreshes — meaning every browse for the lifetime of the device gets misattributed to the enroller. `InitiatingProcessAccountName` is derived from the live process token and tracks the actual interactive user. Designed to scale to tenants with 200K+ identities. |
 | Device | Free text box matched against `DeviceName` with the `has` operator. Use `*` for all devices (default). Supports partial match, for example `LAPTOP-` matches every device starting with `LAPTOP-`. |
 | URL contains | Free text substring matched against `RemoteUrl` using the `has` operator. **Press Enter (or Tab) to apply** — Sentinel TextBox parameters commit on Enter/blur, not on every keystroke. |
 
@@ -82,7 +82,7 @@ A single top level filter row plus seven tabs.
 * `AdditionalFields.Experience` for the SmartScreen verdict label.
 * `AdditionalFields.ResponseCategory` and `ResponseCategoryGroup` for the Web Content Filtering category on Audited/Blocked events.
 * `AdditionalFields.IsAudit` for whether the WCF rule was in audit mode.
-* `InitiatingProcessAccountUpn` for the Entra UPN of the user whose process triggered the block.
+* `InitiatingProcessAccountName` for the Windows account of the user whose process triggered the block (token-derived; the workbook excludes `system`, `local service`, `network service`, `defaultuser0`, and empty entries). `InitiatingProcessAccountUpn` is intentionally **not** used — on Entra-registered devices it reflects the device's primary user in Entra rather than the live interactive session.
 
 > Important. For Audited and Blocked policies the content category (Adult, Gambling, Dating, Gaming, Streaming, and so on) comes from `AdditionalFields.ResponseCategory` on the `ExploitGuardNetworkProtection*` events. **For Allow-mode policies Microsoft does not stamp a `ResponseCategory` on the event**, so the workbook classifies the destination host with an inline keyword list (easily editable in the KQL). The SmartScreen `Experience` field does not include content type, only verdict. If you do not see any Audited/Blocked categorized data in the Web Content Filter tab, you likely do not have Web Content Filtering enabled or no enforcing WCF policy is assigned to your devices. See [Web content filtering in Microsoft Defender for Endpoint](https://learn.microsoft.com/defender-endpoint/web-content-filtering) to enable it.
 

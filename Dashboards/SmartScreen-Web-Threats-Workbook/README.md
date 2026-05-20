@@ -15,7 +15,7 @@ Microsoft Defender for Endpoint surfaces user web activity through two related s
 | Web Content Filter or Network Protection block | `ExploitGuardNetworkProtectionBlocked` | A request was blocked by Network Protection. When Web Content Filtering policy is assigned, `AdditionalFields.ResponseCategory` carries the content category (`Adult content`, `Gambling`, `Dating`, `Gaming`, `Streaming media`, `Liability`, `High bandwidth`, `Leisure`, and so on) and `ResponseCategoryGroup` carries the parent group. |
 | Web Content Filter or Network Protection audit | `ExploitGuardNetworkProtectionAudited` | Same shape as the block event but the policy was in audit mode, so the request was logged and allowed. Useful for tuning a policy before flipping it to enforce, and for catching low reputation destinations the user reached even though no block fired. |
 
-The two streams overlap. A user clicks an ad on a non business category site, Network Protection blocks the destination by category, and seconds later SmartScreen flags the next redirect as `Malicious`. This workbook joins both streams to the same `InitiatingProcessAccountUpn` (Entra UPN) so you can see that path in a single grid.
+The two streams overlap. A user clicks an ad on a non business category site, Network Protection blocks the destination by category, and seconds later SmartScreen flags the next redirect as `Malicious`. This workbook joins both streams to the same `InitiatingProcessAccountName` (the Windows account name of the interactive user, derived from the process token) so you can see that path in a single grid attributed to the actual browser user.
 
 ## How to use this workbook
 
@@ -48,7 +48,7 @@ Every grid in this workbook has built-in CSV and Excel export. To export:
 3. Click the three-dot **⋯** menu in the top-right of the grid.
 4. Choose **Export to Excel** or **Export to CSV**.
 
-The export respects the current global filters (Time Range, UserN, Device, URL contains) and any per-tab selectors (Policy outcome, Web category, brush-selected time windows). The info banner at the top of the workbook is a permanent reminder of where to find the export menu.
+The export respects the current global filters (Time Range, User, Device, URL contains) and any per-tab selectors (Policy outcome, Web category, brush-selected time windows). The info banner at the top of the workbook is a permanent reminder of where to find the export menu.
 
 ## What it shows
 

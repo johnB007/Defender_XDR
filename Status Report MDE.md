@@ -16,8 +16,6 @@ DeviceTvmInfoGathering
 | order by DeviceCount desc
 ```
 
-## Picture of output
-<img width="716" height="482" alt="image" src="https://github.com/user-attachments/assets/12c7dae6-c6e2-4bf8-8404-766bee1a9680" />
 
 ## KQL For MDAV Engine, Sig, Platform, Version
 ```KQL

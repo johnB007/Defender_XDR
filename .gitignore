@@ -3,3 +3,9 @@ Microsoft Defender for Endpoint/Defender_for_Servers/ARC Best Practices/post-arc
 
 # Auto-generated HTML siblings of README.md (never committed)
 *.html
+
+# Agent scratch artifacts
+_*
+inspect*.ps1
+*.tmp
+

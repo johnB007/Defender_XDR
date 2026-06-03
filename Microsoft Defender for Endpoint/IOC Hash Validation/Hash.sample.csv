@@ -1,0 +1,4 @@
+Indicator Value,Indicator Type,Action,Severity,Title,Description,Generate Alert
+e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855,FileSha256,Block,High,SAMPLE,Replace with real export from MDE,Yes
+da39a3ee5e6b4b0d3255bfef95601890afd80709,FileSha1,Block,High,SAMPLE,Replace with real export from MDE,Yes
+d41d8cd98f00b204e9800998ecf8427e,FileMd5,Block,High,SAMPLE,Replace with real export from MDE,Yes

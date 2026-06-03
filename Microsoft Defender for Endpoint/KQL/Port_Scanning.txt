@@ -1,0 +1,50 @@
+//We recently shipped two port scan detectors:
+
+VerticalPortScanInitiated IoA ID: 0eadf7a9-d1d2-425e-91c3-e191e388c38f – for monitoring vertical port scanning 
+HorizontalPortScanInitiated IoA ID: 31aa78a0-a428-4eb4-8dcc-85ff71ba659c – for monitoring horizontal port scanning 
+
+These IoAs  are behavioral anomaly detectors and tool-name-agnostic, capturing distinct tools with aggressive port scanning behaviors including nmap, nmap.exe 
+and even general tools (e.g., javaw.exe is also used for port scanning). 
+
+See the table below.  Please note the detection depends upon the intensity/aggressiveness of port scanning over a certain threshold, so low and slow behaviors may not fire (if we made this more sensitive, we would have too many false positives).
+Execute: [Web] [Desktop] https://wcdscrubbedservice.kusto.windows.net/Microsoft 
+AlertEvents
+| where IoaDefinitionId   in ("31aa78a0-a428-4eb4-8dcc-85ff71ba659c","0eadf7a9-d1d2-425e-91c3-e191e388c38f")
+| where ReportTime > ago(10d)
+| distinct FileName
+	
+	FileName
+	
+	Advanced Port Scanner.exe
+	advanced_ip_scanner.exe
+	advanced_port_scanner.exe
+	dllhost.exe
+	ipscan.exe
+	ipscan-3.0-beta4.exe
+	iTools.exe
+	javaw.exe
+	LanSpy.exe
+	LookAtLan.exe
+	netscan.exe
+	NetworkPortScanner.exe
+	nmap
+	nmap.exe
+	PortScan.exe
+	PortScanner.exe
+	powershell.exe
+	powershell_ise.exe
+	scanner.exe
+	SharpHound.exe
+
+Specific for nmap.exe and nmap:
+Execute: [Web] [Desktop] [Web (Lens)] [Desktop (SAW)] https://wcdscrubbedservice.kusto.windows.net/Microsoft 
+AlertEvents
+| where IoaDefinitionId  in ("31aa78a0-a428-4eb4-8dcc-85ff71ba659c","0eadf7a9-d1d2-425e-91c3-e191e388c38f")
+| where ReportTime > ago(10d)
+| where FileName contains "nmap" 
+| count
+	
+	Count
+	42
+	
+We have fired 42 times for last 10 days.  

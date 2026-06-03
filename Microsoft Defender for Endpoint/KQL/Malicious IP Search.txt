@@ -1,0 +1,8 @@
+DeviceNetworkEvents 
+| where RemoteIP in ("104.24.103.192", "149.154.167.220", "104.26.9.44","93.184.220","18.205.183.153","54.192.87.49")
+| where InitiatingProcessFileName !contains "chrome.exe" 
+| where InitiatingProcessFileName !contains "iexplore.exe" 
+| where InitiatingProcessFileName !contains "MicrosoftEdgeCP.exe" 
+| where InitiatingProcessFileName !contains "firefox.exe" 
+| where InitiatingProcessFileName !contains "msedge.exe" 
+| where InitiatingProcessFileName !contains "MicrosoftEdge.exe" 

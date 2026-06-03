@@ -1,0 +1,4 @@
+﻿//Search for Invoice.pdf.exe filename
+
+FileCreationEvents
+| where  FileName == 'Invoice.pdf.exe'

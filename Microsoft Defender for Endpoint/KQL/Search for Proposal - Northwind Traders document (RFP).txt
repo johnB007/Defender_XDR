@@ -1,0 +1,4 @@
+﻿//Search for Proposal - Northwind Traders document (RFP)
+
+FileCreationEvents
+| where  FileName == 'Proposal - Northwind Traders.doc'

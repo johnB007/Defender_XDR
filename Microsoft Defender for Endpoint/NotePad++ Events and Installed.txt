@@ -1,3 +1,0 @@
-DeviceFileEvents | where Timestamp > ago(45d) | where  FileName contains "notepad++.exe"
-
-

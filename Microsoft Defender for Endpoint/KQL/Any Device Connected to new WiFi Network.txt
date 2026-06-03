@@ -1,0 +1,6 @@
+DeviceNetworkInfo
+| where Timestamp > ago(1d)
+| where NetworkAdapterType != "Wireless80211"
+| where IPAddresses != ""
+| extend NetworkAdapterTypeExp = parse_json(NetworkAdapterType)
+| mv-expand bagexpansion = array NetworkAdapterType=NetworkAdapterTypeExp

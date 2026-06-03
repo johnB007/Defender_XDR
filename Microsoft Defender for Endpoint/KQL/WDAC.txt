@@ -1,0 +1,5 @@
+﻿//WDAC
+MiscEvents
+| where ActionType startswith "AppControl"
+| summarize Machines=dcount(ComputerName) by ActionType
+| order by Machines desc

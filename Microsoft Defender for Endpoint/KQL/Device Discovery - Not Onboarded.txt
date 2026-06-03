@@ -1,0 +1,7 @@
+DeviceInfo
+| where OnboardingStatus != "Onboarded"
+| where OSPlatform != "Windows7"
+| join kind=inner (
+    DeviceNetworkInfo
+)
+on DeviceId

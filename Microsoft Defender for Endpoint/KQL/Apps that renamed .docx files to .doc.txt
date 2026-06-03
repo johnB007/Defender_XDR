@@ -1,0 +1,12 @@
+// Find applications that renamed .docx files to .doc on devices
+AppFileEvents 
+| where Timestamp > ago(7d)
+| where ActionType == "FileRenamed"
+| join kind=inner (
+DeviceFileEvents 
+| where Timestamp > ago(7d)
+| project FileName, AccountName = InitiatingProcessAccountName, DeviceName
+) on FileName, AccountName
+| where FileName endswith "doc" and PreviousFileName endswith "docx" 
+| project Timestamp, FileName, PreviousFileName, Application, AccountName, DeviceName
+

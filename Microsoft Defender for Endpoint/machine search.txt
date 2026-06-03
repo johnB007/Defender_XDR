@@ -1,3 +1,0 @@
-﻿//machine search
- MachineInfo  
-| where  ComputerName startswith "anac-"

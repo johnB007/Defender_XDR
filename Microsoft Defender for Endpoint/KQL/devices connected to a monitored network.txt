@@ -1,0 +1,12 @@
+// Find devices connected to a monitored network. 
+//Please Note line 5 needs to have a monitored network name put in place or commented out to pull everything.
+// This query was updated from https://github.com/Azure/Azure-Sentinel/tree/master/Hunting%20Queries/Microsoft%20365%20Defender/Discovery/ConnectedNetworkDeviceDiscovery.yaml
+DeviceNetworkInfo
+//| where NetworkAdapterType contains "Wireless"
+//| where ConnectedNetworks contains "ACHotels"
+| mv-expand parse_json(IPAddresses)
+| mv-expand parse_json(ConnectedNetworks)
+| where IPAddresses.IPAddress !contains ":" and IPAddresses.IPAddress <> ""
+//| where ConnectedNetworks.Name == "ACHotels" and ConnectedNetworks.Name <> "" //Change the YourNetworkHere to the display
+| summarize arg_max(Timestamp, *) by DeviceName
+| project DeviceName, IPAddress=IPAddresses.IPAddress, ConnectedNetworks_value=ConnectedNetworks.Name

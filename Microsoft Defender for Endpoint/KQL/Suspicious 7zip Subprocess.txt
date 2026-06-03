@@ -1,0 +1,2 @@
+DeviceProcessEvents
+| where ((FolderPath endswith @"\cmd.exe" and InitiatingProcessFolderPath endswith @"\7zFM.exe") and not ((ProcessCommandLine contains " /c ") or (isnull(ProcessCommandLine))))

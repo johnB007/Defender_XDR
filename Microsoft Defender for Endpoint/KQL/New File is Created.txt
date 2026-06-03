@@ -1,0 +1,4 @@
+DeviceFileEvents 
+| where DeviceName != "devicename"
+| where ActionType == "FileCreated"
+| project FileName , FolderPath , InitiatingProcessCommandLine , InitiatingProcessParentFileName, DeviceId, DeviceName, Timestamp, ReportId

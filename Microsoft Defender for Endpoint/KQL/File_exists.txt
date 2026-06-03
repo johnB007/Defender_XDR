@@ -1,0 +1,9 @@
+//Anomalous file write to a secure directory by an unprivileged process
+//Trojan:Win32/Rpdactaele.A
+
+FileCreationEvents
+| where EventTime > ago(7d)
+and FileName =~ "printconfig.dll"
+and InitiatingProcessIntegrityLevel != "System"
+and InitiatingProcessIntegrityLevel != "High"
+and FolderPath contains @":\Windows"

@@ -1,0 +1,8 @@
+// Looks for events involving the creation of common autostart entries in the registry. 
+// These entries allow both normal and malicious applications to achieve persistence by starting automatically with Windows.
+DeviceRegistryEvents 
+| where Timestamp > ago(7d)
+| where ActionType == "SetValue" 
+| where RegistryKey has @"Microsoft\Windows\CurrentVersion\RUN"
+| summarize ComputerCount=count(DeviceName), DeviceNames=makeset(DeviceName) by RegistryValueData
+| top 100 by ComputerCount

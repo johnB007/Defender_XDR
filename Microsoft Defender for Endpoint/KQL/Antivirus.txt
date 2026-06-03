@@ -1,0 +1,2 @@
+//if some endpoints run other AV putting in passive mode WD AV?
+//You can see which processes are running on a machine – so you could create queries to identify any other security product that’s running.

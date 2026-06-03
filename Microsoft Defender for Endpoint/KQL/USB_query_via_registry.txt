@@ -1,0 +1,10 @@
+//Is it possible to collect start time, execution process, written file name using Advanced hunting function when writing data to USB memory or CD/DVD on WDATP onboard machine?
+//Advanced hunting does have FileCreationEvents, but there isn't anything in that table that determines if the FolderPath is a USB, CD/DVD, or hard drive.  FolderPath consists of a drive letter and file path.  For example:
+
+FileCreationEvents
+| where FolderPath startswith "d"
+
+// Another way might be to query the registry keys.
+
+RegistryEvents
+| where RegistryKey contains "MountedDevices"

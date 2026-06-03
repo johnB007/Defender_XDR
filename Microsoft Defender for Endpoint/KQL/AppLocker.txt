@@ -1,0 +1,10 @@
+//Tue 1/22/2019 1:32 AM
+//AppLocker events are available in the portal:
+1. Advanced hunting – all available
+2. Machine timeline:
+- Block events are available
+- Audit events are not yet supported – but should be in the next few months.
+
+//Event ID 8004 is a block event 
+
+ActionType == "AppControlExecutableBlocked"

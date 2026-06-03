@@ -1,0 +1,18 @@
+//Non-browser network connections from applications installed on device.
+//
+let tStamp = ago(2h); //Change based on time duration desired.
+DeviceNetworkEvents
+| where Timestamp > tStamp
+//filter out browser and known app traffic
+| where InitiatingProcessFileName != 'chrome.exe' and InitiatingProcessFileName != 'firefox.exe' and InitiatingProcessFileName != 'iexplore.exe' and InitiatingProcessFileName notcontains 'MicrosoftEdge'
+    and InitiatingProcessFileName != 'mcdatrep.exe' and InitiatingProcessFileName != 'GoogleUpdate.exe' and InitiatingProcessFileName != 'mcshield.exe' and InitiatingProcessFileName != 'a8cli.exe'
+    and InitiatingProcessFileName != 'fcag.exe' and InitiatingProcessFileName != 'Teams.exe' and InitiatingProcessFileName != 'OneDrive.exe' and InitiatingProcessFileName != 'MsSense.exe' 
+    and InitiatingProcessFileName != 'OUTLOOK.EXE' and InitiatingProcessFileName != 'xagt.exe' and InitiatingProcessFileName != 'HealthService.exe' and InitiatingProcessFileName notcontains 'msedge.exe'
+//filter out known good destinations
+| where RemoteUrl !contains 'microsoft' and RemoteUrl !endswith 'live.com' and RemoteUrl !endswith 'windows.net' and RemoteUrl !endswith 'windows.com'  and RemoteUrl !endswith '.mil'
+    and RemoteUrl !endswith 'adobe.com' and RemoteUrl !endswith 'acrobat.com'  and RemoteUrl !endswith 'adobe.io' and RemoteUrl != 'cloud.gti.mcafee.com' and RemoteUrl !endswith 'windowsupdate.com'
+    and RemoteUrl !endswith 'office365.us' and RemoteUrl !endswith 'azure.us'
+| where RemoteIPType == 'Public'
+| where ActionType != 'ConnectionFailed'
+| project Timestamp, DeviceName, RemoteIP, RemotePort, RemoteUrl, Protocol, InitiatingProcessFileName, 
+    InitiatingProcessCommandLine, InitiatingProcessAccountName

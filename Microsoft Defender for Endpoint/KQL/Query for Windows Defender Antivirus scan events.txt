@@ -1,0 +1,7 @@
+﻿//Query for Windows Defender Antivirus scan events
+// Query for Windows Defender Antivirus scan evens.
+MiscEvents
+| where ActionType in ("AntivirusScanCompleted", "AntivirusScanCancelled")
+| extend A=parse_json(AdditionalFields) 
+| project EventTime, ComputerName, ActionType,ScanType = A.ScanTypeIndex, StartedBy= A.User
+| sort by EventTime  desc 

@@ -1,0 +1,11 @@
+//AV Status and actions
+let AVActionsPerDevice = DeviceEvents
+| where ActionType startswith "Antivirus"
+| summarize DistinctActions = make_set(ActionType) by DeviceId;
+DeviceTvmInfoGathering
+| where OSPlatform contains "Windows"
+| extend AVSVer = tostring(AdditionalFields.AvSignatureVersion),
+         AVSUpdateTime = tostring(AdditionalFields.AvSignatureUpdateTime)
+| project DeviceId, DeviceName, AVSVer, AVSUpdateTime
+| join kind=leftouter AVActionsPerDevice on DeviceId
+| project DeviceName, DeviceId, AVSVer, AVSUpdateTime, DistinctActions

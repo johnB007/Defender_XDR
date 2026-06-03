@@ -1,0 +1,11 @@
+//Device Discovery - Find by first part of IP
+let StartTime = ago(7d);
+DeviceInfo 
+| where Timestamp > StartTime
+| summarize arg_max(Timestamp, *) by DeviceId  // Get latest known good per device Id
+| where isempty(MergedToDeviceId) // Remove invalidated/merged devices
+| where OnboardingStatus != "Onboarded" 
+| join kind=leftouter (DeviceNetworkInfo | where Timestamp > StartTime) on DeviceId
+| mvexpand parse_json(IPAddresses)
+| project DeviceId, DeviceName, DeviceCategory, DeviceType, Model, Vendor, OSPlatform, OSDistribution, IPAddress=IPAddresses.IPAddress
+| where IPAddress startswith "192."

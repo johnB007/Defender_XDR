@@ -1,0 +1,11 @@
+DeviceEvents
+//| where ActionType != 'AsrLsassCredentialTheftAudited' // separate query 1 of 3
+//| where ActionType != 'AsrLsassCredentialTheftBlocked' // separate query 1 of 3
+//| where ActionType != 'AsrPsexecWmiChildProcessAudited' // not needed due to MECM
+//| where ActionType != 'AsrPersistenceThroughWmiAudited' // not needed due to MECM
+//| where ActionType == 'AsrUntrustedExecutableAudited'  // separate query 2 of 3
+//| where ActionType == 'AsrOfficeMacroWin32ApiCallsAudited' // separate query 3 of 3
+| where ActionType startswith "Asr" and ActionType endswith "blocked"
+//| distinct ActionType, FolderPath, FileName
+//| summarize count() by ActionType, FolderPath, FileName
+| project Timestamp, DeviceId, DeviceName, ActionType, FolderPath, FileName, InitiatingProcessFileName, FileOriginIP, ReportId

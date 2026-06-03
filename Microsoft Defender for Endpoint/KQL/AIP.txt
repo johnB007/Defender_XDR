@@ -1,0 +1,5 @@
+//is it possible to have information about files AIP labeled on machines?
+// FileCreationEvents
+| where IsWindowsInfoProtectionApplied
+or
+where IsAzureInfoProtectionApplied

@@ -1,0 +1,9 @@
+//if a user starts to print a huge amount of  some secret files
+
+ProcessCreationEvents
+| where EventTime > ago(7d) 
+| where FileName contains "splwow64.exe"
+| summarize AccountName=count() by EventTime, ComputerName, InitiatingProcessFileName, InitiatingProcessCommandLine
+| where AccountName > 3
+| project EventTime, ComputerName, InitiatingProcessFileName, InitiatingProcessCommandLine
+| sort by EventTime desc

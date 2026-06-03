@@ -1,0 +1,5 @@
+//How do we grab logged on users?
+//we plan to add that support that during RS5.  query on the “LogonEvents” table.
+//We get the data only once the machine is onboarded with Sense.
+The “Last 30 days” text means that we show which logged on users were seen in the last 30 days (and not more) – not that we actually have data from that machine for the entire period.
+

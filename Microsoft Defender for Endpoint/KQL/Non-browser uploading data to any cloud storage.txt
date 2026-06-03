@@ -1,0 +1,13 @@
+// Non-browser uploading data to any cloud storage
+DeviceNetworkEvents
+| where RemoteUrl contains "google" or RemoteUrl contains "google.co.uk" //Change to the cloud of youor choice
+| where InitiatingProcessFileName !~ "chrome.exe"
+    and InitiatingProcessFileName !~ "firefox.exe"
+    and InitiatingProcessFileName !~ "safari.exe"
+    and InitiatingProcessFileName !~ "opera.exe"
+    and InitiatingProcessFileName !~ "iexplore.exe"
+    and InitiatingProcessFileName !~ "microsoftedge.exe"
+    and InitiatingProcessFileName !~ "microsoftedgecp.exe"
+    and InitiatingProcessFileName !~ "browser_broker.exe"
+    and InitiatingProcessFileName !~ "msedge.exe"
+    and InitiatingProcessFileName !~ "brave.exe"

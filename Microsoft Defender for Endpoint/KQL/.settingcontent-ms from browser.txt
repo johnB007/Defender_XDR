@@ -1,0 +1,5 @@
+﻿//.settingcontent-ms from browser
+FileCreationEvents
+| where InitiatingProcessFileName in~ ("browser_broker.exe", "chrome.exe", "iexplore.exe", "firefox.exe", "outlook.exe")
+| where FileName endswith ".settingcontent-ms"
+| project EventTime, ComputerName, FileName, FolderPath, FileOriginUrl, FileOriginReferrerUrl, FileOriginIP

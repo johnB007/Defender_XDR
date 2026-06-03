@@ -1,0 +1,9 @@
+//query DeviceEvents table for all occurrences of CFA audit or blocked events
+//Use this data to assess impact of CFA rules, and possibly make exceptions for known/trusted binaries
+//All audited or blocked events for controlled folder access
+DeviceEvents
+//| where ActionType startswith xxx chnage to audited or blocked xx "ControlledFolderAccessViolationAudited"
+| where ActionType startswith "ControlledFolderAccessViolationBlocked"
+| extend RuleGuid = tolower(tostring(parsejson(AdditionalFields).RuleId))
+| summarize DevicesImpacted=dcount(DeviceName) by InitiatingProcessFolderPath, InitiatingProcessFileName, InitiatingProcessCommandLine, ActionType, RuleGuid
+| project DevicesImpacted, InitiatingProcessFolderPath, InitiatingProcessFileName, InitiatingProcessCommandLine, ActionType, RuleGuid

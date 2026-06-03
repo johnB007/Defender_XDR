@@ -1,0 +1,4 @@
+DeviceEvents
+| where ActionType =='SecurityLogCleared'
+| project Timestamp, AccountName, AccountSid, DeviceId, DeviceName, ActionType, ReportId
+| order by Timestamp desc

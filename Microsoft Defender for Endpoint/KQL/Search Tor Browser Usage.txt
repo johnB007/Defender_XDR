@@ -1,0 +1,3 @@
+﻿//
+NetworkCommunicationEvents
+| where InitiatingProcessCommandLine contains "tor.exe" 

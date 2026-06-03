@@ -1,0 +1,11 @@
+//have a query for all processes opened by other processes and blocked by ASR or ExploitGuard
+
+//https://github.com/Microsoft/WindowsDefenderATP-Hunting-Queries/tree/master/Protection%20events 
+//https://github.com/Microsoft/WindowsDefenderATP-Hunting-Queries/blob/master/Protection%20events/ExploitGuardAsrDescriptions.txt
+//https://github.com/Microsoft/WindowsDefenderATP-Hunting-Queries/blob/master/Protection%20events/ExploitGuardBlockOfficeChildProcess.txt
+//https://techcommunity.microsoft.com/t5/Windows-IT-Pro-Blog/Improve-your-defensive-posture-with-Exploit-Guard-ASR/ba-p/224947
+
+MiscEvents
+| where ActionType == "ExploitGuardNonMicrosoftSignedAudited" or ActionType == ExploitGuardNonMicrosoftSignedBlocked"
+
+//AppControl gives you “AppControlExecutableAudited” as an ActionType which should have its alter ego of “AppControlExecutableBlocked” (If I recall correctly)

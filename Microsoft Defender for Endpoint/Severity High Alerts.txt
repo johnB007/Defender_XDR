@@ -1,4 +1,0 @@
-﻿//Severity High Alerts
-AlertEvents
-|where EventTime > ago(180d) 
-|where  Severity == "High"

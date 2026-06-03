@@ -1,0 +1,7 @@
+// Finds activity involving the creation of files in the Startup folder. 
+// The Startup folder, an autostart extensibility point (ASEP), is used by both legitimate applications and malware to stay persistent by automatically starting with Windows.
+DeviceFileEvents  
+| where Timestamp > ago(7d)
+| where FolderPath has @"\Windows\Start Menu\Programs\Startup\"
+| project Timestamp, DeviceName, FolderPath, FileName 
+| top 100 by Timestamp

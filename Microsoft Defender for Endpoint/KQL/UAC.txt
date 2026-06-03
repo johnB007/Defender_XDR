@@ -1,0 +1,5 @@
+//report on UAC events
+ProcessCreationEvents
+| where ProcessIntegrityLevel == "High" and ProcessTokenElevation == "TokenElevationTypeFull"
+| where InitiatingProcessFileName == "svchost.exe"
+| distinct FileName, InitiatingProcessFileName

@@ -1,0 +1,19 @@
+﻿//FileHash
+//testing looking for a suspicious file discovered (Invoice.pdf.exe) 
+//9620bb92bfcf5343eb3b9ab76480ed6257a4030b
+//When I go to advanced hunting and search for it using:
+FileCreationEvents | where SHA1 == "9620bb92bfcf5343eb3b9ab76480ed6257a4030b"
+//I don’t get any results.
+//However if I search for that file by it’s filename, then I do get hits:
+FileCreationEvents | where  FileName == 'Invoice.pdf.exe'
+
+A:
+If you see telemetry in the file profile page, so I assume it’s from another event – maybe a WDAV or exploit guard event (in which case you should query MiscEvents table)? Maye it’s a process create event (query ProcessCreationEvents table)?
+You can use this query to query on a file SHA1 on all tables at once:
+https://github.com/Microsoft/WindowsDefenderATP-Hunting-Queries/blob/master/General%20queries/File%20footprint.txt
+
+What is the SHA1 you see in the advanced hunting query you ran?
+I assume it’s empty, and hence your query on SHA1 doesn’t find it…
+We sometimes don’t get the file details such as hash reported, especially in file create events (e.g. if it was quickly removed or remediated before we got to scan it).
+This was more common in older OS versions.
+The demo data is quite stale and hacky (AFAIK it has undergone some manual tweaks at the time), and I don’t think it’s worth investigating issues with this data, but you could always send a frownie and maybe it’ll be further investigated or approved when triaged (please remember to include your real email address, and not the demo tenant user).

@@ -1,0 +1,10 @@
+//https://techcommunity.microsoft.com/t5/Windows-Defender-ATP/Hunting-tip-of-the-month-Browser-downloads/ba-p/220454
+//FileOriginUrl 
+//Works:  Edge , File Explorer, Chrome, Office, and WinRar.
+//Doesn't work:  IE and Firefox date: 180731
+
+//Example 2: Hunt for payloads hosted as user content in Dropbox
+FileCreationEvents
+| where FileOriginUrl startswith "https://dl.dropboxusercontent.com/"
+| extend ReferrerHost=tostring(parse_url(FileOriginReferrerUrl).Host)
+| summarize count(), any(FileName) by ReferrerHost 

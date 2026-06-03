@@ -1,0 +1,7 @@
+// Finds attempts to download and install a .msi installation package using the Windows Installer msiexec.exe.
+DeviceProcessEvents  
+| where Timestamp > ago(7d)
+| where FileName =~ "msiexec.exe"
+| where ProcessCommandLine contains "/i http" and ProcessCommandLine !has ".msi"
+| project Timestamp, DeviceName, ProcessCommandLine, InitiatingProcessFileName 
+| top 100 by Timestamp

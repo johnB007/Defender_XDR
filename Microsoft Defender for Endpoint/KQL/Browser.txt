@@ -1,0 +1,18 @@
+//https://techcommunity.microsoft.com/t5/Windows-Defender-ATP/Hunting-tip-of-the-month-Browser-downloads/ba-p/220454
+//FileOriginUrl 
+//Works:  Edge , File Explorer, Chrome, Office, and WinRar.
+//Doesn't work:  IE and Firefox date: 180731
+
+//Example 1: Tracing footprintsófind all files downloaded from a certain site
+// Case-insensitive match on the download URL 
+FileCreationEvents 
+| where FileOriginUrl =~ "http://www.napptayiyal.com/"MTxRTLl.MKzPhA01KunU4jgS_DGEBaÿqR5xB$LH9RzvQSRD1nm_MEdZICCsRnxp 
+| project parse_url(FileOriginUrl)
+
+// Match any downloads from napptayiyal.com 
+FileCreationEvents 
+I where FileOriginUrl contains "napptayiyal.com" 
+
+// Bonus - to be accurate, make sure that napptayiyal.com is the download site, and not just a part of the query params 
+I extend Host=tostring(parse_url(FileOriginUrl).Host) 
+I where Host endswith "napptayiyal.com" 

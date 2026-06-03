@@ -1,0 +1,14 @@
+// Check for specific alerts
+AlertInfo
+| join AlertEvidence on AlertId
+| where EntityType == "Machine"
+// Attempts to clear security event logs.
+| where Title in("Event log was cleared")
+| extend AlertTime = Timestamp
+| distinct DeviceName, AlertTime, AlertId, Title
+| join DeviceLogonEvents on $left.DeviceName == $right.DeviceName
+// Creating 10 day Window surrounding alert activity
+| where Timestamp < AlertTime +5d and Timestamp > AlertTime - 5d
+// Projecting specific columns
+| project Title, DeviceName, DeviceId, Timestamp, LogonType, AccountDomain,
+AccountName, AccountSid, AlertTime, AlertId, RemoteIP, RemoteDeviceName

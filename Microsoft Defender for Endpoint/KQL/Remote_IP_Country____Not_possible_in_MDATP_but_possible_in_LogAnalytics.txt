@@ -1,0 +1,4 @@
+//in OMS we have a location field which resolves the public ip address of the machine to the country it belongs.
+//Do we have the same in WDATP? I was able to find MachineInfo\PublicIP in the schema but no country information.
+
+//No, we currently don’t have this data available in advanced hunting.  We would like to add it some day, though no timeline for that yet.  We do have the data available when you go to the IP profile page in the portal, BTW.  May I ask why would a machine reporting from a foreign country be something you’d like to hunt for?  After all, traveling happens a lot, and so does proxies.

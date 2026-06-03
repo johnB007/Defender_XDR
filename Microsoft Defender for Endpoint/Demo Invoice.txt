@@ -1,3 +1,0 @@
-﻿//Demo Invoice
-FileCreationEvents
-| where  FileName == 'Invoice.pdf.exe'

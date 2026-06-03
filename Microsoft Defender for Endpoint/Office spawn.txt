@@ -1,4 +1,0 @@
-﻿//Office spawn
-ProcessCreationEvents
-| where InitiatingProcessFileName =~ "AppVLP.exe" and InitiatingProcessParentFileName in ("winword.exe", "excel.exe")
-| project EventTime, InitiatingProcessParentFileName, InitiatingProcessFileName, FileName, ProcessCommandLine 

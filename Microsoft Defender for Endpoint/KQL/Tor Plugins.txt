@@ -1,0 +1,6 @@
+﻿//Tor Plugins
+
+NetworkCommunicationEvents  
+| where EventTime < ago(3d) and InitiatingProcessFileName in~ ("tor.exe", "meek-client.exe")
+| summarize MachineCount=dcount(ComputerName), MachineNames=makeset(ComputerName, 5) by InitiatingProcessMD5
+| order by MachineCount desc

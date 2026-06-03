@@ -1,0 +1,24 @@
+﻿//USB
+let DriveletterString =
+	RegistryEvents
+	    | where RegistryKey contains @"mounteddevice"
+	    | where RegistryValueName hassuffix @":"
+	    | extend DriveLetter = substring(RegistryValueName,12)
+	    | summarize DriveList = makeset(DriveLetter) by ComputerName
+	    | project ComputerName,DriveList;
+let fileEvent =
+    FileCreationEvents
+    | join kind=leftouter(DriveletterString) on ComputerName
+    | where isnotempty(DriveList)
+	| mvexpand DriveList
+    | where FolderPath hasprefix tostring(DriveList)
+    | project EventTime,ComputerName,ActionType,DriveList,FileName,FolderPath,CommandLine=InitiatingProcessCommandLine;
+ProcessCreationEvents
+	| join kind=leftouter (DriveletterString) on ComputerName
+	| where isnotempty(DriveList)
+	| mvexpand DriveList
+	| where FolderPath hasprefix tostring(DriveList)
+	| project EventTime,ComputerName,ActionType,DriveList,FileName,FolderPath,CommandLine=ProcessCommandLine
+    | union fileEvent
+    | sort by EventTime desc
+    

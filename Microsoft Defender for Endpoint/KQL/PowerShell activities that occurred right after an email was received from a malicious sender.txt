@@ -1,0 +1,14 @@
+// Finds PowerShell activities that occurred right after an email was received from a malicious sender
+let MaliciousSender = "malicious.sender@domain.com";
+EmailEvents
+| where Timestamp > ago(7d)
+| where SenderFromAddress =~ MaliciousSender
+| project EmailReceivedTime = Timestamp, Subject, SenderFromAddress, AccountName = tostring(split(RecipientEmailAddress, "@")[0])
+| join (
+DeviceProcessEvents 
+| where Timestamp > ago(7d)
+| where FileName =~ "powershell.exe"
+| where InitiatingProcessParentFileName =~ "outlook.exe"
+| project ProcessCreateTime = Timestamp, AccountName, DeviceName, InitiatingProcessParentFileName, InitiatingProcessFileName, FileName, ProcessCommandLine
+) on AccountName 
+| where (ProcessCreateTime - EmailReceivedTime) between (0min .. 30min)

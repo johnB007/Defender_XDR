@@ -1,3 +1,0 @@
-﻿//PowerShell Activity
-MiscEvents
-| where ActionType contains "powershell" 

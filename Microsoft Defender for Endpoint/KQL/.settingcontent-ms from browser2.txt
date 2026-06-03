@@ -1,0 +1,8 @@
+//SettingContent-ms 
+
+ProcessCreationEvents 
+| where EventTime > ago(20d)
+| where
+InitiatingProcessFileName =~ "AppVLP.exe" and
+InitiatingProcessParentFileName in~ ("winword.exe", "excel.exe")
+| project EventTime, InitiatingProcessParentFileName, InitiatingProcessFileName, FileName, ProcessCommandLine

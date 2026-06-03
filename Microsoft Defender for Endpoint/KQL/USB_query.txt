@@ -1,0 +1,9 @@
+//https://github.com/Microsoft/WindowsDefenderATP-Hunting-Queries/blob/master/Exfiltration/Map%20external%20devices.txt
+//Action "PnpDeviceConnected" reports the connection of any plug and play device.
+
+MiscEvents
+| where ActionType == "PnpDeviceConnected"
+| extend ParsedFields=parse_json(AdditionalFields)
+| project ClassName=tostring(ParsedFields.ClassName), DeviceDescription=tostring(ParsedFields.DeviceDescription),
+    DeviceId=tostring(ParsedFields.DeviceId), VendorIds=tostring(ParsedFields.VendorIds), MachineId, ComputerName, EventTime
+| where ClassName contains "drive" or ClassName contains "usb"

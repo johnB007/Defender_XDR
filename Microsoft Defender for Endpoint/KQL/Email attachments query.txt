@@ -1,0 +1,27 @@
+let startTime = ago(7d);
+// Doc email attachment being opened/saved, close in time to a link clicked from Word, and then download from browser
+let docAttachments = 
+    FileCreationEvents
+    | where (FileName endswith ".docx" or FileName endswith ".docm" or FileName endswith ".doc")
+            and InitiatingProcessFileName in~ ("outlook.exe", "hxoutlook.exe")
+            and EventTime > startTime
+    | summarize AttachmentSaveTime=min(EventTime) by AttachmentName=FileName, MachineId, ComputerName;
+let wordLinks = 
+    MiscEvents
+    | where ActionType == "BrowserLaunchedToOpenUrl" and isnotempty(RemoteUrl) and InitiatingProcessFileName =~ "winword.exe" and EventTime > startTime    
+    | project ClickTime=EventTime, MachineId, ComputerName, ClickUrl=RemoteUrl;
+let browserDownloads = 
+    FileCreationEvents
+    | where InitiatingProcessFileName in~ ("browser_broker.exe", "chrome.exe", "iexplore.exe", "firefox.exe")
+            and not (FileName endswith ".js" and isempty(FileOriginUrl))
+    | where FileName !endswith ".partial" and FileName !endswith ".docx" and EventTime > startTime    
+    | summarize (EventTime, SHA1) = argmax(EventTime, SHA1) by DownloadFileName=FileName, MachineId, DownloadUrl=FileOriginUrl, ComputerName, InitiatingProcessFileName;
+// delete these 3 lines, and replace them with the lines below
+docAttachments | summarize Title="Doc email attachments", count()
+| union (wordLinks | summarize Title="A link was clicked in Word", count())
+| union (browserDownloads | summarize Title="A browser has downloaded a file", count())
+
+wordLinks
+| join kind= inner (docAttachments) on MachineId | where ClickTime - AttachmentSaveTime between (0min..2min)
+| join kind= inner (browserDownloads) on MachineId | where EventTime - ClickTime between (0min..2min) 
+| summarize dcount(MachineId)

@@ -1,0 +1,4 @@
+﻿//Search for Invoice.pdf.exe with alt SHA1
+
+FileCreationEvents
+| where SHA1 contains "831155953b4569a35ab84a03c33e9a1d2d80fb29"

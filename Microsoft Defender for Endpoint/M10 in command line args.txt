@@ -1,5 +1,0 @@
-﻿//M10 in command line args
-find in (ImageLoadEvents)
-where EventTime > ago(220d) and InitiatingProcessCommandLine contains "m10" 
-| project source_ , EventTime, InitiatingProcessCommandLine, ComputerName
-| sort by EventTime desc 

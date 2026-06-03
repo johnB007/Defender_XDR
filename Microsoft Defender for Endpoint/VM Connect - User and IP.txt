@@ -1,3 +1,0 @@
-DeviceNetworkEvents
-| where RemotePort == 2179 and Timestamp > ago(20d)
-| summarize RemoteIPCount=dcount(RemoteIP) by DeviceName, InitiatingProcessId, InitiatingProcessCreationTime, InitiatingProcessFileName, LocalIP, RemoteIP, InitiatingProcessAccountName

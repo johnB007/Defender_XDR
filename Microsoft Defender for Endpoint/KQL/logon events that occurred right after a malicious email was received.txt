@@ -1,0 +1,11 @@
+// Finds logon events that occurred right after a malicious email was received
+EmailEvents
+| where Timestamp > ago(7d)
+| where ThreatTypes has_cs "Malware" 
+| project EmailReceivedTime = Timestamp, Subject, SenderFromAddress, AccountName = tostring(split(RecipientEmailAddress, "@")[0])
+| join (
+DeviceLogonEvents 
+| where Timestamp > ago(7d)
+| project LogonTime = Timestamp, AccountName, DeviceName
+) on AccountName 
+| where (LogonTime - EmailReceivedTime) between (0min .. 30min)

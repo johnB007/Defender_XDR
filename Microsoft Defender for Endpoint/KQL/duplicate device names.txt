@@ -1,0 +1,7 @@
+//identify device names that are associated with multiple device IDs.
+DeviceInfo
+//| where OnboardingStatus == "Onboarded"
+| summarize DeviceIDs = make_set(DeviceId) by DeviceName
+| where array_length(DeviceIDs) > 1
+| project DeviceName, DeviceIDs
+| order by DeviceName asc

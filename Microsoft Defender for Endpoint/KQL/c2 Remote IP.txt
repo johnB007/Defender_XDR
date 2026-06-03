@@ -1,0 +1,3 @@
+﻿//
+NetworkCommunicationEvents
+| where RemoteIP == "52.184.165.63" 

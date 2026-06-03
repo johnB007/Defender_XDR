@@ -1,0 +1,10 @@
+// Finds the first appearance of files sent by a malicious sender in your organization
+let MaliciousSender = "malicious.sender@domain.com";
+EmailAttachmentInfo
+| where Timestamp > ago(7d)
+| where SenderFromAddress =~ MaliciousSender
+| join (
+DeviceFileEvents
+| where Timestamp > ago(7d)
+) on SHA256
+| summarize FirstAppearance = min(Timestamp) by DeviceName, SHA256, FileName

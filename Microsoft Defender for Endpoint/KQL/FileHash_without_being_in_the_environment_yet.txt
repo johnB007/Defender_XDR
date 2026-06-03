@@ -1,0 +1,7 @@
+//If they have only a file hash (without having file itself)  received from an entity (e.g. CERT or intelligence service) or received from another CSO from other bank that is a subject of an attack can they introduce this file hash in the WDATP database to be detected in the infrastructure?
+// the question remains if the hash can be inserted without the source of the file….  Never got an answer.
+
+let fileHash = "b331f62a12bd3f7aa91d33009e17e282e130905e";
+find in (FileCreationEvents, ProcessCreationEvents, NetworkCommunicationEvents)
+where SHA1 == fileHash or InitiatingProcessSHA1 == fileHash
+project ComputerName, ActionType, FileName, EventTime

@@ -1,0 +1,12 @@
+// Presents count of remote connections per browser during time duration defined by tStamp.
+//
+let tStamp = ago(30d); //Change based on time duration desired.
+DeviceNetworkEvents
+| where Timestamp > tStamp
+| where InitiatingProcessFileName == "chrome.exe" or InitiatingProcessFileName == "msedge.exe" or InitiatingProcessFileName == "firefox.exe" or InitiatingProcessFileName == "iexplore.exe"
+| where InitiatingProcessAccountName !contains "svc-"
+| where RemoteIPType == 'Public'
+| where ActionType != 'ConnectionFailed'
+| project InitiatingProcessFileName, InitiatingProcessAccountName, RemoteUrl, DeviceId, Timestamp, ReportId
+| summarize count() by InitiatingProcessFileName
+| sort by count_

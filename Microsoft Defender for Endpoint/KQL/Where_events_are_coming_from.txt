@@ -1,0 +1,14 @@
+//wanted to understand which events are coming from WD AV, which events are coming from EDR, which events are coming from ExploitGuard etc.
+
+//If they query from MiscEvents table, they can filter on ActionType startswith "Antivirus" to get all AV events, and ActionType startswith "ExploitGuard" for all ExploitGuard events.
+
+MiscEvents
+| where MachineId == "3c5ed1afeec3bbac99beaa4ad2dfce941488b115" and ActionType startswith "Antivirus" 
+ 
+If they want to get all other events, they could do this:
+find in (FileCreationEvents, ProcessCreationEvents, MiscEvents, RegistryEvents, NetworkCommunicationEvents, ImageLoadEvents)
+where MachineId == "3c5ed1afeec3bbac99beaa4ad2dfce941488b115"
+and EventTime between (datetime(2018-07-09T17:19) .. 1h)
+and ActionType !startswith "Antivirus" and ActionType !startswith "ExploitGuard"
+| limit 1000
+

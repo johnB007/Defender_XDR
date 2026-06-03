@@ -1,0 +1,10 @@
+﻿//logon
+let RemoteDesktopProcess = 
+	NetworkCommunicationEvents 
+	| where InitiatingProcessFileName has "mstsc.exe"
+	| project EventTime,LogonDestination=RemoteIP,LogonSource=ComputerName,LogonSourceAccount=InitiatingProcessAccountName;
+LogonEvents
+| where LogonType == "RemoteInteractive" or LogonType == "Network" or LogonType == "Batch"
+| project EventTime,LogonDestination=ComputerName,LogonDestinationAccount=AccountName,LogonSource=RemoteIP
+| union kind=outer RemoteDesktopProcess
+| sort by EventTime

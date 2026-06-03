@@ -1,0 +1,17 @@
+﻿//Smartscreen
+let smartscreenAppBlocks = 
+    MiscEvents
+    | where ActionType == "SmartScreenAppWarning" 
+            // Filter out known malware files used for testing smartscreen
+            and not (FileName startswith "knownmalicious" and FileName endswith ".exe")
+    | project EventTime, ComputerName, BlockedFileName=FileName, SHA1, Experience=tostring(parse_json(AdditionalFields).Experience), ActivityId=tostring(parse_json(AdditionalFields).ActivityId),
+    InitiatingProcessFileName, MachineId;
+// Query for UserDecision events - each one means the user has decided to ignore the warning and run the app.
+let userIgnoredWarning=
+    MiscEvents
+    | where ActionType == "SmartScreenUserOverride"
+    | project MachineId, ActivityId=tostring(parse_json(AdditionalFields).ActivityId);
+// Join the block and user decision event using an ActivityId
+let ignoredBlocks = smartscreenAppBlocks | join kind=leftsemi (userIgnoredWarning) on MachineId, ActivityId;
+// Select only blocks on "Malicious" files. Could remove this filter to view also Unknown or Untrusted files.
+ignoredBlocks | where Experience == "Malicious"

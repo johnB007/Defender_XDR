@@ -1,0 +1,13 @@
+//Check if the customer actually failed to logon
+
+LogonEvents
+| where ActionType == "LogonFailed"
+| project EventTime, RemoteIP, RemoteComputerName, AccountName, AccountDomain, LogonType, MachineId, ComputerName, ReportId 
+| join kind=leftsemi (
+    AlertEvents
+    | where Title == "Unusual number of failed sign-in attempts"
+// TODO maybe add filter on ComputerName or AlertId
+    | project MachineId, ReportId, EventTime
+) on MachineId, ReportId, EventTime 
+//| summarize count() by RemoteIP, RemoteComputerName
+//| order by count_ desc

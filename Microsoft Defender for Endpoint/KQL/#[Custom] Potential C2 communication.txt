@@ -1,0 +1,4 @@
+﻿//[Custom] Potential C2 communication
+NetworkCommunicationEvents
+| where RemoteIP == "40.69.149.89" or RemoteUrl == "c2-demo.centralus.cloudapp.azure.com"
+| where RemotePort == 80

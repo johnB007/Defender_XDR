@@ -1,5 +1,0 @@
-﻿//Files2
-FileCreationEvents
-| where EventTime > ago(30d)
-| project MachineId, FileName, SHA1, FolderPath
-| limit 100

@@ -1,0 +1,7 @@
+ //Search all .dll files that are not signed
+ DeviceImageLoadEvents
+| where FileName endswith ".dll" and (isempty(SHA1))
+| invoke FileProfile()
+| where Signer != "x"
+| where SignatureState != "x"
+| project DeviceId, DeviceName, InitiatingProcessAccountName, ActionType, FileName, FolderPath, Signer, SignatureState, IsExecutable

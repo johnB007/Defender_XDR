@@ -1,0 +1,4 @@
+DeviceEvents
+| where ActionType  == "ScreenshotTaken"
+| project Timestamp,  InitiatingProcessFileName, InitiatingProcessAccountName, DeviceName, ActionType, ReportId
+| order by Timestamp desc

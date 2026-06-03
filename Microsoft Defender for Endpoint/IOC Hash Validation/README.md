@@ -86,3 +86,8 @@ A sample is included as `Hash.sample.csv`.
 
 ## Screenshots
 
+<img width="988" height="231" alt="image" src="https://github.com/user-attachments/assets/bdcacf97-7a34-4c89-b628-85760bcd370b" />
+
+<img width="2277" height="201" alt="image" src="https://github.com/user-attachments/assets/5192b9ad-0cf5-4093-bdb6-7b4e2a6eccd7" />
+
+<img width="2284" height="250" alt="image" src="https://github.com/user-attachments/assets/a50def35-4d96-43dc-af2e-ff389135c52f" />

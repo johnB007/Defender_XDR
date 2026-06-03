@@ -86,21 +86,3 @@ A sample is included as `Hash.sample.csv`.
 
 ## Screenshots
 
-Drop PNG or JPG files into the `screenshots/` folder and reference them below.
-
-### Running the script
-
-![Running the script](screenshots/01-run.png)
-
-### Summary sheet
-
-![Summary sheet](screenshots/02-summary.png)
-
-### Already Covered by MDAV/VT sheet
-
-![Already covered sheet](screenshots/03-already-covered.png)
-
-### All Hashes sheet
-
-![All hashes sheet](screenshots/04-all-hashes.png)
-

@@ -59,6 +59,35 @@ If offboarding is not an option, two fallbacks:
 1. Bulk-edit the indicators to `Action = Audit` (or `Generate Alert = false`) for the run window, then revert. Detection still happens, no alert is raised. Risk: easy to forget to revert.
 2. Create an MDE alert suppression rule scoped to the lab host name for the duration of the run, then delete it. Alert still fires and is stored, just hidden from the queue and from SIEM forwarding rules that filter on suppression.
 
+#### Example: alert suppression rule for the lab host
+
+In the MDE portal: **Settings -> Microsoft Defender XDR -> Rules -> Alert suppression -> Add**.
+
+| Field | Value |
+|---|---|
+| **Rule name** | `LAB - IOC Validation run - <YYYY-MM-DD>` |
+| **Triggering IOC** | leave empty |
+| **Conditions** | `Device name` `equals` `LAB-IOC-VM01` (use your lab hostname) |
+| **Action** | Hide alert |
+| **Comment** | Bulk validation of URL/Domain custom IOCs. Delete this rule after the run completes. |
+| **Scope** | All alerts that match the conditions |
+
+Save and enable. After the script finishes, go back to the same page and **delete the rule** so future alerts on that host are not silently dropped.
+
+Two important notes:
+
+- Suppression is **per device**, not per indicator. Any other alert on that lab host during the window is also hidden. Do not do real work on the lab box while the rule is active.
+- Alerts are still **created and stored** in the tenant, just marked resolved/hidden. They still count against retention. If your goal is zero storage impact, use the offboarded host approach instead.
+
+If you prefer Advanced Hunting, you can confirm the rule is working with:
+
+```kql
+AlertInfo
+| where Timestamp > ago(1h)
+| where DeviceName == "LAB-IOC-VM01"
+| summarize count(), HiddenCount = countif(DetectionSource has "WindowsDefenderAv" or Severity != "")
+```
+
 ## How to run
 
 1. Export your URL/Domain indicators from MDE: Settings, Endpoints, Indicators, URLs/Domains, Export.

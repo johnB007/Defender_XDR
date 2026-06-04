@@ -44,6 +44,17 @@ Each subfolder has its own README with the exact usage, CSV format, and output c
 3. Run the script for that page.
 4. Open the XLSX, review the Summary sheet, remove the indicators that are already covered from MDE.
 
+## Lab host hygiene (URL Domain only)
+
+The URL Domain validator intentionally connects to known bad infrastructure to see what gets blocked. Treat the lab box the same way you would treat a malware detonation box:
+
+- Non production VM, not joined to your domain or tenant. No corporate identity on the box.
+- Not on a corporate network segment. Use an isolated lab VLAN or a separate ISP/hotspot connection so a callback cannot pivot into production.
+- Non-attributable. No corporate hostname, no internal IP, nothing that maps the traffic back to your org.
+- Snapshot the VM before each run and revert after. Never reuse the box for anything else.
+
+The Hash validator does not detonate anything, it only queries VirusTotal, so this section does not apply to it.
+
 ## Why we do not test IP indicators
 
 IP IOCs are intentionally out of scope for the URL/Domain validator. The two engines this repo relies on cannot give a useful verdict on a raw IP from a non-onboarded lab host:

@@ -8,7 +8,7 @@ Use these on older or OSINT IOCs that have been sitting in the tenant. Do not us
 
 | Folder | What it does |
 |---|---|
-| [Hash](./Hash) | Checks file hash IOCs against VirusTotal so you can drop the ones MDAV already detects. |
+| [Hash](./Hash) | Checks file hash IOCs against VirusTotal so you can drop the ones MDAV already detects. The Microsoft engine entry in VT (`last_analysis_results.Microsoft`) is what MDAV would call on a real endpoint, so a `MDAV-Malicious` or `MDAV-Suspicious` verdict means the hash is already covered. |
 | [URL Domain](./URL%20Domain) | Runs URL and Domain IOCs through a lab host with Network Protection and SmartScreen, then reads the local event logs to see what got blocked. IP indicators are out of scope - leave them in MDE. |
 
 Each subfolder has its own README with the exact usage, CSV format, and output columns.

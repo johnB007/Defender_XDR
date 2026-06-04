@@ -17,13 +17,19 @@ For every Url, DomainName, or IpAddress row in your MDE export the script:
 
 The `OverallVerdict` column tells you what to do:
 
-| Verdict | Meaning |
-|---|---|
-| `Covered-NP-Block` | NP blocked the connection (event 1126). Remove from MDE. |
-| `Covered-NP-Audit` | NP logged the connection in audit mode (event 1125). Keep the MDE block until NP is set to Block. |
-| `Covered-SmartScreen` | SmartScreen flagged the URL. Remove from MDE if browsers are the only access path. |
-| `Not-Covered-Keep-In-MDE` | No NP or SmartScreen event fired. Keep the indicator in MDE. |
-| `Error-NoResolution` | DNS failed. Recheck manually. |
+| Verdict | Meaning | Action |
+|---|---|---|
+| `Covered-NP-Block` | NP blocked the connection (event 1126). | **Safe to remove from MDE.** Microsoft is already blocking it cloud-wide. |
+| `Covered-NP-Audit` | NP logged the connection in audit mode (event 1125). | Keep the MDE block until NP is set to Block. |
+| `Covered-SmartScreen` | SmartScreen flagged the URL. | Remove from MDE if browsers are the only access path; otherwise keep. |
+| `Not-Covered-Keep-In-MDE` | The request reached the server and no NP or SmartScreen event fired. | **Keep in MDE.** Microsoft's global block list does not (yet) cover this indicator, which is exactly why you pushed it as a custom IOC. |
+| `Error-NoResolution` | DNS did not resolve, or the TCP/HTTP request never made it to a server, so NP/SmartScreen had nothing to inspect. | **Keep in MDE.** Most common cause: the malicious domain has already been sinkholed or taken down at the registrar. The indicator is still cheap insurance in case it comes back. |
+
+### What `Not-Covered` does NOT mean
+
+`Not-Covered-Keep-In-MDE` is **not** "NP is broken" or "the indicator is safe." Network Protection and SmartScreen only block what is on Microsoft's own cloud-delivered protection feed. Fresh MDTI exports, your custom MDE IOCs, and most third-party feeds are not on that list by design — that is the whole reason you push them to MDE in the first place. A large `NotCovered` count in the report is the expected, healthy result for a freshly exported indicator set.
+
+If `CoveredNPBlock` were high, that would actually be the surprise: it would mean you can safely delete those entries from MDE because Microsoft already blocks them globally.
 
 ## Why no cloud auth
 

@@ -2,6 +2,8 @@
 
 PowerShell tools for validating Microsoft Defender for Endpoint (MDE) custom IOCs in bulk, so you can clean out stale indicators and keep only the ones that still need to live in MDE.
 
+These tools are meant for cleaning up older, general-purpose, or OSINT-sourced IOCs that have been sitting in your tenant. They are **not** intended for IOCs tied to an active threat actor campaign, an incident-response engagement, or any indicator your SOC is currently using for hunting or attribution. Keep those in place.
+
 ## What's here
 
 | Folder | What it does |

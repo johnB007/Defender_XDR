@@ -83,6 +83,21 @@ Example:
 .\Validate-UrlDomainIOCs.ps1 -InputPath .\Url.csv -PerIndicatorDelayMs 4000
 ```
 
+### IP indicators
+
+The same script also handles IP IOCs. In the MDE portal: `Settings > Endpoints > Indicators > IP addresses > Export`. Drop the IP CSV into this folder alongside the URL/Domain export.
+
+The script picks the newest file in the folder. If you have both exports here, pick which one to run:
+
+```powershell
+.\Validate-UrlDomainIOCs.ps1 -InputPath .\Url.csv
+.\Validate-UrlDomainIOCs.ps1 -InputPath .\Ip.csv
+```
+
+You get one `_Validated_<timestamp>.xlsx` per run. If you want a single combined report, concatenate the two CSVs first (they share the same MDE schema) and run once.
+
+For IP rows the script does a TCP 443 probe instead of HTTP, then reads the same NP/SmartScreen event logs. Interpret IP verdicts more carefully than URL/Domain verdicts: NP and SmartScreen are built around URL and domain reputation, so a clean IP with no DNS history often comes back as `Not-Covered-Keep-In-MDE` even when the IP is genuinely bad. Treat `Not-Covered` on an IP as "no built-in coverage exists for raw IPs, keep the MDE block."
+
 ## Runtime and tuning for large lists
 
 The script is serial by design. For each indicator it does DNS + HTTP (or TCP), waits for Defender to flush its events, then queries the local event log. On a healthy lab host expect roughly:

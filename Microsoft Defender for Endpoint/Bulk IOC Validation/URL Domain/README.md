@@ -40,11 +40,9 @@ Run on a Windows 10 or 11 lab host (or Windows Server with Defender) where:
   ```
 
 - SmartScreen is on (default on Windows 10/11).
-- `ImportExcel` module (auto installed on first run).
+- `ImportExcel` module (one-time install, see the parent [Bulk IOC Validation README](../README.md#prerequisites-do-this-once-before-the-first-run))
 
 The script refuses to run if NP is disabled.
-
-For the one-time `ImportExcel` install, see the parent [Bulk IOC Validation README](../README.md#prerequisites-do-this-once-before-the-first-run).
 
 ## How to run
 

@@ -44,6 +44,21 @@ Run on a Windows 10 or 11 lab host (or Windows Server with Defender) where:
 
 The script refuses to run if NP is disabled.
 
+### Use an MDE-offboarded lab host
+
+Every detonation that matches a custom IOC fires the real MDE alert in the portal. On a 5,000 indicator run that is 5,000 alerts in your queue. Run this script on a Windows 10 or 11 VM that is **not** onboarded to MDE.
+
+- NP, SmartScreen, and Defender AV still work on an offboarded host. They are built into the OS, not into MDE.
+- Local event logs still record `1125` / `1126` for NP and the SmartScreen channel, which is all the script reads.
+- Zero alerts fire in the portal because the host does not report there.
+
+To offboard for testing: in the MDE portal go to `Settings -> Endpoints -> Offboarding -> Windows -> Local Script`, run the package, reboot. Re-onboard when you are done. The lab VM can stay on the corporate network or open internet, it just needs DNS and outbound 80/443 to detonate.
+
+If offboarding is not an option, two fallbacks:
+
+1. Bulk-edit the indicators to `Action = Audit` (or `Generate Alert = false`) for the run window, then revert. Detection still happens, no alert is raised. Risk: easy to forget to revert.
+2. Create an MDE alert suppression rule scoped to the lab host name for the duration of the run, then delete it. Alert still fires and is stored, just hidden from the queue and from SIEM forwarding rules that filter on suppression.
+
 ## How to run
 
 1. Export your URL/Domain indicators from MDE: Settings, Endpoints, Indicators, URLs/Domains, Export.

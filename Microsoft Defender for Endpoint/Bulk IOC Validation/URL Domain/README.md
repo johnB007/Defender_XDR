@@ -70,46 +70,6 @@ In the MDE portal: **Settings -> Endpoints -> Indicators -> URLs/Domains**.
    - or leave Action as is and untick `Generate alert`
 4. After the script finishes, **revert** by re-importing the `_BEFORE.csv` you saved in step 1, choosing `Replace existing indicators` on import.
 
-For larger lists or to script the change, use the MDE Indicators API:
-
-```powershell
-# 1. Get a token (replace tenant + app reg values)
-$tenantId = '<your-tenant-id>'
-$clientId = '<your-app-reg-client-id>'
-$secret   = '<your-client-secret>'
-$body = @{
-    grant_type    = 'client_credentials'
-    client_id     = $clientId
-    client_secret = $secret
-    resource      = 'https://api.securitycenter.microsoft.com'
-}
-$token = (Invoke-RestMethod -Method POST `
-    -Uri "https://login.microsoftonline.com/$tenantId/oauth2/token" `
-    -Body $body).access_token
-$hdr = @{ Authorization = "Bearer $token" }
-
-# 2. List current URL/Domain indicators
-$inds = (Invoke-RestMethod -Method GET -Headers $hdr `
-    -Uri 'https://api.securitycenter.microsoft.com/api/indicators' ).value |
-        Where-Object indicatorType -in 'Url','DomainName'
-
-# 3. Flip them to Audit + generateAlert=false (save the originals first)
-$inds | Export-Csv .\Indicators_BEFORE.csv -NoTypeInformation
-foreach ($i in $inds) {
-    $patch = @{ action = 'Audit'; generateAlert = $false } | ConvertTo-Json
-    Invoke-RestMethod -Method PATCH -Headers $hdr -ContentType 'application/json' `
-        -Uri "https://api.securitycenter.microsoft.com/api/indicators/$($i.id)" -Body $patch
-}
-
-# 4. After the validator run, revert from the CSV
-$orig = Import-Csv .\Indicators_BEFORE.csv
-foreach ($i in $orig) {
-    $patch = @{ action = $i.action; generateAlert = [bool]::Parse($i.generateAlert) } | ConvertTo-Json
-    Invoke-RestMethod -Method PATCH -Headers $hdr -ContentType 'application/json' `
-        -Uri "https://api.securitycenter.microsoft.com/api/indicators/$($i.id)" -Body $patch
-}
-```
-
 Two important notes:
 
 - **Set a calendar reminder** to revert. An indicator left on Audit blocks nothing in production. The most common failure mode of this approach is "we forgot to switch them back."

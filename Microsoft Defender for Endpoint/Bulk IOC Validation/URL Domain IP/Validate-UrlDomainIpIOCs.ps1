@@ -211,11 +211,17 @@ function Invoke-Detonation {
     }
 
     $targetHost = Get-Host -Value $Indicator
-    try {
-        $dns = Resolve-DnsName -Name $targetHost -DnsOnly -ErrorAction Stop
-        $result.DnsResolved = [bool]$dns
-    } catch {
-        $result.Error = "DNS: $($_.Exception.Message)"
+    if ($Type -eq 'IpAddress') {
+        # An IP indicator IS the address - there is nothing to resolve. Reverse-DNS (PTR)
+        # is optional and its absence tells us nothing useful, so don't gate the verdict on it.
+        $result.DnsResolved = $true
+    } else {
+        try {
+            $dns = Resolve-DnsName -Name $targetHost -DnsOnly -ErrorAction Stop
+            $result.DnsResolved = [bool]$dns
+        } catch {
+            $result.Error = "DNS: $($_.Exception.Message)"
+        }
     }
 
     if ($Type -eq 'Url' -or $Type -eq 'DomainName') {
@@ -365,7 +371,8 @@ foreach ($row in $rows) {
         if     ($np -and $np.Status -eq 'Blocked')  { 'Covered-NP-Block' }
         elseif ($np -and $np.Status -eq 'Audited')  { 'Covered-NP-Audit' }
         elseif ($ss)                                { 'Covered-SmartScreen' }
-        elseif ($det.Error -and -not $det.DnsResolved) { 'Error-NoResolution' }
+        elseif ($type -eq 'IpAddress' -and $det.HttpStatus -eq 'TcpBlocked') { 'Error-NoResolution' }
+        elseif ($type -ne 'IpAddress' -and $det.Error -and -not $det.DnsResolved) { 'Error-NoResolution' }
         else                                        { 'Not-Covered-Keep-In-MDE' }
 
     $results.Add([PSCustomObject]@{

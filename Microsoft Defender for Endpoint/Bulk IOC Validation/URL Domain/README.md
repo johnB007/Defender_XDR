@@ -44,65 +44,17 @@ Run on a Windows 10 or 11 lab host (or Windows Server with Defender) where:
 
 The script refuses to run if NP is disabled.
 
-### Use an MDE-offboarded lab host
+### Keeping MDE alerts quiet during the run
 
-Every detonation that matches a custom IOC fires the real MDE alert in the portal. On a 5,000 indicator run that is 5,000 alerts in your queue. Run this script on a Windows 10 or 11 VM that is **not** onboarded to MDE.
+Every detonation that matches a custom IOC fires a real MDE alert. A 5,000 indicator run means 5,000 alerts in the queue. Two ways to avoid that:
 
-- NP, SmartScreen, and Defender AV still work on an offboarded host. They are built into the OS, not into MDE.
-- Local event logs still record `1125` / `1126` for NP and the SmartScreen channel, which is all the script reads.
-- Zero alerts fire in the portal because the host does not report there.
+**Option 1 (recommended). Run on a lab VM that is offboarded from MDE.** NP, SmartScreen and Defender AV still work because they are built into the OS. The script reads local event logs, so it still gets verdicts. Zero alerts in the portal because the host does not report there.
 
-To offboard for testing: in the MDE portal go to `Settings -> Endpoints -> Offboarding -> Windows -> Local Script`, run the package, reboot. Re-onboard when you are done. The lab VM can stay on the corporate network or open internet, it just needs DNS and outbound 80/443 to detonate.
+Offboard path: `Settings > Endpoints > Offboarding > Windows > Local Script`, run the package, reboot. Re-onboard when finished.
 
-If offboarding is not an option, two fallbacks:
+**Option 2. Create an MDE alert suppression rule for the lab hostname before the run, delete it after.** Alerts still fire but are hidden from the queue.
 
-1. Bulk-edit the indicators to `Action = Audit` (or `Generate Alert = false`) for the run window, then revert. Detection still happens, no alert is raised. Risk: easy to forget to revert.
-2. Create an MDE alert suppression rule scoped to the lab host name for the duration of the run, then delete it. Alert still fires and is stored, just hidden from the queue and from SIEM forwarding rules that filter on suppression.
-
-#### Example: bulk-edit indicators to Audit for the run window
-
-In the MDE portal: **Settings -> Endpoints -> Indicators -> URLs/Domains**.
-
-1. **Export** the current list first as a safety net: `Export` button -> save as `Url_Indicators_<YYYY-MM-DD>_BEFORE.csv`. You will use this file to revert.
-2. **Filter** to just the IOCs you plan to validate (by Category, Created By, date range, or upload). Multi-select them.
-3. **Edit** the selection:
-   - Action: `Audit` (still records hits in `DeviceEvents` / `AlertEvidence`, no portal alert)
-   - or leave Action as is and untick `Generate alert`
-4. After the script finishes, **revert** by re-importing the `_BEFORE.csv` you saved in step 1, choosing `Replace existing indicators` on import.
-
-Two important notes:
-
-- **Set a calendar reminder** to revert. An indicator left on Audit blocks nothing in production. The most common failure mode of this approach is "we forgot to switch them back."
-- Auditing the indicator does **not** stop NP/SmartScreen from firing their own events locally. The validator script reads those local events, so it still works while the indicators are in Audit.
-
-#### Example: alert suppression rule for the lab host
-
-In the MDE portal: **Settings -> Microsoft Defender XDR -> Rules -> Alert suppression -> Add**.
-
-| Field | Value |
-|---|---|
-| **Rule name** | `LAB - IOC Validation run - <YYYY-MM-DD>` |
-| **Triggering IOC** | leave empty |
-| **Conditions** | `Device name` `equals` `LAB-IOC-VM01` (use your lab hostname) |
-| **Action** | Hide alert |
-| **Comment** | Bulk validation of URL/Domain custom IOCs. Delete this rule after the run completes. |
-| **Scope** | All alerts that match the conditions |
-
-Save and enable. After the script finishes, go back to the same page and **delete the rule** so future alerts on that host are not silently dropped.
-
-Two important notes:
-
-- Suppression is **per device**, not per indicator. Any other alert on that lab host during the window is also hidden. Do not do real work on the lab box while the rule is active.
-- Alerts are still **created and stored** in the tenant, just marked resolved/hidden. They still count against retention. If your goal is zero storage impact, use the offboarded host approach instead.
-
-If you prefer Advanced Hunting, you can confirm the rule is working with:
-
-```kql
-AlertInfo
-| where Timestamp > ago(1h)
-| where DeviceName == "LAB-IOC-VM01"
-| summarize count(), HiddenCount = countif(DetectionSource has "WindowsDefenderAv" or Severity != "")
-```
+Path: `Settings > Microsoft Defender XDR > Rules > Alert suppression > Add`. Condition: `Device name equals <your lab hostname>`. Action: `Hide alert`. Delete the rule when the run is done.
 
 ## How to run
 

@@ -148,3 +148,10 @@ Recognized column names (case insensitive):
 - SmartScreen for URLs fires from a browser. If an indicator only triggers SmartScreen, run a few of them through Edge to confirm.
 - Audit mode NP does not block traffic. If you see `Covered-NP-Audit` for everything, your fleet is not protected until NP is set to Block.
 - Run on a non production VM. You are intentionally connecting to known bad infrastructure.
+
+## Screenshots
+<img width="2017" height="135" alt="nNwOu8WlaI" src="https://github.com/user-attachments/assets/b3859a28-ead4-49b5-9462-9f7300eea327" />
+<img width="2247" height="240" alt="image" src="https://github.com/user-attachments/assets/b0413c55-9a3d-444c-9d32-81bce8afdb33" />
+<img width="2331" height="233" alt="image" src="https://github.com/user-attachments/assets/34099032-8788-4eaa-9989-91cad0583dce" />
+
+

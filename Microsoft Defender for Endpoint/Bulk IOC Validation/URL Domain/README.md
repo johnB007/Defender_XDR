@@ -40,7 +40,7 @@ Everything runs locally on the lab host. NP and SmartScreen write verdicts to Wi
 
 ## Prerequisites
 
-Run on a Windows 10 or 11 lab host (or Windows Server with Defender) where:
+Run on a Windows 10 or 11 lab host (or Windows Server with Microsoft Defender Antivirus) where:
 
 - You are an Administrator (event logs need elevation).
 - Microsoft Defender Antivirus is active (not a third party AV).

@@ -209,21 +209,41 @@ function Invoke-Detonation {
     }
 
     if ($Type -eq 'Url' -or $Type -eq 'DomainName') {
-        $url = if ($Indicator -match '^https?://') { $Indicator } else { "http://$targetHost/" }
-        try {
-            $r = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec $TimeoutSec -MaximumRedirection 0 -ErrorAction Stop
-            $result.HttpStatus = [int]$r.StatusCode
-        } catch [System.Net.WebException] {
-            if ($_.Exception.Response) {
-                $result.HttpStatus = [int]$_.Exception.Response.StatusCode
-            } else {
-                $result.HttpStatus = 'NoResponse'
-            }
-            $result.Error = $_.Exception.Message
-        } catch {
-            $result.HttpStatus = 'Error'
-            $result.Error = $_.Exception.Message
+        # Try HTTPS first (most modern malicious URLs are 443-only and NP keys on the SNI).
+        $urls = if ($Indicator -match '^https?://') {
+            @($Indicator)
+        } else {
+            @("https://$targetHost/", "http://$targetHost/")
         }
+
+        $lastErr = $null
+        foreach ($url in $urls) {
+            try {
+                $r = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec $TimeoutSec -MaximumRedirection 0 -SkipCertificateCheck -ErrorAction Stop
+                $result.HttpStatus = [int]$r.StatusCode
+                $lastErr = $null
+                break
+            } catch {
+                $ex = $_.Exception
+                # PS7: HttpRequestException carries StatusCode directly.
+                $sc = $null
+                if ($ex.PSObject.Properties['StatusCode'] -and $ex.StatusCode) { $sc = [int]$ex.StatusCode }
+                elseif ($ex.Response -and $ex.Response.StatusCode)              { $sc = [int]$ex.Response.StatusCode }
+                # Also try parsing "Response status code does not indicate success: 301 (...)"
+                if (-not $sc -and $ex.Message -match 'status code does not indicate success: (\d{3})') { $sc = [int]$Matches[1] }
+
+                if ($sc) {
+                    # Got a real HTTP response - request reached the server, NP had a fair shot.
+                    $result.HttpStatus = $sc
+                    $lastErr = $null
+                    break
+                } else {
+                    $result.HttpStatus = 'NoResponse'
+                    $lastErr = $ex.Message
+                }
+            }
+        }
+        if ($lastErr) { $result.Error = $lastErr }
     } elseif ($Type -eq 'IpAddress') {
         try {
             $tcp = Test-NetConnection -ComputerName $targetHost -Port 443 -WarningAction SilentlyContinue

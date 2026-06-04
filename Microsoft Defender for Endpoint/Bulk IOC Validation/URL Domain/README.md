@@ -59,6 +59,62 @@ If offboarding is not an option, two fallbacks:
 1. Bulk-edit the indicators to `Action = Audit` (or `Generate Alert = false`) for the run window, then revert. Detection still happens, no alert is raised. Risk: easy to forget to revert.
 2. Create an MDE alert suppression rule scoped to the lab host name for the duration of the run, then delete it. Alert still fires and is stored, just hidden from the queue and from SIEM forwarding rules that filter on suppression.
 
+#### Example: bulk-edit indicators to Audit for the run window
+
+In the MDE portal: **Settings -> Endpoints -> Indicators -> URLs/Domains**.
+
+1. **Export** the current list first as a safety net: `Export` button -> save as `Url_Indicators_<YYYY-MM-DD>_BEFORE.csv`. You will use this file to revert.
+2. **Filter** to just the IOCs you plan to validate (by Category, Created By, date range, or upload). Multi-select them.
+3. **Edit** the selection:
+   - Action: `Audit` (still records hits in `DeviceEvents` / `AlertEvidence`, no portal alert)
+   - or leave Action as is and untick `Generate alert`
+4. After the script finishes, **revert** by re-importing the `_BEFORE.csv` you saved in step 1, choosing `Replace existing indicators` on import.
+
+For larger lists or to script the change, use the MDE Indicators API:
+
+```powershell
+# 1. Get a token (replace tenant + app reg values)
+$tenantId = '<your-tenant-id>'
+$clientId = '<your-app-reg-client-id>'
+$secret   = '<your-client-secret>'
+$body = @{
+    grant_type    = 'client_credentials'
+    client_id     = $clientId
+    client_secret = $secret
+    resource      = 'https://api.securitycenter.microsoft.com'
+}
+$token = (Invoke-RestMethod -Method POST `
+    -Uri "https://login.microsoftonline.com/$tenantId/oauth2/token" `
+    -Body $body).access_token
+$hdr = @{ Authorization = "Bearer $token" }
+
+# 2. List current URL/Domain indicators
+$inds = (Invoke-RestMethod -Method GET -Headers $hdr `
+    -Uri 'https://api.securitycenter.microsoft.com/api/indicators' ).value |
+        Where-Object indicatorType -in 'Url','DomainName'
+
+# 3. Flip them to Audit + generateAlert=false (save the originals first)
+$inds | Export-Csv .\Indicators_BEFORE.csv -NoTypeInformation
+foreach ($i in $inds) {
+    $patch = @{ action = 'Audit'; generateAlert = $false } | ConvertTo-Json
+    Invoke-RestMethod -Method PATCH -Headers $hdr -ContentType 'application/json' `
+        -Uri "https://api.securitycenter.microsoft.com/api/indicators/$($i.id)" -Body $patch
+}
+
+# 4. After the validator run, revert from the CSV
+$orig = Import-Csv .\Indicators_BEFORE.csv
+foreach ($i in $orig) {
+    $patch = @{ action = $i.action; generateAlert = [bool]::Parse($i.generateAlert) } | ConvertTo-Json
+    Invoke-RestMethod -Method PATCH -Headers $hdr -ContentType 'application/json' `
+        -Uri "https://api.securitycenter.microsoft.com/api/indicators/$($i.id)" -Body $patch
+}
+```
+
+Two important notes:
+
+- **Set a calendar reminder** to revert. An indicator left on Audit blocks nothing in production. The most common failure mode of this approach is "we forgot to switch them back."
+- Auditing the indicator does **not** stop NP/SmartScreen from firing their own events locally. The validator script reads those local events, so it still works while the indicators are in Audit.
+
 #### Example: alert suppression rule for the lab host
 
 In the MDE portal: **Settings -> Microsoft Defender XDR -> Rules -> Alert suppression -> Add**.

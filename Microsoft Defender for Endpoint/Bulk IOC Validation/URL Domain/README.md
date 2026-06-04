@@ -44,24 +44,7 @@ Run on a Windows 10 or 11 lab host (or Windows Server with Defender) where:
 
 The script refuses to run if NP is disabled.
 
-### One-time setup: install ImportExcel before the first run
-
-The script will try to install the `ImportExcel` module on first run, but PowerShell cannot reliably load a module that was installed in the same session. Do this once in a separate elevated PowerShell window, then close it and open a fresh elevated window to run the script:
-
-```powershell
-Install-Module ImportExcel -Scope CurrentUser -Force -AllowClobber
-```
-
-If you see `No match was found for the specified search criteria` or a NuGet prompt, run these first:
-
-```powershell
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Scope CurrentUser -Force
-Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-Install-Module ImportExcel -Scope CurrentUser -Force -AllowClobber
-```
-
-Verify with `Get-Module -ListAvailable ImportExcel` before running the validator.
+For the one-time `ImportExcel` install, see the parent [Bulk IOC Validation README](../README.md#prerequisites-do-this-once-before-the-first-run).
 
 ## How to run
 

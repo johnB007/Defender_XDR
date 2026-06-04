@@ -15,25 +15,25 @@ Each subfolder has its own README with the full usage, the CSV format, and the e
 
 ## Prerequisites (do this once before the first run)
 
-1. **Windows PowerShell 5.1 or PowerShell 7+**, run **as Administrator**.
-2. **Install the ImportExcel module** in a fresh elevated window:
+1. **PowerShell 7** (recommended) or Windows PowerShell 5.1, run **as Administrator**.
+2. **Install the ImportExcel module once.** Open an elevated PowerShell window and run:
 
    ```powershell
    Install-Module ImportExcel -Scope CurrentUser -Force -AllowClobber
    ```
 
-   If that fails with a NuGet / TLS / repository error, run this first and then retry:
+   You may see a one-time "Untrusted repository" prompt — answer **Y**. When the prompt comes back to a blank line, the install is done.
+
+   > On PowerShell 7 you can ignore any `Install-PackageProvider NuGet` warning you may have seen in older guides. PS7 does not use that provider and `Install-Module` works directly against PSGallery.
+
+3. **Close that window and open a new PowerShell window** before running any script. PowerShell can't always pick up a freshly installed module in the same session.
+4. Verify it's there:
 
    ```powershell
-   [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-   Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Scope CurrentUser -Force
-   Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-   Install-Module ImportExcel -Scope CurrentUser -Force -AllowClobber
+   Get-Module -ListAvailable ImportExcel
    ```
 
-   Then **close and reopen PowerShell** before running any script.
-
-3. Page-specific extras:
+5. Page-specific extras:
    - **Hash**: a VirusTotal API key (free tier works).
    - **URL Domain**: a lab/test Windows host with Network Protection **and** SmartScreen enabled. Do not run on a production endpoint.
 

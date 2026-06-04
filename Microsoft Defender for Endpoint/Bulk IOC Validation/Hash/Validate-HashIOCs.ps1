@@ -52,28 +52,14 @@ if (-not $VtApiKey) {
 if (-not $VtApiKey) { throw "VirusTotal API key is required." }
 
 # ---------- modules ----------
-if (-not (Get-Module -ListAvailable -Name ImportExcel)) {
-    Write-Host "ImportExcel module not found. Bootstrapping..." -ForegroundColor Yellow
-    try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch {}
-    if (-not (Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction SilentlyContinue |
-              Where-Object Version -ge '2.8.5.201')) {
-        Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Scope CurrentUser -Force | Out-Null
-    }
-    try {
-        if ((Get-PSRepository -Name PSGallery -ErrorAction Stop).InstallationPolicy -ne 'Trusted') {
-            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-        }
-    } catch {}
-    Install-Module ImportExcel -Scope CurrentUser -Force -AllowClobber -SkipPublisherCheck -ErrorAction Stop
-    $userModules = Join-Path $env:USERPROFILE 'Documents\WindowsPowerShell\Modules'
-    if ($PSVersionTable.PSEdition -eq 'Core') { $userModules = Join-Path $env:USERPROFILE 'Documents\PowerShell\Modules' }
-    if ((Test-Path $userModules) -and ($env:PSModulePath -notlike "*$userModules*")) {
-        $env:PSModulePath = "$userModules;$env:PSModulePath"
-    }
-}
 $mod = Get-Module -ListAvailable -Name ImportExcel | Sort-Object Version -Descending | Select-Object -First 1
 if (-not $mod) {
-    Write-Error "ImportExcel installation failed. Manually run: Install-Module ImportExcel -Scope CurrentUser -Force`nThen re-run this script in a NEW PowerShell window."
+    Write-Host ""
+    Write-Host "ImportExcel is not installed. Install it once, then re-run this script:" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "    Install-Module ImportExcel -Scope CurrentUser -Force -AllowClobber" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "After it finishes, close this window and open a new PowerShell window before running the script again." -ForegroundColor Yellow
     exit 1
 }
 Import-Module $mod.Path -ErrorAction Stop

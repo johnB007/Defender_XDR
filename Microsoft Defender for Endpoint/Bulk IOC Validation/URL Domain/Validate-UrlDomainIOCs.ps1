@@ -61,44 +61,14 @@ if (-not $isAdmin) {
     exit 1
 }
 
-if (-not (Get-Module -ListAvailable -Name ImportExcel)) {
-    Write-Host "ImportExcel module not found. Bootstrapping..." -ForegroundColor Yellow
-
-    # TLS 1.2 required for PSGallery on older PS5.1 hosts
-    try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch {}
-
-    # NuGet provider must exist for PowerShellGet to install anything
-    if (-not (Get-PackageProvider -Name NuGet -ListAvailable -ErrorAction SilentlyContinue |
-              Where-Object Version -ge '2.8.5.201')) {
-        Write-Host "  Installing NuGet package provider..." -ForegroundColor Yellow
-        Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Scope CurrentUser -Force | Out-Null
-    }
-
-    # Trust PSGallery so Install-Module doesn't hang on a prompt
-    try {
-        if ((Get-PSRepository -Name PSGallery -ErrorAction Stop).InstallationPolicy -ne 'Trusted') {
-            Set-PSRepository -Name PSGallery -InstallationPolicy Trusted
-        }
-    } catch {}
-
-    Write-Host "  Installing ImportExcel (CurrentUser)..." -ForegroundColor Yellow
-    Install-Module ImportExcel -Scope CurrentUser -Force -AllowClobber -SkipPublisherCheck -ErrorAction Stop
-
-    # Refresh module path so the just-installed module is discoverable in this session
-    $userModules = Join-Path $env:USERPROFILE 'Documents\WindowsPowerShell\Modules'
-    if ($PSVersionTable.PSEdition -eq 'Core') {
-        $userModules = Join-Path $env:USERPROFILE 'Documents\PowerShell\Modules'
-    }
-    if ((Test-Path $userModules) -and ($env:PSModulePath -notlike "*$userModules*")) {
-        $env:PSModulePath = "$userModules;$env:PSModulePath"
-    }
-}
-
-# Import by explicit path if Get-Module still can't find it, so we never hit
-# the "Specified module 'ImportExcel' was not loaded" error.
 $mod = Get-Module -ListAvailable -Name ImportExcel | Sort-Object Version -Descending | Select-Object -First 1
 if (-not $mod) {
-    Write-Error "ImportExcel installation appears to have failed. Try manually:`n  Install-Module ImportExcel -Scope CurrentUser -Force`nThen re-run this script in a NEW PowerShell window."
+    Write-Host ""
+    Write-Host "ImportExcel is not installed. Install it once, then re-run this script:" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "    Install-Module ImportExcel -Scope CurrentUser -Force -AllowClobber" -ForegroundColor Cyan
+    Write-Host ""
+    Write-Host "After it finishes, close this window and open a new PowerShell window before running the script again." -ForegroundColor Yellow
     exit 1
 }
 Import-Module $mod.Path -ErrorAction Stop

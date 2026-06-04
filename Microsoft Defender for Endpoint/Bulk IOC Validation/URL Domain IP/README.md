@@ -56,15 +56,15 @@ If the VM was previously onboarded, offboard it first: `Settings > Endpoints > O
 
 ## How to run
 
-1. Export your URL/Domain indicators from MDE: Settings, Endpoints, Indicators, URLs/Domains, Export.
-2. Drop the `.csv` or `.xlsx` into this folder next to `Validate-UrlDomainIpIOCs.ps1`.
+1. Export your URL/Domain indicators from MDE: Settings, Endpoints, Indicators, URLs/Domains, Export. Repeat for IPs if you want both scanned in one run.
+2. Drop the `.csv` or `.xlsx` file(s) into this folder next to `Validate-UrlDomainIpIOCs.ps1`.
 3. Run PowerShell as Administrator in this folder:
 
    ```powershell
    .\Validate-UrlDomainIpIOCs.ps1
    ```
 
-   The script picks the newest non `Validated` CSV or XLSX in the folder.
+   With no `-InputPath`, the script processes **every** non-`Validated` CSV/XLSX in the folder and writes a single combined `Combined_Validated_<timestamp>.xlsx`. Pass `-InputPath` to limit it to one file.
 
 4. When it finishes, `Url_Validated_<timestamp>.xlsx` opens.
 

@@ -128,36 +128,35 @@ if ($mpStatus) {
     Write-Host "MDAV signature: $($mpStatus.AntivirusSignatureVersion) (updated $($mpStatus.AntivirusSignatureLastUpdated))" -ForegroundColor Cyan
 }
 
-# --- Locate input file ------------------------------------------------------
+# --- Locate input file(s) ---------------------------------------------------
 
-if (-not $InputPath) {
-    $candidate = Get-ChildItem -Path $PSScriptRoot -File |
+if ($InputPath) {
+    $inputFiles = @(Get-Item -Path $InputPath -ErrorAction Stop)
+} else {
+    $inputFiles = @(Get-ChildItem -Path $PSScriptRoot -File |
         Where-Object { $_.Extension -in '.csv','.xlsx' -and $_.Name -notmatch 'Validated' } |
-        Sort-Object LastWriteTime -Descending |
-        Select-Object -First 1
-    if (-not $candidate) {
-        Write-Error "No .csv or .xlsx file found in $PSScriptRoot. Drop your MDE URL/Domain export here and rerun."
+        Sort-Object LastWriteTime)
+    if (-not $inputFiles) {
+        Write-Error "No .csv or .xlsx file found in $PSScriptRoot. Drop your MDE URL/Domain export(s) here and rerun."
         exit 1
     }
-    $InputPath = $candidate.FullName
 }
-Write-Host "Input file: $InputPath" -ForegroundColor Cyan
+foreach ($f in $inputFiles) { Write-Host "Input file: $($f.FullName)" -ForegroundColor Cyan }
 
 if (-not $OutputPath) {
     $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
-    $base = [IO.Path]::GetFileNameWithoutExtension($InputPath)
-    $OutputPath = Join-Path (Split-Path $InputPath) ("{0}_Validated_{1}.xlsx" -f $base, $stamp)
+    $base  = if ($inputFiles.Count -eq 1) { [IO.Path]::GetFileNameWithoutExtension($inputFiles[0].FullName) } else { 'Combined' }
+    $OutputPath = Join-Path (Split-Path $inputFiles[0].FullName) ("{0}_Validated_{1}.xlsx" -f $base, $stamp)
 }
 
 # --- Load rows --------------------------------------------------------------
 
-if ([IO.Path]::GetExtension($InputPath) -ieq '.xlsx') {
-    $rows = Import-Excel -Path $InputPath
-} else {
-    $rows = Import-Csv -Path $InputPath
+$rows = foreach ($f in $inputFiles) {
+    if ([IO.Path]::GetExtension($f.FullName) -ieq '.xlsx') { Import-Excel -Path $f.FullName }
+    else { Import-Csv -Path $f.FullName }
 }
 
-if (-not $rows) { Write-Error "No rows loaded from $InputPath"; exit 1 }
+if (-not $rows) { Write-Error "No rows loaded from input files"; exit 1 }
 
 function Get-ColumnValue {
     param($Row, [string[]]$Names)
@@ -351,7 +350,7 @@ $summary = [PSCustomObject]@{
     CoveredSmartScreen      = ($results | Where-Object OverallVerdict -eq 'Covered-SmartScreen').Count
     NotCovered              = ($results | Where-Object OverallVerdict -eq 'Not-Covered-Keep-In-MDE').Count
     Errors                  = ($results | Where-Object OverallVerdict -like 'Error*').Count
-    InputFile               = $InputPath
+    InputFile               = ($inputFiles.FullName -join '; ')
 }
 
 if (Test-Path $OutputPath) { Remove-Item $OutputPath -Force }

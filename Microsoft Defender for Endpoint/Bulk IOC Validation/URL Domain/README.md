@@ -106,7 +106,7 @@ Recognized column names (case insensitive):
 
 - A blocked HTTP request usually shows up as a PowerShell exception. That is expected and is captured in `DetonationError`. The NP event log is the source of truth.
 - SmartScreen for URLs fires from a browser. If an indicator only triggers SmartScreen, run a few of them through Edge to confirm.
-- Audit-mode NP does not block traffic. If you see `Covered-NP-Audit` for everything, your fleet is not protected until NP is set to Block.
-- Run on a non-production VM. You are intentionally connecting to known-bad infrastructure.
+- Audit mode NP does not block traffic. If you see `Covered-NP-Audit` for everything, your fleet is not protected until NP is set to Block.
+- Run on a non production VM. You are intentionally connecting to known bad infrastructure.
 
 ## Screenshots

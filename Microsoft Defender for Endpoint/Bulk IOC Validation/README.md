@@ -1,45 +1,45 @@
 # Bulk IOC Validation
 
-PowerShell tools for validating Microsoft Defender for Endpoint (MDE) custom IOCs in bulk, so you can clean out stale indicators and keep only the ones that still need to live in MDE.
+PowerShell tools to review your Microsoft Defender for Endpoint (MDE) custom IOCs and find the ones you can remove.
 
-These tools are meant for cleaning up older, general-purpose, or OSINT-sourced IOCs that have been sitting in your tenant. They are **not** intended for IOCs tied to an active threat actor campaign, an incident-response engagement, or any indicator your SOC is currently using for hunting or attribution. Keep those in place.
+Use these on older or OSINT IOCs that have been sitting in the tenant. Do not use them on IOCs tied to an active campaign, an open IR case, or anything your SOC is hunting on right now. Leave those alone.
 
 ## What's here
 
 | Folder | What it does |
 |---|---|
-| [Hash](./Hash) | Checks file hash IOCs against VirusTotal so you can drop the ones already widely detected by AV. |
-| [URL Domain](./URL%20Domain) | Detonates URL / Domain / IP IOCs on a lab host with Network Protection and SmartScreen enabled, then reads the local event logs to see what got blocked. |
+| [Hash](./Hash) | Checks file hash IOCs against VirusTotal so you can drop the ones MDAV already detects. |
+| [URL Domain](./URL%20Domain) | Runs URL, Domain, and IP IOCs through a lab host with Network Protection and SmartScreen, then reads the local event logs to see what got blocked. |
 
-Each subfolder has its own README with the full usage, the CSV format, and the exact columns produced in the output XLSX.
+Each subfolder has its own README with the exact usage, CSV format, and output columns.
 
-## Prerequisites (do this once before the first run)
+## Install ImportExcel once before you run anything
 
-1. **PowerShell 7** (recommended) or Windows PowerShell 5.1, run **as Administrator**.
-2. **Install the ImportExcel module once.** Open an elevated PowerShell window and run:
+1. Use PowerShell 7 or Windows PowerShell 5.1, as Administrator.
+2. In an elevated window run:
 
    ```powershell
    Install-Module ImportExcel -Scope CurrentUser -Force -AllowClobber
    ```
 
-   You may see a one-time "Untrusted repository" prompt — answer **Y**. When the prompt comes back to a blank line, the install is done.
+   Answer Y if it asks about the untrusted PSGallery repository. When the prompt returns, it is done.
 
-   > On PowerShell 7 you can ignore any `Install-PackageProvider NuGet` warning you may have seen in older guides. PS7 does not use that provider and `Install-Module` works directly against PSGallery.
+   On PowerShell 7 you can ignore any `Install-PackageProvider NuGet` error from older docs. PS7 does not use that provider.
 
-3. **Close that window and open a new PowerShell window** before running any script. PowerShell can't always pick up a freshly installed module in the same session.
-4. Verify it's there:
+3. Close that window. Open a new PowerShell window before you run the script.
+4. Verify:
 
    ```powershell
    Get-Module -ListAvailable ImportExcel
    ```
 
 5. Page-specific extras:
-   - **Hash**: a VirusTotal API key (free tier works).
-   - **URL Domain**: a lab/test Windows host with Network Protection **and** SmartScreen enabled. Do not run on a production endpoint.
+   - Hash: a VirusTotal API key (free tier is fine).
+   - URL Domain: a lab Windows host with Network Protection and SmartScreen on. Do not run on a production endpoint.
 
-## Typical workflow
+## Workflow
 
-1. Export your custom indicators from the MDE portal (Settings -> Endpoints -> Indicators).
-2. Drop the file in the matching subfolder (`Hash` or `URL Domain`).
-3. Run the script for that page (see its README).
-4. Open the generated XLSX, review the Summary sheet, and remove the "already covered" indicators from MDE.
+1. Export your custom indicators from the MDE portal (Settings, Endpoints, Indicators).
+2. Drop the file in the matching subfolder.
+3. Run the script for that page.
+4. Open the XLSX, review the Summary sheet, remove the indicators that are already covered from MDE.

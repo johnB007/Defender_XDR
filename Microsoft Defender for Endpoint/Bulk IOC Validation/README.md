@@ -33,7 +33,7 @@ Each subfolder has its own README with the exact usage, CSV format, and output c
    Get-Module -ListAvailable ImportExcel
    ```
 
-5. Page-specific extras:
+5. Other requirements:
    - Hash: a VirusTotal API key (free tier is fine).
    - URL Domain: a lab Windows host with Network Protection and SmartScreen on. Do not run on a production endpoint.
 

@@ -2,6 +2,8 @@
 
 PowerShell script that validates URL, Domain, and IP IOCs from a Microsoft Defender for Endpoint (MDE) export by running each one through a lab host with Microsoft Defender Antivirus (MDAV), Network Protection (NP), and SmartScreen on. It reads the local Defender event logs and reports what got blocked so you know which indicators to remove from MDE.
 
+> **Run this on a Windows 10/11 VM that is NOT onboarded to MDE.** If the host is onboarded, your custom IOC list will block every detonation and every verdict will come back as covered. The report will be wrong. See [Run on a host that is not onboarded to MDE](#run-on-a-host-that-is-not-onboarded-to-mde).
+
 ## What it does
 
 For every Url, DomainName, or IpAddress row in your MDE export the script:

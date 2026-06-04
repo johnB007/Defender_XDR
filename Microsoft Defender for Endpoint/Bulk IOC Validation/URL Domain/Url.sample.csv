@@ -1,4 +1,3 @@
 Indicator Value,Indicator Type,Action,Severity,Title,Description,Generate Alert
 malware.testing.google.test,DomainName,Block,High,SAMPLE,Replace with real export from MDE,Yes
 http://testsafebrowsing.appspot.com/s/malware.html,Url,Block,High,SAMPLE,Replace with real export from MDE,Yes
-185.143.223.45,IpAddress,Block,Medium,SAMPLE,Replace with real export from MDE,Yes

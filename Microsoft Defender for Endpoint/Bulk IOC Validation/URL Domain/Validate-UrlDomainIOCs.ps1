@@ -17,6 +17,10 @@
     Outputs Url_Validated_<timestamp>.xlsx with three sheets:
         Summary, Already Covered by NP/SmartScreen, All Indicators.
 
+    IP indicators are skipped. NP and SmartScreen are URL/domain-keyed and
+    cannot meaningfully validate raw IPs - export IP indicators separately
+    and leave them in MDE.
+
     No cloud auth required. Everything runs locally on the lab host.
 
 .NOTES
@@ -42,7 +46,7 @@
     HTTP request timeout. Default 5 seconds.
 
 .EXAMPLE
-    .\Validate-UrlDomainIpIOCs.ps1
+    .\Validate-UrlDomainIOCs.ps1
 #>
 
 [CmdletBinding()]
@@ -169,17 +173,15 @@ function Get-ColumnValue {
 
 function Get-IndicatorType {
     param([string]$Value, [string]$DeclaredType)
-    # Strip "IP:port" so a salvaged IP still routes to the IpAddress path
-    $stripped = $Value -replace ':\d+$',''
     if ($DeclaredType) {
         switch -Regex ($DeclaredType) {
             'Url'        { return 'Url' }
-            'Domain'     { if ($stripped -match '^\d{1,3}(\.\d{1,3}){3}$') { return 'IpAddress' } else { return 'DomainName' } }
+            'Domain'     { return 'DomainName' }
             'IpAddress'  { return 'IpAddress' }
         }
     }
     if ($Value -match '^https?://') { return 'Url' }
-    if ($stripped -match '^\d{1,3}(\.\d{1,3}){3}$') { return 'IpAddress' }
+    if ($Value -match '^\d{1,3}(\.\d{1,3}){3}$') { return 'IpAddress' }
     return 'DomainName'
 }
 
@@ -188,15 +190,7 @@ function Get-Host {
     if ($Value -match '^https?://') {
         try { return ([Uri]$Value).Host } catch { return $Value }
     }
-    # Strip wildcard, path, and trailing :port
-    return ($Value -replace '^\*\.','' -replace '/.*$','' -replace ':\d+$','')
-}
-
-function Test-MalformedIp {
-    param([string]$Value)
-    # Looks like an IP attempt (>=2 dotted numeric segments) but isn't a complete v4 address
-    if ($Value -match '^\d{1,3}(\.\d{1,3}){1,2}$') { return $true }
-    return $false
+    return ($Value -replace '^\*\.','' -replace '/.*$','')
 }
 
 # --- Detonation -------------------------------------------------------------
@@ -211,61 +205,48 @@ function Invoke-Detonation {
     }
 
     $targetHost = Get-Host -Value $Indicator
-    if ($Type -eq 'IpAddress') {
-        # An IP indicator IS the address - there is nothing to resolve. Reverse-DNS (PTR)
-        # is optional and its absence tells us nothing useful, so don't gate the verdict on it.
-        $result.DnsResolved = $true
-    } else {
-        try {
-            $dns = Resolve-DnsName -Name $targetHost -DnsOnly -ErrorAction Stop
-            $result.DnsResolved = [bool]$dns
-        } catch {
-            $result.Error = "DNS: $($_.Exception.Message)"
-        }
+    try {
+        $dns = Resolve-DnsName -Name $targetHost -DnsOnly -ErrorAction Stop
+        $result.DnsResolved = [bool]$dns
+    } catch {
+        $result.Error = "DNS: $($_.Exception.Message)"
     }
 
-    if ($Type -eq 'Url' -or $Type -eq 'DomainName') {
-        # Try HTTPS first (most modern malicious URLs are 443-only and NP keys on the SNI).
-        $urls = if ($Indicator -match '^https?://') {
-            @($Indicator)
-        } else {
-            @("https://$targetHost/", "http://$targetHost/")
-        }
+    # Try HTTPS first (most modern malicious URLs are 443-only and NP keys on the SNI).
+    $urls = if ($Indicator -match '^https?://') {
+        @($Indicator)
+    } else {
+        @("https://$targetHost/", "http://$targetHost/")
+    }
 
-        $lastErr = $null
-        foreach ($url in $urls) {
-            try {
-                $r = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec $TimeoutSec -MaximumRedirection 0 -SkipCertificateCheck -ErrorAction Stop
-                $result.HttpStatus = [int]$r.StatusCode
+    $lastErr = $null
+    foreach ($url in $urls) {
+        try {
+            $r = Invoke-WebRequest -Uri $url -UseBasicParsing -TimeoutSec $TimeoutSec -MaximumRedirection 0 -SkipCertificateCheck -ErrorAction Stop
+            $result.HttpStatus = [int]$r.StatusCode
+            $lastErr = $null
+            break
+        } catch {
+            $ex = $_.Exception
+            # PS7: HttpRequestException carries StatusCode directly.
+            $sc = $null
+            if ($ex.PSObject.Properties['StatusCode'] -and $ex.StatusCode) { $sc = [int]$ex.StatusCode }
+            elseif ($ex.Response -and $ex.Response.StatusCode)              { $sc = [int]$ex.Response.StatusCode }
+            # Also try parsing "Response status code does not indicate success: 301 (...)"
+            if (-not $sc -and $ex.Message -match 'status code does not indicate success: (\d{3})') { $sc = [int]$Matches[1] }
+
+            if ($sc) {
+                # Got a real HTTP response - request reached the server, NP had a fair shot.
+                $result.HttpStatus = $sc
                 $lastErr = $null
                 break
-            } catch {
-                $ex = $_.Exception
-                # PS7: HttpRequestException carries StatusCode directly.
-                $sc = $null
-                if ($ex.PSObject.Properties['StatusCode'] -and $ex.StatusCode) { $sc = [int]$ex.StatusCode }
-                elseif ($ex.Response -and $ex.Response.StatusCode)              { $sc = [int]$ex.Response.StatusCode }
-                # Also try parsing "Response status code does not indicate success: 301 (...)"
-                if (-not $sc -and $ex.Message -match 'status code does not indicate success: (\d{3})') { $sc = [int]$Matches[1] }
-
-                if ($sc) {
-                    # Got a real HTTP response - request reached the server, NP had a fair shot.
-                    $result.HttpStatus = $sc
-                    $lastErr = $null
-                    break
-                } else {
-                    $result.HttpStatus = 'NoResponse'
-                    $lastErr = $ex.Message
-                }
+            } else {
+                $result.HttpStatus = 'NoResponse'
+                $lastErr = $ex.Message
             }
         }
-        if ($lastErr) { $result.Error = $lastErr }
-    } elseif ($Type -eq 'IpAddress') {
-        try {
-            $tcp = Test-NetConnection -ComputerName $targetHost -Port 443 -WarningAction SilentlyContinue
-            $result.HttpStatus = if ($tcp.TcpTestSucceeded) { 'TcpOpen' } else { 'TcpBlocked' }
-        } catch { $result.Error = $_.Exception.Message }
     }
+    if ($lastErr) { $result.Error = $lastErr }
 
     return [PSCustomObject]$result
 }
@@ -338,23 +319,24 @@ foreach ($row in $rows) {
 
     Write-Host ("[{0}/{1}] {2} ({3})" -f $i, $rows.Count, $value, $type) -ForegroundColor White
 
-    # Short-circuit malformed indicators - don't bother NP with a probe that can't reach.
-    if (Test-MalformedIp -Value $targetHost) {
+    # IP indicators are out of scope for this validator - NP and SmartScreen are
+    # URL/domain-keyed. Tag and skip so the row still appears in the report.
+    if ($type -eq 'IpAddress') {
         $results.Add([PSCustomObject]@{
             IndicatorValue       = $value
             IndicatorType        = $type
             TargetHost           = $targetHost
-            DnsResolved          = $false
-            HttpStatus           = 'Malformed'
-            NpStatus             = 'NotTriggered'
+            DnsResolved          = $true
+            HttpStatus           = 'Skipped'
+            NpStatus             = 'NotEvaluated'
             NpEventId            = ''
             NpEventTime          = ''
             NpThreatName         = ''
-            SmartScreenStatus    = 'NotTriggered'
+            SmartScreenStatus    = 'NotEvaluated'
             SmartScreenEventTime = ''
             SmartScreenSource    = ''
-            OverallVerdict       = 'Error-MalformedIndicator'
-            DetonationError      = "Indicator looks like a truncated or malformed IP/host; fix the source CSV."
+            OverallVerdict       = 'IP-Not-Evaluated-Keep-In-MDE'
+            DetonationError      = 'IP indicators are not evaluated. NP/SmartScreen do not provide meaningful raw-IP coverage; keep IP IOCs in MDE.'
             NpRaw                = ''
         })
         continue
@@ -371,8 +353,7 @@ foreach ($row in $rows) {
         if     ($np -and $np.Status -eq 'Blocked')  { 'Covered-NP-Block' }
         elseif ($np -and $np.Status -eq 'Audited')  { 'Covered-NP-Audit' }
         elseif ($ss)                                { 'Covered-SmartScreen' }
-        elseif ($type -eq 'IpAddress' -and $det.HttpStatus -eq 'TcpBlocked') { 'Error-NoResolution' }
-        elseif ($type -ne 'IpAddress' -and $det.Error -and -not $det.DnsResolved) { 'Error-NoResolution' }
+        elseif ($det.Error -and -not $det.DnsResolved) { 'Error-NoResolution' }
         else                                        { 'Not-Covered-Keep-In-MDE' }
 
     $results.Add([PSCustomObject]@{

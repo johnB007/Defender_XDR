@@ -1,15 +1,17 @@
-# URL / Domain / IP IOC Validation
+# URL / Domain IOC Validation
 
-PowerShell script that validates URL, Domain, and IP IOCs from a Microsoft Defender for Endpoint (MDE) export by running each one through a lab host with Microsoft Defender Antivirus (MDAV), Network Protection (NP), and SmartScreen on. It reads the local Defender event logs and reports what got blocked so you know which indicators to remove from MDE.
+PowerShell script that validates URL and Domain IOCs from a Microsoft Defender for Endpoint (MDE) export by running each one through a lab host with Microsoft Defender Antivirus (MDAV), Network Protection (NP), and SmartScreen on. It reads the local Defender event logs and reports what got blocked so you know which indicators to remove from MDE.
+
+> **IP indicators are not validated by this script.** SmartScreen does not evaluate raw IPs at all, and Network Protection's default IP coverage is sparse and hostname-keyed. A non-onboarded lab box cannot give a meaningful verdict for an IP IOC, so leave IP indicators in MDE. See the [official docs](https://learn.microsoft.com/defender-endpoint/indicator-ip-domain#prerequisites). If an IP row is present in the input it is recorded as `IP-Not-Evaluated-Keep-In-MDE` and skipped.
 
 > **Run this on a Windows 10/11 VM that is NOT onboarded to MDE.** If the host is onboarded, your custom IOC list will block every detonation and every verdict will come back as covered. The report will be wrong. See [Run on a host that is not onboarded to MDE](#run-on-a-host-that-is-not-onboarded-to-mde).
 
 ## What it does
 
-For every Url, DomainName, or IpAddress row in your MDE export the script:
+For every Url or DomainName row in your MDE export the script:
 
 1. Resolves DNS for the host.
-2. Issues an HTTP(S) request (URL or domain) or a TCP 443 probe (IP) to trigger Network Protection.
+2. Issues an HTTP(S) request to trigger Network Protection.
 3. Waits for Defender to flush its events.
 4. Reads `Microsoft-Windows-Windows Defender/Operational` for event IDs `1125` (NP audit) and `1126` (NP block).
 5. Reads `Microsoft-Windows-SmartScreen/Debug` for any SmartScreen verdict.
@@ -23,20 +25,14 @@ The `OverallVerdict` column tells you what to do:
 | `Covered-NP-Audit` | NP logged the connection in audit mode (event 1125). | Keep the MDE block until NP is set to Block. |
 | `Covered-SmartScreen` | SmartScreen flagged the URL. | Remove from MDE if browsers are the only access path; otherwise keep. |
 | `Not-Covered-Keep-In-MDE` | The request reached the server and no NP or SmartScreen event fired. | **Keep in MDE.** Microsoft's global block list does not (yet) cover this indicator, which is exactly why you pushed it as a custom IOC. |
-| `Error-NoResolution` | DNS did not resolve, or the TCP/HTTP request never made it to a server, so NP/SmartScreen had nothing to inspect. | **Keep in MDE.** Most common cause: the malicious domain has already been sinkholed or taken down at the registrar. The indicator is still cheap insurance in case it comes back. |
-| `Error-MalformedIndicator` | The row's value is not a usable hostname or full IPv4 address (for example a truncated IP like `213.152.187` or a stray `IP:port`). The script did not probe it. | **Fix the source CSV.** Custom MDE IP indicators must be a full IPv4 address with no port. |
+| `Error-NoResolution` | DNS did not resolve, or the HTTP request never made it to a server, so NP/SmartScreen had nothing to inspect. | **Keep in MDE.** Most common cause: the malicious domain has already been sinkholed or taken down at the registrar. The indicator is still cheap insurance in case it comes back. |
+| `IP-Not-Evaluated-Keep-In-MDE` | The row is an IP indicator. This script does not probe IPs because NP/SmartScreen do not give a reliable raw-IP verdict on a non-onboarded host. | **Keep in MDE.** Your custom IP indicator is doing the work the default Microsoft feed does not. |
 
 ### What `Not-Covered` does NOT mean
 
 `Not-Covered-Keep-In-MDE` is **not** "NP is broken" or "the indicator is safe." Network Protection and SmartScreen only block what is on Microsoft's own cloud-delivered protection feed. Fresh MDTI exports, your custom MDE IOCs, and most third-party feeds are not on that list by design — that is the whole reason you push them to MDE in the first place. A large `NotCovered` count in the report is the expected, healthy result for a freshly exported indicator set.
 
 If `CoveredNPBlock` were high, that would actually be the surprise: it would mean you can safely delete those entries from MDE because Microsoft already blocks them globally.
-
-### A word on IP indicators
-
-SmartScreen is URL/file-reputation only — it does **not** evaluate raw IPs, so every IP row will show `SmartScreenStatus: NotTriggered`. That is not a bug.
-
-Network Protection *can* block by destination IP if Microsoft's cloud feed flags it, but the IP reputation list is far thinner than the URL/domain list. Expect most IP indicators (even genuinely malicious ones from MDTI) to come back `Not-Covered-Keep-In-MDE`. That is the right answer — your custom MDE IP indicator is doing real work that Microsoft's free feed does not.
 
 ## Why no cloud auth
 
@@ -69,12 +65,12 @@ If the VM was previously onboarded, offboard it first: `Settings > Endpoints > O
 
 ## How to run
 
-1. Export your URL/Domain indicators from MDE: Settings, Endpoints, Indicators, URLs/Domains, Export. Repeat for IPs if you want both scanned in one run.
-2. Drop the `.csv` or `.xlsx` file(s) into this folder next to `Validate-UrlDomainIpIOCs.ps1`.
+1. Export your URL/Domain indicators from MDE: Settings, Endpoints, Indicators, URLs/Domains, Export.
+2. Drop the `.csv` or `.xlsx` file(s) into this folder next to `Validate-UrlDomainIOCs.ps1`.
 3. Run PowerShell as Administrator in this folder:
 
    ```powershell
-   .\Validate-UrlDomainIpIOCs.ps1
+   .\Validate-UrlDomainIOCs.ps1
    ```
 
    With no `-InputPath`, the script processes **every** non-`Validated` CSV/XLSX in the folder and writes a single combined `Combined_Validated_<timestamp>.xlsx`. Pass `-InputPath` to limit it to one file.
@@ -93,27 +89,12 @@ If the VM was previously onboarded, offboard it first: `Settings > Endpoints > O
 Example:
 
 ```powershell
-.\Validate-UrlDomainIpIOCs.ps1 -InputPath .\Url.csv -PerIndicatorDelayMs 4000
+.\Validate-UrlDomainIOCs.ps1 -InputPath .\Url.csv -PerIndicatorDelayMs 4000
 ```
-
-### IP indicators
-
-The same script also handles IP IOCs. In the MDE portal: `Settings > Endpoints > Indicators > IP addresses > Export`. Drop the IP CSV into this folder alongside the URL/Domain export.
-
-The script picks the newest file in the folder. If you have both exports here, pick which one to run:
-
-```powershell
-.\Validate-UrlDomainIpIOCs.ps1 -InputPath .\Url.csv
-.\Validate-UrlDomainIpIOCs.ps1 -InputPath .\Ip.csv
-```
-
-You get one `_Validated_<timestamp>.xlsx` per run. If you want a single combined report, concatenate the two CSVs first (they share the same MDE schema) and run once.
-
-For IP rows the script does a TCP 443 probe instead of HTTP, then reads the same NP/SmartScreen event logs. Interpret IP verdicts more carefully than URL/Domain verdicts: NP and SmartScreen are built around URL and domain reputation, so a clean IP with no DNS history often comes back as `Not-Covered-Keep-In-MDE` even when the IP is genuinely bad. Treat `Not-Covered` on an IP as "no built-in coverage exists for raw IPs, keep the MDE block."
 
 ## Runtime and tuning for large lists
 
-The script is serial by design. For each indicator it does DNS + HTTP (or TCP), waits for Defender to flush its events, then queries the local event log. On a healthy lab host expect roughly:
+The script is serial by design. For each indicator it does DNS + HTTP, waits for Defender to flush its events, then queries the local event log. On a healthy lab host expect roughly:
 
 | Indicators | Default settings (`-PerIndicatorDelayMs 2500`) | Faster (`-PerIndicatorDelayMs 1000 -HttpTimeoutSec 3`) |
 |---|---|---|
@@ -143,7 +124,7 @@ Indicator Value, Indicator Type, Creation Time, Created By, Action, Severity, Ti
 Recognized column names (case insensitive):
 
 - `Indicator Value` (or `IndicatorValue`, `Url`, `Domain`, `Indicator`)
-- `Indicator Type` (optional, auto detected as `Url`, `DomainName`, or `IpAddress`)
+- `Indicator Type` (optional, auto detected as `Url` or `DomainName`; `IpAddress` rows are skipped)
 
 `Url.sample.csv` is included.
 
@@ -153,7 +134,7 @@ Recognized column names (case insensitive):
 |---|---|
 | `IndicatorValue`, `IndicatorType`, `TargetHost` | Input or parsed |
 | `DnsResolved` | DNS lookup result |
-| `HttpStatus` | HTTP response, or `TcpOpen` / `TcpBlocked` for IPs |
+| `HttpStatus` | HTTP response code, or `NoResponse` if the request never reached the server |
 | `NpStatus` | `Blocked`, `Audited`, or `NotTriggered` |
 | `NpEventId`, `NpEventTime`, `NpThreatName`, `NpRaw` | Event 1125/1126 payload |
 | `SmartScreenStatus` | `Flagged` or `NotTriggered` |
@@ -167,5 +148,3 @@ Recognized column names (case insensitive):
 - SmartScreen for URLs fires from a browser. If an indicator only triggers SmartScreen, run a few of them through Edge to confirm.
 - Audit mode NP does not block traffic. If you see `Covered-NP-Audit` for everything, your fleet is not protected until NP is set to Block.
 - Run on a non production VM. You are intentionally connecting to known bad infrastructure.
-
-## Screenshots

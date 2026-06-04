@@ -9,7 +9,7 @@ Use these on older or OSINT IOCs that have been sitting in the tenant. Do not us
 | Folder | What it does |
 |---|---|
 | [Hash](./Hash) | Checks file hash IOCs against VirusTotal so you can drop the ones MDAV already detects. |
-| [URL Domain IP](./URL%20Domain%20IP) | Runs URL, Domain, and IP IOCs through a lab host with Network Protection and SmartScreen, then reads the local event logs to see what got blocked. |
+| [URL Domain](./URL%20Domain) | Runs URL and Domain IOCs through a lab host with Network Protection and SmartScreen, then reads the local event logs to see what got blocked. IP indicators are out of scope - leave them in MDE. |
 
 Each subfolder has its own README with the exact usage, CSV format, and output columns.
 
@@ -35,7 +35,7 @@ Each subfolder has its own README with the exact usage, CSV format, and output c
 
 5. Other requirements:
    - Hash: a VirusTotal API key (free tier is fine).
-   - URL Domain IP: a lab Windows host with Network Protection and SmartScreen on. Do not run on a production endpoint.
+   - URL Domain: a lab Windows host with Network Protection and SmartScreen on. Do not run on a production endpoint.
 
 ## Workflow
 

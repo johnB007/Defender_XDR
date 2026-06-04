@@ -42,7 +42,7 @@
     HTTP request timeout. Default 5 seconds.
 
 .EXAMPLE
-    .\Validate-UrlDomainIOCs.ps1
+    .\Validate-UrlDomainIpIOCs.ps1
 #>
 
 [CmdletBinding()]

@@ -1,4 +1,4 @@
-# URL / Domain IOC Validation
+# URL / Domain / IP IOC Validation
 
 PowerShell script that validates URL, Domain, and IP IOCs from a Microsoft Defender for Endpoint (MDE) export by running each one through a lab host with Microsoft Defender Antivirus (MDAV), Network Protection (NP), and SmartScreen on. It reads the local Defender event logs and reports what got blocked so you know which indicators to remove from MDE.
 
@@ -57,11 +57,11 @@ If the VM was previously onboarded, offboard it first: `Settings > Endpoints > O
 ## How to run
 
 1. Export your URL/Domain indicators from MDE: Settings, Endpoints, Indicators, URLs/Domains, Export.
-2. Drop the `.csv` or `.xlsx` into this folder next to `Validate-UrlDomainIOCs.ps1`.
+2. Drop the `.csv` or `.xlsx` into this folder next to `Validate-UrlDomainIpIOCs.ps1`.
 3. Run PowerShell as Administrator in this folder:
 
    ```powershell
-   .\Validate-UrlDomainIOCs.ps1
+   .\Validate-UrlDomainIpIOCs.ps1
    ```
 
    The script picks the newest non `Validated` CSV or XLSX in the folder.
@@ -80,7 +80,7 @@ If the VM was previously onboarded, offboard it first: `Settings > Endpoints > O
 Example:
 
 ```powershell
-.\Validate-UrlDomainIOCs.ps1 -InputPath .\Url.csv -PerIndicatorDelayMs 4000
+.\Validate-UrlDomainIpIOCs.ps1 -InputPath .\Url.csv -PerIndicatorDelayMs 4000
 ```
 
 ### IP indicators
@@ -90,8 +90,8 @@ The same script also handles IP IOCs. In the MDE portal: `Settings > Endpoints >
 The script picks the newest file in the folder. If you have both exports here, pick which one to run:
 
 ```powershell
-.\Validate-UrlDomainIOCs.ps1 -InputPath .\Url.csv
-.\Validate-UrlDomainIOCs.ps1 -InputPath .\Ip.csv
+.\Validate-UrlDomainIpIOCs.ps1 -InputPath .\Url.csv
+.\Validate-UrlDomainIpIOCs.ps1 -InputPath .\Ip.csv
 ```
 
 You get one `_Validated_<timestamp>.xlsx` per run. If you want a single combined report, concatenate the two CSVs first (they share the same MDE schema) and run once.

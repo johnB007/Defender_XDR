@@ -84,6 +84,39 @@ if ($npMode -eq 0) {
     exit 1
 }
 
+# SmartScreen: check Explorer shell SmartScreen + Edge SmartScreen
+function Get-SmartScreenState {
+    $shell = 'Off'
+    try {
+        $v = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer' -Name SmartScreenEnabled -ErrorAction Stop).SmartScreenEnabled
+        if ($v -in 'RequireAdmin','Warn','Prompt','On') { $shell = $v }
+    } catch {}
+
+    $edge = 'Off'
+    try {
+        $v = (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Edge' -Name SmartScreenEnabled -ErrorAction Stop).SmartScreenEnabled
+        if ($v -eq 1) { $edge = 'On (policy)' }
+    } catch {}
+    if ($edge -eq 'Off') {
+        try {
+            $v = (Get-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Edge\SmartScreenEnabled' -ErrorAction Stop).'(default)'
+            if ($v -eq 1) { $edge = 'On' }
+        } catch {}
+        # Edge default is On unless policy disables it
+        if ($edge -eq 'Off') { $edge = 'On (default)' }
+    }
+
+    [PSCustomObject]@{ Shell = $shell; Edge = $edge }
+}
+
+$ss = Get-SmartScreenState
+Write-Host "SmartScreen (Shell): $($ss.Shell)" -ForegroundColor Cyan
+Write-Host "SmartScreen (Edge):  $($ss.Edge)"  -ForegroundColor Cyan
+if ($ss.Shell -eq 'Off' -and $ss.Edge -like 'Off*') {
+    Write-Error "SmartScreen is disabled in both the Windows shell and Edge. Enable it under Windows Security, App & browser control, Reputation-based protection."
+    exit 1
+}
+
 $mpStatus = Get-MpComputerStatus -ErrorAction SilentlyContinue
 if ($mpStatus) {
     Write-Host "MDAV signature: $($mpStatus.AntivirusSignatureVersion) (updated $($mpStatus.AntivirusSignatureLastUpdated))" -ForegroundColor Cyan
@@ -303,6 +336,8 @@ $summary = [PSCustomObject]@{
     HostName                = $env:COMPUTERNAME
     RunTime                 = Get-Date
     NetworkProtectionMode   = $npLabel
+    SmartScreenShell        = $ss.Shell
+    SmartScreenEdge         = $ss.Edge
     MdavSignatureVersion    = if ($mpStatus) { $mpStatus.AntivirusSignatureVersion } else { '' }
     TotalIndicators         = $results.Count
     CoveredNPBlock          = ($results | Where-Object OverallVerdict -eq 'Covered-NP-Block').Count

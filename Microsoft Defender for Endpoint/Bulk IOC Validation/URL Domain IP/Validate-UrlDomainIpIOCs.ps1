@@ -50,14 +50,15 @@ param(
     [string]$InputPath,
     [string]$OutputPath,
     [int]$PerIndicatorDelayMs = 2500,
-    [int]$HttpTimeoutSec = 5
+    [int]$HttpTimeoutSec = 5,
+    [switch]$SkipAdminCheck
 )
 
 # --- Admin + module checks --------------------------------------------------
 
 $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-if (-not $isAdmin) {
-    Write-Error "Run this script as Administrator. Defender event logs require elevated access."
+if (-not $isAdmin -and -not $SkipAdminCheck) {
+    Write-Error "Run this script as Administrator (or pass -SkipAdminCheck if the current user can read the Defender event log)."
     exit 1
 }
 

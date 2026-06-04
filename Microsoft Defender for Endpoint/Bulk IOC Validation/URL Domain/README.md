@@ -44,17 +44,13 @@ Run on a Windows 10 or 11 lab host (or Windows Server with Defender) where:
 
 The script refuses to run if NP is disabled.
 
-### Keeping MDE alerts quiet during the run
+### Run on a host that is not onboarded to MDE
 
-Every detonation that matches a custom IOC fires a real MDE alert. A 5,000 indicator run means 5,000 alerts in the queue. Two ways to avoid that:
+This is not optional. The script answers the question "does Microsoft already block this URL without my custom IOC?" If you run it on an MDE onboarded host that has your custom IOC list loaded, every detonation gets blocked by your own IOC, every verdict comes back as covered, and the report tells you nothing. An alert suppression rule does not fix this. Suppression hides the alert but the IOC still blocks the request.
 
-**Option 1 (recommended). Run on a lab VM that is offboarded from MDE.** NP, SmartScreen and Defender AV still work because they are built into the OS. The script reads local event logs, so it still gets verdicts. Zero alerts in the portal because the host does not report there.
+Use a Windows 10 or 11 VM that is not enrolled in MDE. NP, SmartScreen and Defender AV are part of the OS, so they still work. The script reads local event logs, so it still gets verdicts. As a bonus there are zero MDE alerts because the host does not report to your tenant.
 
-Offboard path: `Settings > Endpoints > Offboarding > Windows > Local Script`, run the package, reboot. Re-onboard when finished.
-
-**Option 2. Create an MDE alert suppression rule for the lab hostname before the run, delete it after.** Alerts still fire but are hidden from the queue.
-
-Path: `Settings > Microsoft Defender XDR > Rules > Alert suppression > Add`. Condition: `Device name equals <your lab hostname>`. Action: `Hide alert`. Delete the rule when the run is done.
+If the VM was previously onboarded, offboard it first: `Settings > Endpoints > Offboarding > Windows > Local Script`, run the package, reboot.
 
 ## How to run
 

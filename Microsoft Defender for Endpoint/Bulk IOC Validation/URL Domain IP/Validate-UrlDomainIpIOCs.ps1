@@ -115,10 +115,10 @@ function Get-SmartScreenState {
     [PSCustomObject]@{ Shell = $shell; Edge = $edge }
 }
 
-$ss = Get-SmartScreenState
-Write-Host "SmartScreen (Shell): $($ss.Shell)" -ForegroundColor Cyan
-Write-Host "SmartScreen (Edge):  $($ss.Edge)"  -ForegroundColor Cyan
-if ($ss.Shell -eq 'Off' -and $ss.Edge -like 'Off*') {
+$ssState = Get-SmartScreenState
+Write-Host "SmartScreen (Shell): $($ssState.Shell)" -ForegroundColor Cyan
+Write-Host "SmartScreen (Edge):  $($ssState.Edge)"  -ForegroundColor Cyan
+if ($ssState.Shell -eq 'Off' -and $ssState.Edge -like 'Off*') {
     Write-Error "SmartScreen is disabled in both the Windows shell and Edge. Enable it under Windows Security, App & browser control, Reputation-based protection."
     exit 1
 }
@@ -169,15 +169,17 @@ function Get-ColumnValue {
 
 function Get-IndicatorType {
     param([string]$Value, [string]$DeclaredType)
+    # Strip "IP:port" so a salvaged IP still routes to the IpAddress path
+    $stripped = $Value -replace ':\d+$',''
     if ($DeclaredType) {
         switch -Regex ($DeclaredType) {
             'Url'        { return 'Url' }
-            'Domain'     { return 'DomainName' }
+            'Domain'     { if ($stripped -match '^\d{1,3}(\.\d{1,3}){3}$') { return 'IpAddress' } else { return 'DomainName' } }
             'IpAddress'  { return 'IpAddress' }
         }
     }
     if ($Value -match '^https?://') { return 'Url' }
-    if ($Value -match '^\d{1,3}(\.\d{1,3}){3}$') { return 'IpAddress' }
+    if ($stripped -match '^\d{1,3}(\.\d{1,3}){3}$') { return 'IpAddress' }
     return 'DomainName'
 }
 
@@ -186,7 +188,15 @@ function Get-Host {
     if ($Value -match '^https?://') {
         try { return ([Uri]$Value).Host } catch { return $Value }
     }
-    return ($Value -replace '^\*\.','' -replace '/.*$','')
+    # Strip wildcard, path, and trailing :port
+    return ($Value -replace '^\*\.','' -replace '/.*$','' -replace ':\d+$','')
+}
+
+function Test-MalformedIp {
+    param([string]$Value)
+    # Looks like an IP attempt (>=2 dotted numeric segments) but isn't a complete v4 address
+    if ($Value -match '^\d{1,3}(\.\d{1,3}){1,2}$') { return $true }
+    return $false
 }
 
 # --- Detonation -------------------------------------------------------------
@@ -322,6 +332,28 @@ foreach ($row in $rows) {
 
     Write-Host ("[{0}/{1}] {2} ({3})" -f $i, $rows.Count, $value, $type) -ForegroundColor White
 
+    # Short-circuit malformed indicators - don't bother NP with a probe that can't reach.
+    if (Test-MalformedIp -Value $targetHost) {
+        $results.Add([PSCustomObject]@{
+            IndicatorValue       = $value
+            IndicatorType        = $type
+            TargetHost           = $targetHost
+            DnsResolved          = $false
+            HttpStatus           = 'Malformed'
+            NpStatus             = 'NotTriggered'
+            NpEventId            = ''
+            NpEventTime          = ''
+            NpThreatName         = ''
+            SmartScreenStatus    = 'NotTriggered'
+            SmartScreenEventTime = ''
+            SmartScreenSource    = ''
+            OverallVerdict       = 'Error-MalformedIndicator'
+            DetonationError      = "Indicator looks like a truncated or malformed IP/host; fix the source CSV."
+            NpRaw                = ''
+        })
+        continue
+    }
+
     $startTime = (Get-Date).AddSeconds(-2)
     $det = Invoke-Detonation -Indicator $value -Type $type -TimeoutSec $HttpTimeoutSec
     Start-Sleep -Milliseconds $PerIndicatorDelayMs
@@ -361,8 +393,8 @@ $summary = [PSCustomObject]@{
     HostName                = $env:COMPUTERNAME
     RunTime                 = Get-Date
     NetworkProtectionMode   = $npLabel
-    SmartScreenShell        = $ss.Shell
-    SmartScreenEdge         = $ss.Edge
+    SmartScreenShell        = $ssState.Shell
+    SmartScreenEdge         = $ssState.Edge
     MdavSignatureVersion    = if ($mpStatus) { $mpStatus.AntivirusSignatureVersion } else { '' }
     TotalIndicators         = $results.Count
     CoveredNPBlock          = ($results | Where-Object OverallVerdict -eq 'Covered-NP-Block').Count

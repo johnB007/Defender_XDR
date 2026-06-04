@@ -24,12 +24,19 @@ The `OverallVerdict` column tells you what to do:
 | `Covered-SmartScreen` | SmartScreen flagged the URL. | Remove from MDE if browsers are the only access path; otherwise keep. |
 | `Not-Covered-Keep-In-MDE` | The request reached the server and no NP or SmartScreen event fired. | **Keep in MDE.** Microsoft's global block list does not (yet) cover this indicator, which is exactly why you pushed it as a custom IOC. |
 | `Error-NoResolution` | DNS did not resolve, or the TCP/HTTP request never made it to a server, so NP/SmartScreen had nothing to inspect. | **Keep in MDE.** Most common cause: the malicious domain has already been sinkholed or taken down at the registrar. The indicator is still cheap insurance in case it comes back. |
+| `Error-MalformedIndicator` | The row's value is not a usable hostname or full IPv4 address (for example a truncated IP like `213.152.187` or a stray `IP:port`). The script did not probe it. | **Fix the source CSV.** Custom MDE IP indicators must be a full IPv4 address with no port. |
 
 ### What `Not-Covered` does NOT mean
 
 `Not-Covered-Keep-In-MDE` is **not** "NP is broken" or "the indicator is safe." Network Protection and SmartScreen only block what is on Microsoft's own cloud-delivered protection feed. Fresh MDTI exports, your custom MDE IOCs, and most third-party feeds are not on that list by design — that is the whole reason you push them to MDE in the first place. A large `NotCovered` count in the report is the expected, healthy result for a freshly exported indicator set.
 
 If `CoveredNPBlock` were high, that would actually be the surprise: it would mean you can safely delete those entries from MDE because Microsoft already blocks them globally.
+
+### A word on IP indicators
+
+SmartScreen is URL/file-reputation only — it does **not** evaluate raw IPs, so every IP row will show `SmartScreenStatus: NotTriggered`. That is not a bug.
+
+Network Protection *can* block by destination IP if Microsoft's cloud feed flags it, but the IP reputation list is far thinner than the URL/domain list. Expect most IP indicators (even genuinely malicious ones from MDTI) to come back `Not-Covered-Keep-In-MDE`. That is the right answer — your custom MDE IP indicator is doing real work that Microsoft's free feed does not.
 
 ## Why no cloud auth
 

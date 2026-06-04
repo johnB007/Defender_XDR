@@ -53,7 +53,7 @@ The URL Domain validator intentionally connects to known bad infrastructure to s
 - Non-attributable. No corporate hostname, no internal IP, nothing that maps the traffic back to your org.
 - Snapshot the VM before each run and revert after. Never reuse the box for anything else.
 
-The Hash validator does not detonate anything, it only queries VirusTotal, so this section does not apply to it.
+The Hash validator does not detonate anything, it only queries VirusTotal.
 
 ## Why we do not test IP indicators
 

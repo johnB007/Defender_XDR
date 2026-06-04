@@ -73,6 +73,27 @@ Example:
 .\Validate-UrlDomainIOCs.ps1 -InputPath .\Url.csv -PerIndicatorDelayMs 4000
 ```
 
+## Runtime and tuning for large lists
+
+The script is serial by design. For each indicator it does DNS + HTTP (or TCP), waits for Defender to flush its events, then queries the local event log. On a healthy lab host expect roughly:
+
+| Indicators | Default settings (`-PerIndicatorDelayMs 2500`) | Faster (`-PerIndicatorDelayMs 1000 -HttpTimeoutSec 3`) |
+|---|---|---|
+| 100 | ~6 minutes | ~3 minutes |
+| 1,000 | ~1 hour | ~30 minutes |
+| 5,000 | ~4 to 5 hours | ~2 hours |
+| 10,000 | ~10 hours | ~4 hours |
+
+Recommendations for enterprise lists:
+
+- **Always run a 100 row sample first.** Confirm the verdicts look right before you commit the full list. If a tighter `-PerIndicatorDelayMs` starts producing false `Not-Covered-Keep-In-MDE` results for indicators you know NP blocks, raise the delay back.
+- **Chunk the input.** Split a 5k file into five 1k files and run them in separate PowerShell windows on separate lab VMs. Output names are timestamped so they will not collide. Merge the XLSX afterwards.
+- **Run overnight on a dedicated VM.** Lock the screen, plug in power, disable sleep. A 5k run will finish before morning.
+- **Skip indicators you already know about.** If MDE shows hit counts on the indicators, prioritize the ones with zero hits over a long window; the recent-hit indicators are the ones you do not want to risk removing yet anyway.
+- **Do not parallelize with the current script.** Concurrent detonations from one host will overlap in the event log and produce mismatched verdicts. Use separate hosts instead.
+
+If your environment needs sub-hour runs on 5k+ indicators, the script can be refactored to do a single batch event-log scan after all detonations finish, which roughly halves the runtime. Open an issue if you want that variant.
+
 ## Input format
 
 Native MDE indicator export schema:

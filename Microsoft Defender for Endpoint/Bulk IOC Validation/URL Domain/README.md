@@ -147,7 +147,11 @@ Recognized column names (case insensitive):
 - A blocked HTTP request usually shows up as a PowerShell exception. That is expected and is captured in `DetonationError`. The NP event log is the source of truth.
 - SmartScreen for URLs fires from a browser. If an indicator only triggers SmartScreen, run a few of them through Edge to confirm.
 - Audit mode NP does not block traffic. If you see `Covered-NP-Audit` for everything, your fleet is not protected until NP is set to Block.
-- Run on a non production VM. You are intentionally connecting to known bad infrastructure.
+- Run on a non production VM. You are intentionally connecting to known bad infrastructure. Treat the lab the same way you would treat a malware detonation box:
+  - Not joined to your domain or tenant. No corporate identity on the box.
+  - Not on a corporate network segment. Use an isolated lab VLAN or a separate ISP/hotspot connection so a callback cannot pivot into production.
+  - Non-attributable. No corporate hostname, no internal IP, nothing that maps the traffic back to your org.
+  - Snapshot the VM before each run and revert after. Never reuse the box for anything else.
 
 ## Screenshots
 <img width="2017" height="135" alt="nNwOu8WlaI" src="https://github.com/user-attachments/assets/b3859a28-ead4-49b5-9462-9f7300eea327" />

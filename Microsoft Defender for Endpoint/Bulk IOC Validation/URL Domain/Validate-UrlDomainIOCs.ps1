@@ -137,12 +137,17 @@ if ($mpStatus) {
 if ($InputPath) {
     $inputFiles = @(Get-Item -Path $InputPath -ErrorAction Stop)
 } else {
-    $inputFiles = @(Get-ChildItem -Path $PSScriptRoot -File |
-        Where-Object { $_.Extension -in '.csv','.xlsx' -and $_.Name -notmatch 'Validated' } |
-        Sort-Object LastWriteTime)
-    if (-not $inputFiles) {
-        Write-Error "No .csv or .xlsx file found in $PSScriptRoot. Drop your MDE URL/Domain export(s) here and rerun."
+    $candidates = @(Get-ChildItem -Path $PSScriptRoot -File |
+        Where-Object { $_.Extension -in '.csv','.xlsx' -and $_.Name -notmatch 'Validated' -and $_.Name -notmatch '^Hash' } |
+        Sort-Object LastWriteTime -Descending)
+    if (-not $candidates) {
+        Write-Error "No .csv or .xlsx file found in $PSScriptRoot. Drop your MDE URL/Domain export here and rerun, or pass -InputPath."
         exit 1
+    }
+    # Default to the single newest non-Validated, non-Hash file. Pass -InputPath to override.
+    $inputFiles = @($candidates[0])
+    if ($candidates.Count -gt 1) {
+        Write-Host ("Found {0} candidate input files; using newest: {1}" -f $candidates.Count, $inputFiles[0].Name) -ForegroundColor Yellow
     }
 }
 foreach ($f in $inputFiles) { Write-Host "Input file: $($f.FullName)" -ForegroundColor Cyan }
@@ -178,10 +183,12 @@ function Get-IndicatorType {
             'Url'        { return 'Url' }
             'Domain'     { return 'DomainName' }
             'IpAddress'  { return 'IpAddress' }
+            'File(Sha256|Sha1|Md5)' { return 'FileHash' }
         }
     }
     if ($Value -match '^https?://') { return 'Url' }
     if ($Value -match '^\d{1,3}(\.\d{1,3}){3}$') { return 'IpAddress' }
+    if ($Value -match '^[a-fA-F0-9]{32}$|^[a-fA-F0-9]{40}$|^[a-fA-F0-9]{64}$') { return 'FileHash' }
     return 'DomainName'
 }
 
@@ -337,6 +344,28 @@ foreach ($row in $rows) {
             SmartScreenSource    = ''
             OverallVerdict       = 'IP-Not-Evaluated-Keep-In-MDE'
             DetonationError      = 'IP indicators are not evaluated. NP/SmartScreen do not provide meaningful raw-IP coverage; keep IP IOCs in MDE.'
+            NpRaw                = ''
+        })
+        continue
+    }
+
+    # File hash indicators belong to the Hash validator. Skip cleanly so a mixed CSV does not detonate hashes as URLs.
+    if ($type -eq 'FileHash') {
+        $results.Add([PSCustomObject]@{
+            IndicatorValue       = $value
+            IndicatorType        = $type
+            TargetHost           = ''
+            DnsResolved          = $false
+            HttpStatus           = 'Skipped'
+            NpStatus             = 'NotEvaluated'
+            NpEventId            = ''
+            NpEventTime          = ''
+            NpThreatName         = ''
+            SmartScreenStatus    = 'NotEvaluated'
+            SmartScreenEventTime = ''
+            SmartScreenSource    = ''
+            OverallVerdict       = 'Hash-Wrong-Validator-Use-Validate-HashIOCs'
+            DetonationError      = 'File hash IOC. Run Validate-HashIOCs.ps1 instead.'
             NpRaw                = ''
         })
         continue

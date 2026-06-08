@@ -27,6 +27,7 @@ The `OverallVerdict` column tells you what to do:
 | `Not-Covered-Keep-In-MDE` | The request reached the server and no NP or SmartScreen event fired. | **Keep in MDE.** Microsoft's global block list does not (yet) cover this indicator, which is exactly why you pushed it as a custom IOC. |
 | `Error-NoResolution` | DNS did not resolve, or the HTTP request never made it to a server, so NP/SmartScreen had nothing to inspect. | **Keep in MDE.** Most common cause: the malicious domain has already been sinkholed or taken down at the registrar. The indicator is still cheap insurance in case it comes back. |
 | `IP-Not-Evaluated-Keep-In-MDE` | The row is an IP indicator. This script does not probe IPs because NP/SmartScreen do not give a reliable raw-IP verdict on a non-onboarded host. | **Keep in MDE.** Your custom IP indicator is doing the work the default Microsoft feed does not. |
+| `Hash-Wrong-Validator-Use-Validate-HashIOCs` | The row is a file hash (SHA256/SHA1/MD5). This script does not evaluate hashes. | Run `Validate-HashIOCs.ps1` (VirusTotal + MDAV) against the hash CSV. |
 
 ### What `Not-Covered` does NOT mean
 
@@ -66,16 +67,16 @@ If the VM was previously onboarded, offboard it first: `Settings > Endpoints > O
 ## How to run
 
 1. Export your URL/Domain indicators from MDE: Settings, Endpoints, Indicators, URLs/Domains, Export.
-2. Drop the `.csv` or `.xlsx` file(s) into this folder next to `Validate-UrlDomainIOCs.ps1`.
+2. Drop the `.csv` or `.xlsx` file into this folder next to `Validate-UrlDomainIOCs.ps1`.
 3. Run PowerShell as Administrator in this folder:
 
    ```powershell
    .\Validate-UrlDomainIOCs.ps1
    ```
 
-   With no `-InputPath`, the script processes **every** non-`Validated` CSV/XLSX in the folder and writes a single combined `Combined_Validated_<timestamp>.xlsx`. Pass `-InputPath` to limit it to one file.
+   With no `-InputPath`, the script picks the **single newest** `.csv`/`.xlsx` in this folder, ignoring any file whose name starts with `Hash` or contains `Validated`. This lets the URL/Domain and Hash CSVs coexist in the same folder. Pass `-InputPath` to override.
 
-4. When it finishes, `Url_Validated_<timestamp>.xlsx` opens.
+4. When it finishes, `<input>_Validated_<timestamp>.xlsx` opens.
 
 ### Optional parameters
 

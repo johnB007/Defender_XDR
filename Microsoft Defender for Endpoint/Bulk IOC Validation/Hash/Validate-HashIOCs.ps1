@@ -61,18 +61,14 @@ if (-not $OutputPath) {
 }
 
 # ---------- prompt for VT key ----------
+# Note: plain Read-Host (not -AsSecureString) because secure prompts over RDP
+# often capture only the first character of a pasted value. The key lives in
+# memory regardless, so prefer reliability here. Set $env:VT_API_KEY to skip.
 if (-not $VtApiKey) {
-    $sec = Read-Host "Enter your VirusTotal API key" -AsSecureString
-    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
-    try {
-        # PtrToStringUni is reliable on PS7; PtrToStringAuto can return mangled bytes.
-        $VtApiKey = [Runtime.InteropServices.Marshal]::PtrToStringUni($bstr)
-    } finally {
-        [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
-    }
+    $VtApiKey = Read-Host "Enter your VirusTotal API key (paste OK)"
 }
-# Strip whitespace and control chars - pasted keys often have stray spaces/newlines/quotes
-# that VT silently rejects as HTTP 400.
+# Strip whitespace and stray quotes - pasted keys often have these and VT
+# silently rejects them as HTTP 400.
 if ($VtApiKey) { $VtApiKey = ($VtApiKey -replace '[\s"'']', '').Trim() }
 if (-not $VtApiKey) { throw "VirusTotal API key is required." }
 if ($VtApiKey.Length -lt 30) {

@@ -63,10 +63,21 @@ if (-not $OutputPath) {
 # ---------- prompt for VT key ----------
 if (-not $VtApiKey) {
     $sec = Read-Host "Enter your VirusTotal API key" -AsSecureString
-    $VtApiKey = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
-        [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec))
+    $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($sec)
+    try {
+        # PtrToStringUni is reliable on PS7; PtrToStringAuto can return mangled bytes.
+        $VtApiKey = [Runtime.InteropServices.Marshal]::PtrToStringUni($bstr)
+    } finally {
+        [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr)
+    }
 }
+# Strip whitespace and control chars - pasted keys often have stray spaces/newlines/quotes
+# that VT silently rejects as HTTP 400.
+if ($VtApiKey) { $VtApiKey = ($VtApiKey -replace '[\s"'']', '').Trim() }
 if (-not $VtApiKey) { throw "VirusTotal API key is required." }
+if ($VtApiKey.Length -lt 30) {
+    Write-Warning "API key looks short ($($VtApiKey.Length) chars). VT v3 keys are 64 hex chars. Continuing anyway."
+}
 
 # ---------- modules ----------
 $mod = Get-Module -ListAvailable -Name ImportExcel | Sort-Object Version -Descending | Select-Object -First 1

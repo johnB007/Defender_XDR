@@ -1,0 +1,1694 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "## Threat Operations Dashboard No MDE/MDI\nA single pane of glass for threat detection and response across host, identity, network, and cloud. Powered by native incident correlation, UEBA (User and Entity Behavior Analytics), ML anomalies, and Microsoft Defender Threat Intelligence (MDTI). Use the **Time Range** picker and the **tabs** below to pivot between the Overview, Host, Identity, Network, Cloud, and Sign-in Geography threat views."
+      },
+      "name": "header"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "a1b2c3d4-0001-0001-0001-000000000001",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "label": "Time Range",
+            "type": 4,
+            "isRequired": true,
+            "isGlobal": true,
+            "typeSettings": {
+              "selectableValues": [
+                { "durationMs": 86400000 },
+                { "durationMs": 259200000 },
+                { "durationMs": 604800000 },
+                { "durationMs": 1209600000 },
+                { "durationMs": 2592000000 },
+                { "durationMs": 7776000000 }
+              ],
+              "allowCustom": true
+            },
+            "timeContext": { "durationMs": 2592000000 },
+            "value": { "durationMs": 2592000000 }
+          },
+          {
+            "id": "a1b2c3d4-0001-0001-0001-000000000002",
+            "version": "KqlParameterItem/1.0",
+            "name": "selectedTab",
+            "type": 1,
+            "isHiddenWhenLocked": true,
+            "value": "1"
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "parameters"
+    },
+    {
+      "type": 11,
+      "content": {
+        "version": "LinkItem/1.0",
+        "style": "tabs",
+        "links": [
+          {
+            "id": "a1b2c3d4-0002-0002-0002-000000000001",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Threat Overview",
+            "subTarget": "1",
+            "style": "link"
+          },
+          {
+            "id": "a1b2c3d4-0002-0002-0002-000000000002",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Host Based Threats",
+            "subTarget": "2",
+            "style": "link"
+          },
+          {
+            "id": "a1b2c3d4-0002-0002-0002-000000000003",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Identity & UEBA",
+            "subTarget": "3",
+            "style": "link"
+          },
+          {
+            "id": "a1b2c3d4-0002-0002-0002-000000000004",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Network & Threat Intel",
+            "subTarget": "4",
+            "style": "link"
+          },
+          {
+            "id": "a1b2c3d4-0002-0002-0002-000000000005",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Cloud & SaaS Activity",
+            "subTarget": "5",
+            "style": "link"
+          },
+          {
+            "id": "a1b2c3d4-0002-0002-0002-000000000006",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Sign-in Geography",
+            "subTarget": "6",
+            "style": "link"
+          }
+        ]
+      },
+      "name": "tabs"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "Threat Overview",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "Whole environment threat posture in one view. Headline counts blend incidents, analytics alerts, UEBA risk, ML anomalies, and MDTI. The ATT&CK chart fuses analytic alerts with UEBA/ML anomaly tactics so leadership sees adversary behavior, not just log volume.",
+              "style": "info"
+            },
+            "name": "ov-info"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "union isfuzzy=true\n  (SecurityIncident | where TimeGenerated {TimeRange} | summarize arg_max(TimeGenerated, Status) by IncidentNumber | where Status != \"Closed\" | summarize Value = count() | extend Metric = \"Open Incidents\", Sort = 1),\n  (SecurityAlert | where TimeGenerated {TimeRange} | where AlertSeverity in (\"High\",\"Critical\") | summarize Value = count() | extend Metric = \"High/Critical Alerts\", Sort = 2),\n  (BehaviorAnalytics | where TimeGenerated {TimeRange} | where InvestigationPriority > 0 | summarize Value = count() | extend Metric = \"UEBA Risk Activities\", Sort = 3),\n  (Anomalies | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = \"ML Anomalies\", Sort = 4),\n  (ThreatIntelIndicators | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = \"Threat Intel Indicators\", Sort = 5),\n  (AADRiskyUsers | where TimeGenerated {TimeRange} | summarize Value = dcount(UserPrincipalName) | extend Metric = \"Risky Users\", Sort = 6)\n| project Metric, Value, Sort\n| sort by Sort asc",
+              "size": 3,
+              "title": "Threat Posture at a Glance",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": { "columnMatch": "Metric", "formatter": 1 },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": { "palette": "blue" },
+                  "numberFormat": { "unit": 17, "options": { "style": "decimal", "maximumFractionDigits": 0 } }
+                },
+                "showBorder": true
+              }
+            },
+            "name": "ov-kpis"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| summarize arg_min(TimeGenerated, Severity) by IncidentNumber\n| summarize Incidents = count() by bin(TimeGenerated, {TimeRange:grain}), Severity\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Incidents Created Over Time (by Severity)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart",
+              "chartSettings": { "createOtherGroup": 0 }
+            },
+            "customWidth": "60",
+            "name": "ov-incident-trend"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityAlert\n| where TimeGenerated {TimeRange}\n| summarize Count = count() by AlertSeverity",
+              "size": 0,
+              "title": "Alert Severity Mix",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "40",
+            "name": "ov-severity-mix"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "union isfuzzy=true\n  (SecurityAlert | where TimeGenerated {TimeRange} | where isnotempty(Tactics) | extend T = split(Tactics, \",\")),\n  (Anomalies | where TimeGenerated {TimeRange} | where isnotempty(Tactics) | extend T = split(Tactics, \";\"))\n| mv-expand Tactic = T to typeof(string)\n| extend Tactic = trim(@\"\\s+\", Tactic)\n| where isnotempty(Tactic)\n| summarize Detections = count() by Tactic\n| sort by Detections desc",
+              "size": 0,
+              "title": "MITRE ATT&CK Tactics Observed (Alerts + UEBA/ML Anomalies)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart"
+            },
+            "customWidth": "60",
+            "name": "ov-tactics"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityAlert\n| where TimeGenerated {TimeRange}\n| summarize Alerts = count(), LastSeen = max(TimeGenerated) by AlertName, ProductName, AlertSeverity\n| top 20 by Alerts desc",
+              "size": 0,
+              "title": "Top Detections Firing",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Alerts", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "sortBy": [ { "itemKey": "Alerts", "sortOrder": 2 } ]
+              },
+              "sortBy": [ { "itemKey": "Alerts", "sortOrder": 2 } ]
+            },
+            "customWidth": "40",
+            "name": "ov-top-detections"
+          }
+        ]
+      },
+      "conditionalVisibility": { "parameterName": "selectedTab", "comparison": "isEqualTo", "value": "1" },
+      "name": "group-overview"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "Host Based Threats",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "Endpoint and server threat activity from Windows Security events and Linux Syslog. Lead indicators: failed logon spikes (brute force / password spray), privileged logons (4672), and anomalous process creation (4688). The Security Sensitive Events panel surfaces classic attacker tradecraft such as account creation, privileged group membership changes, audit log clearing, scheduled task and service installation, mapping directly to MITRE ATT&CK persistence, privilege escalation, and defense evasion techniques. Microsoft Defender for Endpoint (MDE) enriches every host pivot here once onboarded.",
+              "style": "info"
+            },
+            "name": "host-info"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "union isfuzzy=true\n  (Heartbeat | where TimeGenerated {TimeRange} | summarize Value = dcount(Computer) | extend Metric = \"Hosts Reporting\", Sort = 1),\n  (SecurityEvent | where TimeGenerated {TimeRange} | where EventID == 4625 | summarize Value = count() | extend Metric = \"Failed Logons (4625)\", Sort = 2),\n  (SecurityEvent | where TimeGenerated {TimeRange} | where EventID == 4672 | summarize Value = count() | extend Metric = \"Privileged Logons (4672)\", Sort = 3),\n  (SecurityEvent | where TimeGenerated {TimeRange} | where EventID == 4688 | summarize Value = count() | extend Metric = \"Process Creations (4688)\", Sort = 4),\n  (Syslog | where TimeGenerated {TimeRange} | where SeverityLevel in (\"err\",\"crit\",\"alert\",\"emerg\") | summarize Value = count() | extend Metric = \"Linux Critical Syslog\", Sort = 5)\n| project Metric, Value, Sort\n| sort by Sort asc",
+              "size": 3,
+              "title": "Host Activity Snapshot",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": { "columnMatch": "Metric", "formatter": 1 },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": { "palette": "green" },
+                  "numberFormat": { "unit": 17, "options": { "style": "decimal", "maximumFractionDigits": 0 } }
+                },
+                "showBorder": true
+              }
+            },
+            "name": "host-kpis"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID == 4625\n| summarize Failures = count() by bin(TimeGenerated, {TimeRange:grain})\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Failed Logon Trend (4625) Brute Force / Spray Signal",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "linechart"
+            },
+            "customWidth": "60",
+            "name": "host-failed-trend"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "Syslog\n| where TimeGenerated {TimeRange}\n| summarize Events = count() by SeverityLevel\n| sort by Events desc",
+              "size": 0,
+              "title": "Linux Syslog by Severity",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "40",
+            "name": "host-syslog-sev"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID == 4625\n| summarize Failures = count(), TargetedAccounts = dcount(TargetAccount) by Computer\n| top 15 by Failures desc",
+              "size": 0,
+              "title": "Top Hosts by Failed Logon",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Failures", "formatter": 8, "formatOptions": { "palette": "red" } }
+                ],
+                "rowLimit": 1000,
+                "sortBy": [ { "itemKey": "Failures", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "host-top-hosts"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID == 4625\n| summarize Failures = count(), Hosts = dcount(Computer), SourceIPs = dcount(IpAddress), LogonTypes = make_set(LogonType, 10), TopSourceIP = arg_max(TimeGenerated, IpAddress).IpAddress, FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by TargetAccount\n| top 15 by Failures desc",
+              "size": 0,
+              "title": "Top Targeted Accounts",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Failures", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "SourceIPs", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "FirstSeen", "formatter": 6 },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "sortBy": [ { "itemKey": "Failures", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "host-top-accounts"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID == 4688\n| extend Proc = tolower(tostring(split(NewProcessName, \"\\\\\")[-1]))\n| extend Parent = tolower(tostring(split(ParentProcessName, \"\\\\\")[-1]))\n| where isnotempty(Proc)\n| summarize Executions = count(), Hosts = dcount(Computer), Accounts = dcount(SubjectUserName), ParentProcesses = dcount(Parent), TopParent = arg_max(TimeGenerated, Parent).Parent, FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by Proc\n| top 25 by Executions desc",
+              "size": 0,
+              "title": "Process Creation Inventory (4688) Hunt for the Unusual",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Executions", "formatter": 8, "formatOptions": { "palette": "blue" } },
+                  { "columnMatch": "Hosts", "formatter": 8, "formatOptions": { "palette": "green" } },
+                  { "columnMatch": "FirstSeen", "formatter": 6 },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 5000,
+                "sortBy": [ { "itemKey": "Executions", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "host-processes"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID in (4720, 4722, 4724, 4726, 4738, 4728, 4732, 4756, 4740, 1102, 4719, 4698, 4697, 7045)\n| extend Activity = case(\n    EventID == 4720, \"Account Created\",\n    EventID == 4722, \"Account Enabled\",\n    EventID == 4724, \"Password Reset Attempt\",\n    EventID == 4726, \"Account Deleted\",\n    EventID == 4738, \"Account Changed\",\n    EventID == 4728, \"Added to Global Security Group\",\n    EventID == 4732, \"Added to Local Security Group\",\n    EventID == 4756, \"Added to Universal Security Group\",\n    EventID == 4740, \"Account Lockout\",\n    EventID == 1102, \"Audit Log Cleared\",\n    EventID == 4719, \"Audit Policy Changed\",\n    EventID == 4698, \"Scheduled Task Created\",\n    EventID == 4697, \"Service Installed\",\n    EventID == 7045, \"Service Installed (SCM)\",\n    strcat(\"Event \", tostring(EventID)))\n| summarize Count = count(), Hosts = dcount(Computer), Accounts = dcount(SubjectUserName), LastSeen = max(TimeGenerated) by Activity, EventID\n| sort by Count desc",
+              "size": 0,
+              "title": "Security Sensitive Events Persistence, PrivEsc and Defense Evasion",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Count", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "EventID", "formatter": 1 },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 5000,
+                "sortBy": [ { "itemKey": "Count", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "host-sensitive-events"
+          }
+        ]
+      },
+      "conditionalVisibility": { "parameterName": "selectedTab", "comparison": "isEqualTo", "value": "2" },
+      "name": "group-host"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "Identity & UEBA",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "Identity is the new perimeter. This view leads with Sentinel UEBA: the InvestigationPriority score ranks users by anomalous behavior, fused with Entra ID Identity Protection risk and sign in telemetry across interactive, non interactive, and service principal flows.",
+              "style": "info"
+            },
+            "name": "id-info"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "union isfuzzy=true\n  (AADRiskyUsers | where TimeGenerated {TimeRange} | summarize Value = dcount(UserPrincipalName) | extend Metric = \"Risky Users\", Sort = 1),\n  (AADUserRiskEvents | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = \"Risk Detections\", Sort = 2),\n  (BehaviorAnalytics | where TimeGenerated {TimeRange} | where InvestigationPriority > 0 | summarize Value = dcount(UserPrincipalName) | extend Metric = \"UEBA Flagged Users\", Sort = 3),\n  (SigninLogs | where TimeGenerated {TimeRange} | where ResultType != 0 | summarize Value = count() | extend Metric = \"Failed Sign ins\", Sort = 4),\n  (AADServicePrincipalSignInLogs | where TimeGenerated {TimeRange} | where ResultType != 0 | summarize Value = count() | extend Metric = \"Failed SP Sign ins\", Sort = 5)\n| project Metric, Value, Sort\n| sort by Sort asc",
+              "size": 3,
+              "title": "Identity Risk Snapshot",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": { "columnMatch": "Metric", "formatter": 1 },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": { "palette": "purple" },
+                  "numberFormat": { "unit": 17, "options": { "style": "decimal", "maximumFractionDigits": 0 } }
+                },
+                "showBorder": true
+              }
+            },
+            "name": "id-kpis"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "BehaviorAnalytics\n| where TimeGenerated {TimeRange}\n| where InvestigationPriority > 0\n| where isnotempty(UserPrincipalName)\n| summarize PriorityScore = sum(InvestigationPriority), Activities = count(), LastSeen = max(TimeGenerated) by UserPrincipalName\n| top 25 by PriorityScore desc",
+              "size": 0,
+              "title": "UEBA Users by Investigation Priority",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "PriorityScore", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "sortBy": [ { "itemKey": "PriorityScore", "sortOrder": 2 } ]
+              },
+              "sortBy": [ { "itemKey": "PriorityScore", "sortOrder": 2 } ]
+            },
+            "customWidth": "60",
+            "name": "id-ueba-leaderboard"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "BehaviorAnalytics\n| where TimeGenerated {TimeRange}\n| where InvestigationPriority > 0\n| summarize Count = count() by ActivityType\n| where isnotempty(ActivityType)\n| sort by Count desc",
+              "size": 0,
+              "title": "UEBA Anomalous Activity Types",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart"
+            },
+            "customWidth": "40",
+            "name": "id-ueba-activity"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AADUserRiskEvents\n| where TimeGenerated {TimeRange}\n| summarize Count = count() by bin(TimeGenerated, {TimeRange:grain}), RiskEventType\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Identity Protection Risk Detections Over Time",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart"
+            },
+            "customWidth": "60",
+            "name": "id-risk-trend"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\n| where TimeGenerated {TimeRange}\n| where ResultType != 0\n| summarize Count = count() by ResultDescription\n| where isnotempty(ResultDescription)\n| top 10 by Count desc",
+              "size": 0,
+              "title": "Top Sign in Failure Reasons",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart"
+            },
+            "customWidth": "40",
+            "name": "id-fail-reasons"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AADRiskyUsers\n| where TimeGenerated {TimeRange}\n| summarize arg_max(TimeGenerated, RiskLevel, RiskState, RiskDetail) by UserPrincipalName\n| project UserPrincipalName, RiskLevel, RiskState, RiskDetail, LastUpdated = TimeGenerated\n| order by LastUpdated desc",
+              "size": 0,
+              "title": "Risky Users Current State",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "RiskLevel",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "icons",
+                      "thresholdsGrid": [
+                        { "operator": "==", "thresholdValue": "high", "representation": "failed", "text": "{0}" },
+                        { "operator": "==", "thresholdValue": "medium", "representation": "4", "text": "{0}" },
+                        { "operator": "Default", "representation": "info", "text": "{0}" }
+                      ]
+                    }
+                  },
+                  { "columnMatch": "LastUpdated", "formatter": 6 }
+                ],
+                "rowLimit": 5000,
+                "sortBy": [ { "itemKey": "LastUpdated", "sortOrder": 2 } ]
+              }
+            },
+            "name": "id-risky-users-grid"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "### Entra ID Identity Protection\nThe full Identity Protection picture the ICAM team and CISO track: live risk detections, the risky user population by risk level, and the daily inflow of newly flagged users. Risk detection types such as Unfamiliar sign in properties, Anomalous token, Malicious IP, and Anonymous IP map directly to credential theft, token replay, and infrastructure abuse. Every row is a candidate for Conditional Access enforcement and SOC follow up.",
+              "style": "upsell"
+            },
+            "name": "id-protection-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AADRiskyUsers\n| where TimeGenerated {TimeRange}\n| summarize arg_max(TimeGenerated, RiskLevel, RiskState) by UserPrincipalName\n| where RiskState in (\"atRisk\",\"confirmedCompromised\")\n| extend RiskLevel = case(isempty(RiskLevel) or RiskLevel == \"none\", \"unspecified\", RiskLevel)\n| summarize Users = count() by RiskLevel\n| sort by Users desc",
+              "size": 0,
+              "title": "Risky Users by Risk Level",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "33",
+            "name": "id-risk-level-mix"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AADRiskyUsers\n| where TimeGenerated {TimeRange}\n| where RiskState in (\"atRisk\",\"confirmedCompromised\")\n| summarize arg_min(TimeGenerated, RiskLevel) by UserPrincipalName\n| summarize NewRiskyUsers = count() by bin(TimeGenerated, 1d)\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "New Risky Users per Day",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart"
+            },
+            "customWidth": "33",
+            "name": "id-new-risky-trend"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AADUserRiskEvents\n| where TimeGenerated {TimeRange}\n| where isnotempty(RiskEventType)\n| summarize Detections = count() by RiskEventType\n| sort by Detections desc",
+              "size": 0,
+              "title": "Risk Detection Types",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart"
+            },
+            "customWidth": "34",
+            "name": "id-detection-type-mix"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AADUserRiskEvents\n| where TimeGenerated {TimeRange}\n| extend City = tostring(Location.city), State = tostring(Location.state), Country = tostring(Location.countryOrRegion)\n| extend Place = strcat(City, iff(isnotempty(State), strcat(\", \", State), \"\"), iff(isnotempty(Country), strcat(\", \", Country), \"\"))\n| project DetectedDateTime, User = UserPrincipalName, IpAddress, Location = Place, DetectionType = RiskEventType, Timing = DetectionTimingType, RiskLevel, RiskState, Source\n| order by DetectedDateTime desc",
+              "size": 0,
+              "title": "Risk Detections Feed (Live from Entra ID Protection)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "DetectedDateTime", "formatter": 6 },
+                  { "columnMatch": "DetectionType", "formatter": 1 },
+                  {
+                    "columnMatch": "RiskLevel",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        { "operator": "==", "thresholdValue": "high", "representation": "redBright", "text": "{0}" },
+                        { "operator": "==", "thresholdValue": "medium", "representation": "orange", "text": "{0}" },
+                        { "operator": "==", "thresholdValue": "low", "representation": "yellow", "text": "{0}" },
+                        { "operator": "Default", "representation": "gray", "text": "{0}" }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "RiskState",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        { "operator": "==", "thresholdValue": "confirmedCompromised", "representation": "redBright", "text": "{0}" },
+                        { "operator": "==", "thresholdValue": "atRisk", "representation": "orange", "text": "{0}" },
+                        { "operator": "==", "thresholdValue": "remediated", "representation": "green", "text": "{0}" },
+                        { "operator": "==", "thresholdValue": "confirmedSafe", "representation": "green", "text": "{0}" },
+                        { "operator": "Default", "representation": "gray", "text": "{0}" }
+                      ]
+                    }
+                  }
+                ],
+                "rowLimit": 5000,
+                "sortBy": [ { "itemKey": "DetectedDateTime", "sortOrder": 2 } ]
+              }
+            },
+            "name": "id-risk-detections-grid"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AADUserRiskEvents\n| where TimeGenerated {TimeRange}\n| extend Country = tostring(Location.countryOrRegion)\n| where isnotempty(Country)\n| summarize Detections = count(), Users = dcount(UserPrincipalName), HighRisk = countif(RiskLevel == \"high\"), Compromised = countif(RiskState == \"confirmedCompromised\"), LastSeen = max(TimeGenerated) by Country\n| sort by Detections desc",
+              "size": 0,
+              "title": "Risk Detections by Country",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Detections", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "HighRisk", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "sortBy": [ { "itemKey": "Detections", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "id-risk-by-country"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AADUserRiskEvents\n| where TimeGenerated {TimeRange}\n| where isnotempty(IpAddress)\n| extend Country = tostring(Location.countryOrRegion)\n| summarize Detections = count(), Users = dcount(UserPrincipalName), DetectionTypes = make_set(RiskEventType, 8), HighRisk = countif(RiskLevel == \"high\"), LastSeen = max(TimeGenerated) by IpAddress, Country\n| top 25 by Detections desc",
+              "size": 0,
+              "title": "Top Risk Source IPs",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Detections", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "Users", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "sortBy": [ { "itemKey": "Detections", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "id-risk-source-ips"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\n| where TimeGenerated {TimeRange}\n| where RiskLevelDuringSignIn in (\"low\",\"medium\",\"high\") or RiskState in (\"atRisk\",\"confirmedCompromised\")\n| extend City = tostring(LocationDetails.city), Country = tostring(LocationDetails.countryOrRegion)\n| extend Place = strcat(City, iff(isnotempty(Country), strcat(\", \", Country), \"\"))\n| project TimeGenerated, User = UserPrincipalName, IPAddress, Location = Place, App = AppDisplayName, RiskLevel = RiskLevelDuringSignIn, RiskState, Result = ResultType\n| order by TimeGenerated desc",
+              "size": 0,
+              "title": "Risky Sign ins",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "TimeGenerated", "formatter": 6 },
+                  {
+                    "columnMatch": "RiskLevel",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        { "operator": "==", "thresholdValue": "high", "representation": "redBright", "text": "{0}" },
+                        { "operator": "==", "thresholdValue": "medium", "representation": "orange", "text": "{0}" },
+                        { "operator": "==", "thresholdValue": "low", "representation": "yellow", "text": "{0}" },
+                        { "operator": "Default", "representation": "gray", "text": "{0}" }
+                      ]
+                    }
+                  }
+                ],
+                "rowLimit": 5000,
+                "sortBy": [ { "itemKey": "TimeGenerated", "sortOrder": 2 } ]
+              }
+            },
+            "name": "id-risky-signins-grid"
+          }
+        ]
+      },
+      "conditionalVisibility": { "parameterName": "selectedTab", "comparison": "isEqualTo", "value": "3" },
+      "name": "group-identity"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "Network & Threat Intel",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "Microsoft Defender Threat Intelligence and network telemetry in one view. The top rows quantify the live MDTI and open-source indicator feed flowing into Sentinel; the catalog charts profile that intelligence by type, provider, confidence, threat family, and freshness. The correlation grids then match those indicators against every IP, domain, URL, and file hash your tenant actually logged, while the Graph API, Syslog, and sign-in panels expose the on-network and programmatic activity an adversary would generate. This is the cross source correlation a legacy SIEM could not do natively.",
+              "style": "info"
+            },
+            "name": "net-info"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "union isfuzzy=true\n  (ThreatIntelIndicators | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = \"TI Indicators\", Sort = 1),\n  (ThreatIntelIndicators | where TimeGenerated {TimeRange} | where IsActive == true | summarize Value = count() | extend Metric = \"Active Indicators\", Sort = 2),\n  (ThreatIntelIndicators | where TimeGenerated {TimeRange} | where ObservableKey has \"ipv4-addr\" | summarize Value = dcount(ObservableValue) | extend Metric = \"Malicious IPs Tracked\", Sort = 3),\n  (ThreatIntelIndicators | where TimeGenerated {TimeRange} | where ObservableKey has \"domain-name\" | summarize Value = dcount(ObservableValue) | extend Metric = \"Malicious Domains Tracked\", Sort = 4),\n  (ThreatIntelIndicators | where TimeGenerated {TimeRange} | where ObservableKey has \"url\" | summarize Value = dcount(ObservableValue) | extend Metric = \"Malicious URLs Tracked\", Sort = 5),\n  (ThreatIntelIndicators | where TimeGenerated {TimeRange} | where ObservableKey has \"file:hashes\" | summarize Value = dcount(ObservableValue) | extend Metric = \"Malicious File Hashes\", Sort = 6)\n| project Metric, Value, Sort\n| sort by Sort asc",
+              "size": 3,
+              "title": "Threat Intelligence Coverage",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": { "columnMatch": "Metric", "formatter": 1 },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": { "palette": "red" },
+                  "numberFormat": { "unit": 17, "options": { "style": "decimal", "maximumFractionDigits": 0 } }
+                },
+                "showBorder": true
+              }
+            },
+            "name": "net-kpis"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "union isfuzzy=true\n  (MicrosoftGraphActivityLogs | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = \"Graph API Calls\", Sort = 1),\n  (MicrosoftGraphActivityLogs | where TimeGenerated {TimeRange} | where ResponseStatusCode >= 400 | summarize Value = count() | extend Metric = \"Graph API Errors\", Sort = 2),\n  (MicrosoftGraphActivityLogs | where TimeGenerated {TimeRange} | summarize Value = dcount(tostring(IPAddress)) | extend Metric = \"Graph Source IPs\", Sort = 3),\n  (AADNonInteractiveUserSignInLogs | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = \"Non-Interactive Sign-ins\", Sort = 4),\n  (Syslog | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = \"Network Syslog Events\", Sort = 5)\n| project Metric, Value, Sort\n| sort by Sort asc",
+              "size": 3,
+              "title": "Network & API Telemetry",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": { "columnMatch": "Metric", "formatter": 1 },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": { "palette": "blue" },
+                  "numberFormat": { "unit": 17, "options": { "style": "decimal", "maximumFractionDigits": 0 } }
+                },
+                "showBorder": true
+              }
+            },
+            "name": "net-net-kpis"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "### Threat Intelligence Catalog\nThe live MDTI and open-source indicator feed flowing into Sentinel, profiled by indicator type, provider, confidence, threat family, and freshness. This is the raw intelligence the correlation grids further down match your telemetry against.",
+              "style": "info"
+            },
+            "name": "net-cat-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "ThreatIntelIndicators\n| where TimeGenerated {TimeRange}\n| extend IndicatorType = tostring(split(ObservableKey, \":\")[0])\n| where isnotempty(IndicatorType)\n| summarize Indicators = count() by IndicatorType\n| sort by Indicators desc",
+              "size": 0,
+              "title": "Indicators by Type",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart"
+            },
+            "customWidth": "50",
+            "name": "net-ti-types"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "ThreatIntelIndicators\n| where TimeGenerated {TimeRange}\n| where IsActive == true\n| summarize Indicators = count() by Provider = SourceSystem\n| top 12 by Indicators desc",
+              "size": 0,
+              "title": "Indicators by Provider / Feed",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart"
+            },
+            "customWidth": "50",
+            "name": "net-ti-provider"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "ThreatIntelIndicators\n| where TimeGenerated {TimeRange}\n| where IsActive == true\n| extend Band = case(Confidence >= 90, \"90-100 Very High\", Confidence >= 70, \"70-89 High\", Confidence >= 50, \"50-69 Medium\", Confidence >= 1, \"1-49 Low\", \"0 Unscored\")\n| summarize Indicators = count() by Band\n| order by Band asc",
+              "size": 0,
+              "title": "Indicators by Confidence",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart"
+            },
+            "customWidth": "33",
+            "name": "net-ti-confidence"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "ThreatIntelIndicators\n| where TimeGenerated {TimeRange}\n| summarize Indicators = count() by Status = iff(IsActive == true, \"Active\", \"Revoked\")",
+              "size": 0,
+              "title": "Active vs Revoked",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "33",
+            "name": "net-ti-status"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "ThreatIntelIndicators\n| where TimeGenerated {TimeRange}\n| where IsActive == true and isnotempty(Tags)\n| mv-expand Tag = split(Tags, \",\") to typeof(string)\n| extend Tag = trim(\" \", tostring(Tag))\n| where Tag !startswith \"p:\" and Tag !startswith \"ic:\" and Tag !startswith \"vic:\" and Tag !startswith \"gid:\" and Tag !startswith \"cid:\" and Tag !startswith \"ultime\" and isnotempty(Tag)\n| summarize Indicators = count() by ThreatTag = Tag\n| top 15 by Indicators desc",
+              "size": 0,
+              "title": "Top Threat Family Tags",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart"
+            },
+            "customWidth": "34",
+            "name": "net-ti-family"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "ThreatIntelIndicators\n| where TimeGenerated {TimeRange}\n| where IsActive == true\n| summarize NewIndicators = count() by bin(TimeGenerated, {TimeRange:grain})\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Indicator Freshness (Ingested Over Time)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "areachart"
+            },
+            "name": "net-ti-fresh"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "### MDTI Correlation Against Tenant Telemetry\nThe grids below correlate live threat-intel IP indicators against every IP your tenant logged across Entra sign-ins, non-interactive sign-ins, Graph API, the Azure control plane, and Office 365. An empty result is the healthy outcome: it means no currently tracked malicious IP has touched your environment in the selected window. Any row that appears is a confirmed brush with known-bad infrastructure and should be triaged immediately.",
+              "style": "info"
+            },
+            "name": "net-corr-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let tiIps = ThreatIntelIndicators\n  | where TimeGenerated {TimeRange}\n  | where ObservableKey has \"ipv4-addr\"\n  | distinct ObservableValue;\nunion isfuzzy=true\n  (SigninLogs | where TimeGenerated {TimeRange} | project IP = IPAddress, Source = \"Entra Sign in\", Actor = UserPrincipalName, TimeGenerated),\n  (AADNonInteractiveUserSignInLogs | where TimeGenerated {TimeRange} | project IP = IPAddress, Source = \"Non Interactive Sign in\", Actor = UserPrincipalName, TimeGenerated),\n  (MicrosoftGraphActivityLogs | where TimeGenerated {TimeRange} | project IP = tostring(IPAddress), Source = \"Graph API\", Actor = tostring(UserId), TimeGenerated),\n  (AzureActivity | where TimeGenerated {TimeRange} | project IP = CallerIpAddress, Source = \"Azure Control Plane\", Actor = Caller, TimeGenerated),\n  (OfficeActivity | where TimeGenerated {TimeRange} | project IP = tostring(extract(@\"(\\d+\\.\\d+\\.\\d+\\.\\d+)\", 1, ClientIP)), Source = \"Office 365\", Actor = UserId, TimeGenerated)\n| where isnotempty(IP) and IP in (tiIps)\n| summarize Matches = count(), Sources = make_set(Source, 6), Actors = make_set(Actor, 10), DistinctActors = dcount(Actor), LastSeen = max(TimeGenerated) by IP\n| sort by Matches desc",
+              "size": 0,
+              "title": "MDTI Match Known Bad IPs Across All Tenant Logs",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Matches", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "DistinctActors", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 5000,
+                "sortBy": [ { "itemKey": "Matches", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "60",
+            "name": "net-ti-match"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let tiIps = ThreatIntelIndicators\n  | where TimeGenerated {TimeRange}\n  | where ObservableKey has \"ipv4-addr\"\n  | distinct ObservableValue;\nunion isfuzzy=true\n  (SigninLogs | where TimeGenerated {TimeRange} | project IP = IPAddress, Source = \"Entra Sign in\"),\n  (AADNonInteractiveUserSignInLogs | where TimeGenerated {TimeRange} | project IP = IPAddress, Source = \"Non Interactive Sign in\"),\n  (MicrosoftGraphActivityLogs | where TimeGenerated {TimeRange} | project IP = tostring(IPAddress), Source = \"Graph API\"),\n  (AzureActivity | where TimeGenerated {TimeRange} | project IP = CallerIpAddress, Source = \"Azure Control Plane\"),\n  (OfficeActivity | where TimeGenerated {TimeRange} | project IP = tostring(extract(@\"(\\d+\\.\\d+\\.\\d+\\.\\d+)\", 1, ClientIP)), Source = \"Office 365\")\n| where isnotempty(IP) and IP in (tiIps)\n| summarize Matches = count(), DistinctBadIPs = dcount(IP) by Source\n| sort by Matches desc",
+              "size": 0,
+              "title": "MDTI Matches by Log Source",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart",
+              "chartSettings": { "createOtherGroup": 0 }
+            },
+            "customWidth": "40",
+            "name": "net-ti-match-chart"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let tiIps = ThreatIntelIndicators\n  | where TimeGenerated {TimeRange}\n  | where ObservableKey has \"ipv4-addr\"\n  | distinct ObservableValue;\nunion isfuzzy=true\n  (SigninLogs | where TimeGenerated {TimeRange} | project IP = IPAddress, Source = \"Entra Sign in\", TimeGenerated),\n  (AADNonInteractiveUserSignInLogs | where TimeGenerated {TimeRange} | project IP = IPAddress, Source = \"Non Interactive Sign in\", TimeGenerated),\n  (MicrosoftGraphActivityLogs | where TimeGenerated {TimeRange} | project IP = tostring(IPAddress), Source = \"Graph API\", TimeGenerated),\n  (AzureActivity | where TimeGenerated {TimeRange} | project IP = CallerIpAddress, Source = \"Azure Control Plane\", TimeGenerated),\n  (OfficeActivity | where TimeGenerated {TimeRange} | project IP = tostring(extract(@\"(\\d+\\.\\d+\\.\\d+\\.\\d+)\", 1, ClientIP)), Source = \"Office 365\", TimeGenerated)\n| where isnotempty(IP) and IP in (tiIps)\n| summarize Hits = count() by bin(TimeGenerated, {TimeRange:grain}), Source\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "MDTI Hits Over Time (Known Bad IPs Touching the Tenant)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart",
+              "chartSettings": { "createOtherGroup": 0 }
+            },
+            "name": "net-ti-hits-trend"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "### Microsoft Graph API & Network Telemetry\nGraph API is the primary programmatic surface into your tenant. Volume and error trends, status-code mix, source IPs, calling applications, and user agents expose anomalous automation, token abuse, and reconnaissance. Linux Syslog volume by facility rounds out the on-network picture.",
+              "style": "info"
+            },
+            "name": "net-graph-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "MicrosoftGraphActivityLogs\n| where TimeGenerated {TimeRange}\n| summarize Calls = count(), Errors = countif(ResponseStatusCode >= 400) by bin(TimeGenerated, {TimeRange:grain})\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Graph API Call Volume & Errors Over Time",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart",
+              "chartSettings": { "createOtherGroup": 0 }
+            },
+            "customWidth": "60",
+            "name": "net-graph-vol"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "MicrosoftGraphActivityLogs\n| where TimeGenerated {TimeRange}\n| summarize Calls = count() by StatusClass = strcat(substring(tostring(ResponseStatusCode), 0, 1), \"xx\")\n| order by StatusClass asc",
+              "size": 0,
+              "title": "Graph API Status Class Mix",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "40",
+            "name": "net-graph-status"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "MicrosoftGraphActivityLogs\n| where TimeGenerated {TimeRange}\n| where ResponseStatusCode >= 400\n| summarize Errors = count() by ResponseStatusCode\n| sort by Errors desc",
+              "size": 0,
+              "title": "Graph API Errors by Status Code (4xx/5xx)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart"
+            },
+            "customWidth": "50",
+            "name": "net-graph-errors"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "MicrosoftGraphActivityLogs\n| where TimeGenerated {TimeRange}\n| where isnotempty(UserAgent)\n| summarize Calls = count() by UserAgent\n| top 15 by Calls desc",
+              "size": 0,
+              "title": "Top Graph API User Agents",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart"
+            },
+            "customWidth": "50",
+            "name": "net-graph-ua"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "MicrosoftGraphActivityLogs\n| where TimeGenerated {TimeRange}\n| summarize Calls = count(), Errors = countif(ResponseStatusCode >= 400), Apps = dcount(AppId), LastSeen = max(TimeGenerated) by SourceIP = tostring(IPAddress)\n| top 25 by Calls desc",
+              "size": 0,
+              "title": "Top Graph API Source IPs",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Calls", "formatter": 8, "formatOptions": { "palette": "blue" } },
+                  { "columnMatch": "Errors", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "Apps", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "Calls", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "net-graph-ip"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "MicrosoftGraphActivityLogs\n| where TimeGenerated {TimeRange}\n| summarize Calls = count(), Errors = countif(ResponseStatusCode >= 400), SourceIPs = dcount(tostring(IPAddress)), LastSeen = max(TimeGenerated) by Application = tostring(AppId)\n| top 25 by Calls desc",
+              "size": 0,
+              "title": "Top Graph API Calling Applications",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Calls", "formatter": 8, "formatOptions": { "palette": "blue" } },
+                  { "columnMatch": "Errors", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "SourceIPs", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "Calls", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "net-graph-app"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "Syslog\n| where TimeGenerated {TimeRange}\n| summarize Events = count() by bin(TimeGenerated, {TimeRange:grain}), Facility\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Linux Syslog Volume by Facility",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart",
+              "chartSettings": { "createOtherGroup": 0 }
+            },
+            "name": "net-syslog-fac"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "### Sign-in Network Footprint\nThe network reach of identities: non-interactive sign-in source IPs (token refreshes and service flows that attackers abuse for stealth) and the per-user spread of distinct IPs and countries that flags account sharing, proxy abuse, and impossible-travel.",
+              "style": "info"
+            },
+            "name": "net-signin-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AADNonInteractiveUserSignInLogs\n| where TimeGenerated {TimeRange}\n| summarize SignIns = count(), Users = dcount(UserPrincipalName), Failures = countif(ResultType != 0), Apps = dcount(AppDisplayName), LastSeen = max(TimeGenerated) by SourceIP = IPAddress\n| top 25 by SignIns desc",
+              "size": 0,
+              "title": "Top Non-Interactive Sign-in Source IPs",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "SignIns", "formatter": 8, "formatOptions": { "palette": "blue" } },
+                  { "columnMatch": "Failures", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "Users", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "SignIns", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "net-ni-ip"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\n| where TimeGenerated {TimeRange}\n| extend Country = tostring(LocationDetails.countryOrRegion)\n| summarize SignIns = count(), DistinctIPs = dcount(IPAddress), Countries = dcount(Country), Failures = countif(ResultType != 0), Apps = dcount(AppDisplayName), LastSeen = max(TimeGenerated) by User = UserPrincipalName\n| top 25 by DistinctIPs desc",
+              "size": 0,
+              "title": "Per-User IP & Country Spread",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "DistinctIPs", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "Countries", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "Failures", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "SignIns", "formatter": 8, "formatOptions": { "palette": "blue" } },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "DistinctIPs", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "net-signin-footprint"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "### MDTI Indicator Matches in M365\nBeyond IPs, MDTI tracks malicious **domains, URLs, and file hashes**. The grids below correlate those indicators against your Microsoft 365 estate, weaponized URLs landing in mail and SharePoint/OneDrive/Teams, and known-bad file hashes arriving as email attachments. A hit here is a confirmed brush with adversary infrastructure or tooling.",
+              "style": "upsell"
+            },
+            "name": "net-ti-md-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let tiDomains = ThreatIntelIndicators\n  | where TimeGenerated {TimeRange}\n  | where ObservableKey has \"domain-name\"\n  | distinct Indicator = tolower(tostring(ObservableValue));\nlet tiUrls = ThreatIntelIndicators\n  | where TimeGenerated {TimeRange}\n  | where ObservableKey has \"url\"\n  | distinct Indicator = tolower(tostring(ObservableValue));\nunion isfuzzy=true\n  (EmailUrlInfo | where TimeGenerated {TimeRange} | extend Url = tolower(tostring(Url)), Domain = tolower(tostring(UrlDomain)) | project Url, Domain, Source = \"Email URL\", TimeGenerated),\n  (OfficeActivity | where TimeGenerated {TimeRange} | where isnotempty(ObjectId) | extend Url = tolower(tostring(ObjectId)) | extend Domain = tolower(extract(@\"https?://([^/:]+)\", 1, Url)) | project Url, Domain, Source = \"Office 365 (SP/OneDrive/Teams)\", TimeGenerated)\n| where (isnotempty(Domain) and Domain in (tiDomains)) or (isnotempty(Url) and Url in (tiUrls))\n| extend Indicator = iff(Domain in (tiDomains), Domain, Url), IndicatorType = iff(Domain in (tiDomains), \"Domain\", \"URL\")\n| summarize Hits = count(), Sources = make_set(Source, 4), Example = any(Url), LastSeen = max(TimeGenerated) by Indicator, IndicatorType\n| sort by Hits desc",
+              "size": 0,
+              "title": "MDTI Match - Malicious Domains & URLs in M365",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Hits", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "IndicatorType", "formatter": 1 },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 5000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "Hits", "sortOrder": 2 } ]
+              },
+              "sortBy": [ { "itemKey": "Hits", "sortOrder": 2 } ]
+            },
+            "name": "net-ti-url-match"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let tiFiles = ThreatIntelIndicators\n  | where TimeGenerated {TimeRange}\n  | where ObservableKey has \"file:hashes\"\n  | distinct Hash = tolower(tostring(ObservableValue));\nunion isfuzzy=true\n  (EmailAttachmentInfo | where TimeGenerated {TimeRange} | extend Hash = tolower(tostring(SHA256)) | project Hash, FileName, FileType, Source = \"Email Attachment\", Actor = SenderFromAddress, TimeGenerated),\n  (EmailAttachmentInfo | where TimeGenerated {TimeRange} | extend Hash = tolower(tostring(SHA1)) | project Hash, FileName, FileType, Source = \"Email Attachment\", Actor = SenderFromAddress, TimeGenerated)\n| where isnotempty(Hash) and Hash in (tiFiles)\n| summarize Hits = count(), Files = make_set(FileName, 8), FileTypes = make_set(FileType, 8), Senders = make_set(Actor, 8), LastSeen = max(TimeGenerated) by Hash\n| sort by Hits desc",
+              "size": 0,
+              "title": "MDTI Match - Malicious File Hashes Delivered to M365",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Hits", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "Hash", "formatter": 1 },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 5000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "Hits", "sortOrder": 2 } ]
+              },
+              "sortBy": [ { "itemKey": "Hits", "sortOrder": 2 } ]
+            },
+            "name": "net-ti-file-match"
+          }
+        ]
+      },
+      "conditionalVisibility": { "parameterName": "selectedTab", "comparison": "isEqualTo", "value": "4" },
+      "name": "group-network"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "Cloud & SaaS Activity",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "Threat activity across Microsoft 365, Azure control plane, and Entra ID. Risky mailbox operations and inbox rules are classic business email compromise (BEC) tradecraft; Azure control plane changes and Entra audit events catch privilege abuse and persistence.",
+              "style": "info"
+            },
+            "name": "cloud-info"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "union isfuzzy=true\n  (OfficeActivity | where TimeGenerated {TimeRange} | where Operation in (\"New-InboxRule\",\"Set-InboxRule\",\"UpdateInboxRules\",\"Add-MailboxPermission\") | summarize Value = count() | extend Metric = \"Risky Mailbox/Rule Ops\", Sort = 1),\n  (AuditLogs | where TimeGenerated {TimeRange} | where OperationName has \"Consent to application\" | summarize Value = count() | extend Metric = \"App Consent Grants\", Sort = 2),\n  (AuditLogs | where TimeGenerated {TimeRange} | where OperationName has \"Add member to role\" | summarize Value = count() | extend Metric = \"Privileged Role Adds\", Sort = 3),\n  (AuditLogs | where TimeGenerated {TimeRange} | where OperationName has \"conditional access\" | summarize Value = count() | extend Metric = \"Conditional Access Changes\", Sort = 4),\n  (AzureActivity | where TimeGenerated {TimeRange} | where ActivityStatusValue in (\"Failed\",\"Failure\") | summarize Value = count() | extend Metric = \"Failed Azure Ops\", Sort = 5)\n| project Metric, Value, Sort\n| sort by Sort asc",
+              "size": 3,
+              "title": "Cloud Threat Signals",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": { "columnMatch": "Metric", "formatter": 1 },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": { "palette": "red" },
+                  "numberFormat": { "unit": 17, "options": { "style": "decimal", "maximumFractionDigits": 0 } }
+                },
+                "showBorder": true
+              }
+            },
+            "name": "cloud-kpis"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "union isfuzzy=true\n  (OfficeActivity | where TimeGenerated {TimeRange} | where Operation in (\"New-InboxRule\",\"Set-InboxRule\",\"UpdateInboxRules\",\"Add-MailboxPermission\") | extend Category = \"Mailbox/Rule Ops\"),\n  (AuditLogs | where TimeGenerated {TimeRange} | where OperationName has \"Consent to application\" | extend Category = \"App Consent\"),\n  (AuditLogs | where TimeGenerated {TimeRange} | where OperationName has \"Add member to role\" | extend Category = \"Privileged Role Add\")\n| summarize Count = count() by bin(TimeGenerated, {TimeRange:grain}), Category\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Cloud Threat Signals Over Time",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "areachart"
+            },
+            "customWidth": "60",
+            "name": "cloud-office-trend"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AzureActivity\n| where TimeGenerated {TimeRange}\n| where ActivityStatusValue in (\"Failed\",\"Failure\")\n| extend Op = tostring(split(OperationNameValue, \"/\")[-2])\n| summarize Count = count() by OperationNameValue\n| top 15 by Count desc",
+              "size": 0,
+              "title": "Failed Azure Control Plane Operations",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart"
+            },
+            "customWidth": "40",
+            "name": "cloud-azure-status"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "OfficeActivity\n| where TimeGenerated {TimeRange}\n| where Operation in (\"New-InboxRule\",\"Set-InboxRule\",\"Add-MailboxPermission\",\"Set-Mailbox\",\"UpdateInboxRules\")\n| project TimeGenerated, UserId, Operation, ClientIP, OfficeWorkload\n| order by TimeGenerated desc",
+              "size": 0,
+              "title": "Risky Mailbox and Inbox Rule Operations (BEC Tradecraft)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "TimeGenerated", "formatter": 6 },
+                  { "columnMatch": "Operation", "formatter": 1 }
+                ],
+                "rowLimit": 5000,
+                "sortBy": [ { "itemKey": "TimeGenerated", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "cloud-mailbox-ops"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "AuditLogs\n| where TimeGenerated {TimeRange}\n| where OperationName has_any (\"Add member to role\",\"Add eligible member to role\",\"Consent to application\",\"Add app role assignment\",\"Update conditional access policy\",\"Add service principal\",\"Reset password\",\"Certificates and secrets management\",\"Disable Strong Authentication\")\n| summarize Count = count(), LastSeen = max(TimeGenerated) by OperationName, Result\n| top 25 by Count desc",
+              "size": 0,
+              "title": "Sensitive Entra ID Operations (Privilege Abuse & Persistence)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Count", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "sortBy": [ { "itemKey": "Count", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "cloud-audit-ops"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "### Email Security (Microsoft Defender for Office 365)\nMail-borne threats across the full MDO telemetry set: EmailEvents (verdicts and delivery), EmailUrlInfo (weaponized URLs), EmailAttachmentInfo (malicious files and hashes), EmailPostDeliveryEvents (ZAP remediation), and UrlClickEvents (Safe Links clicks). The tiles, trends and grids below surface what was blocked versus delivered, the senders and domains behind it, the URLs and attachments embedded in mail, and post-delivery clean-up, classic initial-access and credential-harvesting tradecraft the SOC must triage fast.\n\n> Note: this workbook reads the Log Analytics / Sentinel workspace. The richest threat verdicts (ThreatTypes, DetectionMethods) populate fully when opened in the unified Microsoft Defender portal; here the panels are built to also light up from delivery action, quarantine location, bulk-complaint level, and the always-populated URL, attachment, ZAP and click tables.",
+              "style": "upsell"
+            },
+            "name": "cloud-email-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "union isfuzzy=true\n  (EmailEvents | where TimeGenerated {TimeRange} | where ThreatTypes has \"Malware\" | summarize Value = count() | extend Metric = \"Malware\", Sort = 1),\n  (EmailEvents | where TimeGenerated {TimeRange} | where ThreatTypes has \"Phish\" | summarize Value = count() | extend Metric = \"Phishing\", Sort = 2),\n  (EmailEvents | where TimeGenerated {TimeRange} | where ThreatTypes has \"Spam\" or BulkComplaintLevel >= 7 | summarize Value = count() | extend Metric = \"Spam / Bulk\", Sort = 3),\n  (EmailEvents | where TimeGenerated {TimeRange} | where DeliveryAction in (\"Blocked\",\"Replaced\") or DeliveryLocation in (\"Quarantine\",\"Failed\",\"Dropped\") | summarize Value = count() | extend Metric = \"Blocked / Quarantined\", Sort = 4),\n  (EmailEvents | where TimeGenerated {TimeRange} | where isnotempty(ThreatTypes) and DeliveryAction == \"Delivered\" | summarize Value = count() | extend Metric = \"Threats Delivered\", Sort = 5),\n  (EmailPostDeliveryEvents | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = \"Post-Delivery (ZAP)\", Sort = 6)\n| project Metric, Value, Sort\n| sort by Sort asc",
+              "size": 3,
+              "title": "Email Threat Signals",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": { "columnMatch": "Metric", "formatter": 1 },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": { "palette": "red" },
+                  "numberFormat": { "unit": 17, "options": { "style": "decimal", "maximumFractionDigits": 0 } }
+                },
+                "showBorder": true
+              }
+            },
+            "name": "cloud-email-kpis"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "union isfuzzy=true\n  (EmailEvents | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = \"Total Emails\", Sort = 1),\n  (EmailEvents | where TimeGenerated {TimeRange} | where EmailDirection == \"Inbound\" | summarize Value = count() | extend Metric = \"Inbound\", Sort = 2),\n  (EmailEvents | where TimeGenerated {TimeRange} | summarize Value = dcount(SenderFromDomain) | extend Metric = \"Sender Domains\", Sort = 3),\n  (EmailEvents | where TimeGenerated {TimeRange} | where UrlCount > 0 | summarize Value = count() | extend Metric = \"Emails w/ URLs\", Sort = 4),\n  (EmailEvents | where TimeGenerated {TimeRange} | where AttachmentCount > 0 | summarize Value = count() | extend Metric = \"Emails w/ Attachments\", Sort = 5),\n  (UrlClickEvents | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = \"Safe Links Clicks\", Sort = 6)\n| project Metric, Value, Sort\n| sort by Sort asc",
+              "size": 3,
+              "title": "Mail Flow & Exposure",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": { "columnMatch": "Metric", "formatter": 1 },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": { "palette": "blue" },
+                  "numberFormat": { "unit": 17, "options": { "style": "decimal", "maximumFractionDigits": 0 } }
+                },
+                "showBorder": true
+              }
+            },
+            "name": "cloud-email-flow"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "EmailEvents\n| where TimeGenerated {TimeRange}\n| where isnotempty(ThreatTypes) or DeliveryAction in (\"Blocked\",\"Junked\",\"Replaced\") or DeliveryLocation in (\"Quarantine\",\"Junk\",\"Failed\",\"Dropped\") or BulkComplaintLevel >= 7\n| extend Verdict = case(ThreatTypes has \"Malware\", \"Malware\", ThreatTypes has \"Phish\", \"Phish\", ThreatTypes has \"Spam\", \"Spam\", DeliveryLocation == \"Quarantine\" or DeliveryAction == \"Blocked\", \"Blocked/Quarantined\", DeliveryAction == \"Junked\" or DeliveryLocation == \"Junk\", \"Junked\", BulkComplaintLevel >= 7, \"Bulk\", \"Other\")\n| summarize Count = count() by bin(TimeGenerated, {TimeRange:grain}), Verdict\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Email Threats Over Time (by Verdict)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart",
+              "chartSettings": { "createOtherGroup": 0 }
+            },
+            "customWidth": "60",
+            "name": "cloud-email-trend"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "EmailEvents\n| where TimeGenerated {TimeRange}\n| where isnotempty(ThreatTypes) or DeliveryAction in (\"Blocked\",\"Junked\",\"Replaced\") or DeliveryLocation in (\"Quarantine\",\"Junk\",\"Failed\",\"Dropped\") or BulkComplaintLevel >= 7\n| extend Verdict = case(ThreatTypes has \"Malware\", \"Malware\", ThreatTypes has \"Phish\", \"Phish\", ThreatTypes has \"Spam\", \"Spam\", DeliveryLocation == \"Quarantine\" or DeliveryAction == \"Blocked\", \"Blocked/Quarantined\", DeliveryAction == \"Junked\" or DeliveryLocation == \"Junk\", \"Junked\", BulkComplaintLevel >= 7, \"Bulk\", \"Other\")\n| summarize Count = count() by Verdict\n| sort by Count desc",
+              "size": 0,
+              "title": "Threat Verdict Mix",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "40",
+            "name": "cloud-email-verdict"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "EmailEvents\n| where TimeGenerated {TimeRange}\n| where isnotempty(ThreatTypes) or DeliveryAction in (\"Blocked\",\"Junked\",\"Replaced\") or DeliveryLocation in (\"Quarantine\",\"Junk\",\"Failed\",\"Dropped\") or BulkComplaintLevel >= 7\n| where isnotempty(SenderFromDomain)\n| summarize Threats = count() by SenderFromDomain\n| top 15 by Threats desc",
+              "size": 0,
+              "title": "Top Threat Sender Domains",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart",
+              "chartSettings": { "createOtherGroup": 0 }
+            },
+            "customWidth": "50",
+            "name": "cloud-email-sender"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "EmailUrlInfo\n| where TimeGenerated {TimeRange}\n| where isnotempty(UrlDomain)\n| summarize Occurrences = count(), Emails = dcount(NetworkMessageId) by UrlDomain\n| top 15 by Occurrences desc",
+              "size": 0,
+              "title": "Top URL Domains in Mail",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart",
+              "chartSettings": { "createOtherGroup": 0 }
+            },
+            "customWidth": "50",
+            "name": "cloud-email-urldom"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "EmailEvents\n| where TimeGenerated {TimeRange}\n| where isnotempty(ThreatTypes) or DeliveryAction in (\"Blocked\",\"Junked\",\"Replaced\") or DeliveryLocation in (\"Quarantine\",\"Junk\",\"Failed\",\"Dropped\") or BulkComplaintLevel >= 7\n| extend Verdict = case(ThreatTypes has \"Malware\", \"Malware\", ThreatTypes has \"Phish\", \"Phish\", ThreatTypes has \"Spam\", \"Spam\", DeliveryLocation == \"Quarantine\" or DeliveryAction == \"Blocked\", \"Blocked/Quarantined\", DeliveryAction == \"Junked\" or DeliveryLocation == \"Junk\", \"Junked\", BulkComplaintLevel >= 7, \"Bulk\", \"Other\")\n| project TimeGenerated, Verdict, SenderFromAddress, SenderFromDomain, RecipientEmailAddress, Subject, ThreatNames, DetectionMethods, DeliveryAction, DeliveryLocation, EmailActionPolicy, BulkComplaintLevel, SenderIPv4, NetworkMessageId\n| order by TimeGenerated desc",
+              "size": 0,
+              "title": "Filtered & Malicious Emails - Full Detail",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "TimeGenerated", "formatter": 6 },
+                  {
+                    "columnMatch": "Verdict",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        { "operator": "==", "thresholdValue": "Malware", "representation": "redBright", "text": "{0}" },
+                        { "operator": "==", "thresholdValue": "Phish", "representation": "redBright", "text": "{0}" },
+                        { "operator": "==", "thresholdValue": "Spam", "representation": "orange", "text": "{0}" },
+                        { "operator": "==", "thresholdValue": "Bulk", "representation": "yellow", "text": "{0}" },
+                        { "operator": "==", "thresholdValue": "Junked", "representation": "orange", "text": "{0}" },
+                        { "operator": "==", "thresholdValue": "Blocked/Quarantined", "representation": "green", "text": "{0}" },
+                        { "operator": "Default", "representation": "gray", "text": "{0}" }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "DeliveryAction",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        { "operator": "==", "thresholdValue": "Delivered", "representation": "redBright", "text": "{0}" },
+                        { "operator": "==", "thresholdValue": "Junked", "representation": "orange", "text": "{0}" },
+                        { "operator": "==", "thresholdValue": "Blocked", "representation": "green", "text": "{0}" },
+                        { "operator": "==", "thresholdValue": "Replaced", "representation": "green", "text": "{0}" },
+                        { "operator": "Default", "representation": "gray", "text": "{0}" }
+                      ]
+                    }
+                  },
+                  { "columnMatch": "BulkComplaintLevel", "formatter": 8, "formatOptions": { "palette": "orange", "min": 0, "max": 9 } }
+                ],
+                "rowLimit": 5000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "TimeGenerated", "sortOrder": 2 } ]
+              }
+            },
+            "name": "cloud-email-detail-grid"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "EmailUrlInfo\n| where TimeGenerated {TimeRange}\n| join kind=inner (EmailEvents | where TimeGenerated {TimeRange} | where isnotempty(ThreatTypes) or DeliveryAction in (\"Blocked\",\"Junked\",\"Replaced\") or DeliveryLocation in (\"Quarantine\",\"Junk\",\"Failed\",\"Dropped\") or BulkComplaintLevel >= 7 | project NetworkMessageId, MailThreat = ThreatTypes, SenderFromAddress, DeliveryAction) on NetworkMessageId\n| summarize Hits = count(), Emails = dcount(NetworkMessageId), Senders = dcount(SenderFromAddress), Verdicts = make_set(MailThreat, 8), LastSeen = max(TimeGenerated) by Url, UrlDomain\n| top 100 by Hits desc",
+              "size": 0,
+              "title": "Malicious URLs in Mail",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Hits", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "Emails", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 5000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "Hits", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "cloud-email-urls-grid"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "EmailAttachmentInfo\n| where TimeGenerated {TimeRange}\n| extend Threat = iff(isnotempty(ThreatTypes), ThreatTypes, \"(none)\")\n| summarize Emails = dcount(NetworkMessageId), Recipients = dcount(RecipientEmailAddress), LastSeen = max(TimeGenerated) by FileName, FileType, SHA256, Threat, DetectionMethods\n| top 100 by Emails desc",
+              "size": 0,
+              "title": "Email Attachments & File Hashes",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Emails", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "Recipients", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "Threat", "formatter": 1 },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 5000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "Emails", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "cloud-email-attach-grid"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "EmailPostDeliveryEvents\n| where TimeGenerated {TimeRange}\n| project TimeGenerated, Action, ActionType, ActionTrigger, ActionResult, ThreatTypes, RecipientEmailAddress, NetworkMessageId\n| order by TimeGenerated desc",
+              "size": 0,
+              "title": "Post-Delivery Remediation (ZAP)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "TimeGenerated", "formatter": 6 },
+                  { "columnMatch": "ActionType", "formatter": 1 },
+                  {
+                    "columnMatch": "ActionResult",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        { "operator": "==", "thresholdValue": "Success", "representation": "green", "text": "{0}" },
+                        { "operator": "Default", "representation": "orange", "text": "{0}" }
+                      ]
+                    }
+                  }
+                ],
+                "rowLimit": 5000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "TimeGenerated", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "cloud-email-zap-grid"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "UrlClickEvents\n| where TimeGenerated {TimeRange}\n| project TimeGenerated, AccountUpn, Url, ActionType, Workload, IPAddress, IsClickedThrough, ThreatTypes, DetectionMethods\n| order by TimeGenerated desc",
+              "size": 0,
+              "title": "Safe Links URL Clicks",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "TimeGenerated", "formatter": 6 },
+                  {
+                    "columnMatch": "ActionType",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        { "operator": "==", "thresholdValue": "ClickBlocked", "representation": "green", "text": "{0}" },
+                        { "operator": "==", "thresholdValue": "ClickAllowed", "representation": "orange", "text": "{0}" },
+                        { "operator": "Default", "representation": "gray", "text": "{0}" }
+                      ]
+                    }
+                  },
+                  {
+                    "columnMatch": "IsClickedThrough",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        { "operator": "==", "thresholdValue": "True", "representation": "redBright", "text": "{0}" },
+                        { "operator": "Default", "representation": "gray", "text": "{0}" }
+                      ]
+                    }
+                  }
+                ],
+                "rowLimit": 5000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "TimeGenerated", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "cloud-email-clicks-grid"
+          }
+        ]
+      },
+      "conditionalVisibility": { "parameterName": "selectedTab", "comparison": "isEqualTo", "value": "5" },
+      "name": "group-cloud"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "Sign-in Geography",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "Where your sign-ins originate worldwide. Bubble size reflects total sign-in volume per country; color intensity (green to red) reflects failed sign-ins, surfacing brute-force, password-spray, and impossible-travel hotspots at a glance. Use the detail grid below to drill into exactly which users failed, what kind of failure, how many times, and from which country.",
+              "style": "info"
+            },
+            "name": "geo-info"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "union isfuzzy=true\n  (SigninLogs | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = \"Total Sign-ins\", Sort = 1),\n  (SigninLogs | where TimeGenerated {TimeRange} | where ResultType != 0 | summarize Value = count() | extend Metric = \"Failed Sign-ins\", Sort = 2),\n  (SigninLogs | where TimeGenerated {TimeRange} | extend C = tostring(LocationDetails.countryOrRegion) | where isnotempty(C) | summarize Value = dcount(C) | extend Metric = \"Countries Seen\", Sort = 3),\n  (SigninLogs | where TimeGenerated {TimeRange} | where ResultType != 0 | extend C = tostring(LocationDetails.countryOrRegion) | where isnotempty(C) | summarize Value = dcount(C) | extend Metric = \"Countries w/ Failures\", Sort = 4),\n  (SigninLogs | where TimeGenerated {TimeRange} | where ResultType != 0 | summarize Value = dcount(UserPrincipalName) | extend Metric = \"Users w/ Failures\", Sort = 5)\n| project Metric, Value, Sort\n| sort by Sort asc",
+              "size": 3,
+              "title": "Sign-in Geography Snapshot",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": { "columnMatch": "Metric", "formatter": 1 },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": { "palette": "blue" },
+                  "numberFormat": { "unit": 17, "options": { "style": "decimal", "maximumFractionDigits": 0 } }
+                },
+                "showBorder": true
+              }
+            },
+            "name": "geo-kpis"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\n| where TimeGenerated {TimeRange}\n| extend Country = tostring(LocationDetails.countryOrRegion)\n| where isnotempty(Country)\n| summarize SignIns = count(), Failures = countif(ResultType != 0), Successes = countif(ResultType == 0), Users = dcount(UserPrincipalName), IPs = dcount(IPAddress) by Country\n| extend FailScore = round(log10(Failures + 1), 3)\n| order by SignIns desc",
+              "size": 2,
+              "title": "Sign-in Origins Worldwide - Failed Sign-ins Highlighted",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "map",
+              "mapSettings": {
+                "locInfo": "CountryRegion",
+                "locInfoColumn": "Country",
+                "sizeSettings": "SignIns",
+                "sizeAggregation": "Sum",
+                "legendMetric": "Failures",
+                "legendAggregation": "Sum",
+                "legendColor": "Failures",
+                "minSize": 14,
+                "maxSize": 40,
+                "labelSettings": "Country",
+                "itemColorSettings": {
+                  "nodeColorField": "FailScore",
+                  "colorAggregation": "Max",
+                  "type": "heatmap",
+                  "heatmapPalette": "greenRed",
+                  "minValue": 0,
+                  "maxValue": 4.477
+                }
+              }
+            },
+            "customWidth": "50",
+            "name": "geo-signin-map"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\n| where TimeGenerated {TimeRange}\n| extend Country = tostring(LocationDetails.countryOrRegion), City = tostring(LocationDetails.city)\n| where isnotempty(Country)\n| summarize SignIns = count(), Failures = countif(ResultType != 0), Users = dcount(UserPrincipalName), IPs = dcount(IPAddress), RiskySignIns = countif(RiskLevelDuringSignIn in (\"low\",\"medium\",\"high\")), HighRisk = countif(RiskLevelDuringSignIn == \"high\"), CABlocks = countif(ConditionalAccessStatus == \"failure\"), LegacyAuth = countif(ClientAppUsed in (\"Other clients\",\"IMAP4\",\"POP3\",\"SMTP\",\"MAPI\",\"Authenticated SMTP\",\"Exchange ActiveSync\",\"Exchange Web Services\",\"Exchange Online PowerShell\",\"Autodiscover\")) by Country, City\n| extend FailRate = round(100.0 * Failures / SignIns, 1)\n| project Country, City, SignIns, Failures, Users, IPs, RiskySignIns, HighRisk, CABlocks, LegacyAuth, FailRate\n| order by Failures desc, SignIns desc",
+              "size": 0,
+              "title": "Top Origin Countries & Cities - Volume, Failures, Risk, CA Blocks & Legacy Auth",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "SignIns", "formatter": 8, "formatOptions": { "palette": "blue" } },
+                  { "columnMatch": "Failures", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "Users", "formatter": 8, "formatOptions": { "palette": "green" } },
+                  { "columnMatch": "IPs", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "RiskySignIns", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "HighRisk", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "CABlocks", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "LegacyAuth", "formatter": 8, "formatOptions": { "palette": "purple" } },
+                  { "columnMatch": "FailRate", "formatter": 8, "formatOptions": { "palette": "greenRed", "min": 0, "max": 100 }, "numberFormat": { "unit": 1, "options": { "style": "decimal", "maximumFractionDigits": 1 } } }
+                ],
+                "rowLimit": 1000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "Failures", "sortOrder": 2 } ]
+              },
+              "sortBy": [ { "itemKey": "Failures", "sortOrder": 2 } ]
+            },
+            "customWidth": "50",
+            "name": "geo-country-summary"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SigninLogs\n| where TimeGenerated {TimeRange}\n| where ResultType != 0\n| extend Country = tostring(LocationDetails.countryOrRegion), City = tostring(LocationDetails.city)\n| extend FailureType = case(isnotempty(ResultDescription), ResultDescription, strcat(\"ResultType \", tostring(ResultType)))\n| extend RiskRank = case(RiskLevelDuringSignIn == \"high\", 3, RiskLevelDuringSignIn == \"medium\", 2, RiskLevelDuringSignIn == \"low\", 1, 0)\n| summarize Failures = count(), IPs = dcount(IPAddress), SourceIPs = make_set(IPAddress, 5), Apps = dcount(AppDisplayName), AppNames = make_set(AppDisplayName, 5), ClientApps = make_set(ClientAppUsed, 5), MaxRiskRank = max(RiskRank), CABlocks = countif(ConditionalAccessStatus == \"failure\"), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by User = UserPrincipalName, FailureType, City, Country\n| extend MaxRisk = case(MaxRiskRank == 3, \"high\", MaxRiskRank == 2, \"medium\", MaxRiskRank == 1, \"low\", \"none\")\n| project User, FailureType, City, Country, Failures, IPs, SourceIPs, Apps, AppNames, ClientApps, MaxRisk, CABlocks, FirstSeen, LastSeen\n| top 200 by Failures desc",
+              "size": 0,
+              "title": "Failed Sign-ins by User - Geo, Apps, Client, Risk & Conditional Access",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "FailureType", "formatter": 1 },
+                  { "columnMatch": "Failures", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "IPs", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "Apps", "formatter": 8, "formatOptions": { "palette": "blue" } },
+                  { "columnMatch": "CABlocks", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  {
+                    "columnMatch": "MaxRisk",
+                    "formatter": 18,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        { "operator": "==", "thresholdValue": "high", "representation": "redBright", "text": "{0}" },
+                        { "operator": "==", "thresholdValue": "medium", "representation": "orange", "text": "{0}" },
+                        { "operator": "==", "thresholdValue": "low", "representation": "yellow", "text": "{0}" },
+                        { "operator": "Default", "representation": "gray", "text": "{0}" }
+                      ]
+                    }
+                  },
+                  { "columnMatch": "FirstSeen", "formatter": 6 },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 5000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "Failures", "sortOrder": 2 } ]
+              },
+              "sortBy": [ { "itemKey": "Failures", "sortOrder": 2 } ]
+            },
+            "name": "geo-failed-by-user"
+          }
+        ]
+      },
+      "conditionalVisibility": { "parameterName": "selectedTab", "comparison": "isEqualTo", "value": "6" },
+      "name": "group-geo"
+    }
+  ],
+  "fallbackResourceIds": [],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

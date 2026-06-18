@@ -103,6 +103,22 @@
             "linkLabel": "Sign-in Geography",
             "subTarget": "6",
             "style": "link"
+          },
+          {
+            "id": "a1b2c3d4-0002-0002-0002-000000000007",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Linux Operations",
+            "subTarget": "7",
+            "style": "link"
+          },
+          {
+            "id": "a1b2c3d4-0002-0002-0002-000000000008",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Firewall (SonicWall CEF)",
+            "subTarget": "8",
+            "style": "link"
           }
         ]
       },
@@ -226,7 +242,7 @@
           {
             "type": 1,
             "content": {
-              "json": "Threat activity from Windows servers and workstations onboarded to Azure Arc with the Azure Monitor Agent (AMA), streamed through the **Windows Security Events via AMA** connector only. No Microsoft Defender for Endpoint, no Defender for Identity, no Linux. Every pane below is built purely on the **SecurityEvent** table and is organised around what a threat actor actually does on a host: gain access with credentials, run tooling, move laterally, escalate privilege, establish persistence, and tamper with logging to evade detection. The Adversary Tactics chart maps raw Windows Event IDs to MITRE ATT&CK tactics so you read attacker behaviour, not just log volume.",
+              "json": "Threat activity from Windows servers and workstations onboarded to Azure Arc with the Azure Monitor Agent (AMA), streamed through the **Windows Security Events via AMA** connector. No Microsoft Defender for Endpoint and no Defender for Identity. The core panes are built on the **SecurityEvent** table and are organised around what a threat actor actually does on a host: gain access with credentials, run tooling, move laterally, escalate privilege, establish persistence, and tamper with logging to evade detection. The Adversary Tactics chart maps raw Windows Event IDs to MITRE ATT&CK tactics so you read attacker behaviour, not just log volume. The network edge snapshot at the bottom surfaces the new SonicWall firewall feed (CEF via AMA) landing in **CommonSecurityLog**, with the full firewall analysis on the dedicated Firewall tab. Linux hosts have their own Linux Operations tab.",
               "style": "info"
             },
             "name": "host-info"
@@ -474,6 +490,37 @@
             },
             "customWidth": "50",
             "name": "host-recon"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "### Network Edge Snapshot (Firewall CEF via AMA)\nQuick read on the new SonicWall firewall feed arriving as CEF through the Azure Monitor Agent into **CommonSecurityLog**. This is a summary only. The dedicated Firewall tab carries the full denied-traffic, top-talker, port, and threat-intel correlation views. Tiles stay at zero until the SonicWall CEF connector starts streaming.",
+              "style": "upsell"
+            },
+            "name": "host-fw-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "union isfuzzy=true\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = dcount(DeviceName) | extend Metric = 'Firewalls Reporting (CEF/AMA)', Sort = 1),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = 'Firewall Events', Sort = 2),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | where tolower(DeviceAction) in ('deny','denied','drop','dropped','block','blocked') | summarize Value = count() | extend Metric = 'Denied / Blocked', Sort = 3),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = dcount(SourceIP) | extend Metric = 'Distinct Source IPs', Sort = 4)\n| project Metric, Value, Sort\n| sort by Sort asc",
+              "size": 3,
+              "title": "Firewall Edge Snapshot (CommonSecurityLog)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": { "columnMatch": "Metric", "formatter": 1 },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": { "palette": "red" },
+                  "numberFormat": { "unit": 17, "options": { "style": "decimal", "maximumFractionDigits": 0 } }
+                },
+                "showBorder": true
+              }
+            },
+            "name": "host-fw-snapshot"
           }
         ]
       },
@@ -1792,6 +1839,381 @@
       },
       "conditionalVisibility": { "parameterName": "selectedTab", "comparison": "isEqualTo", "value": "6" },
       "name": "group-geo"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "Linux Operations",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "Threat and operational signal from Linux servers onboarded to Azure Arc with the Azure Monitor Agent (AMA), streamed through the **Syslog** connector into the **Syslog** table. No Microsoft Defender for Endpoint and no Defender for Identity. The panes lead with what an attacker does on a Linux host: brute force SSH, log in over SSH, escalate with sudo, and trip error and authentication facilities. SSH source IPs are parsed from the raw message so you can spot password spray and credential stuffing against the estate.",
+              "style": "info"
+            },
+            "name": "linux-info"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "union isfuzzy=true\n  (Syslog | where TimeGenerated {TimeRange} | summarize Value = dcount(Computer) | extend Metric = 'Linux Hosts Logging', Sort = 1),\n  (Syslog | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = 'Total Syslog Events', Sort = 2),\n  (Syslog | where TimeGenerated {TimeRange} | where ProcessName == 'sshd' and SyslogMessage has 'Failed password' | summarize Value = count() | extend Metric = 'SSH Failed Logins', Sort = 3),\n  (Syslog | where TimeGenerated {TimeRange} | where ProcessName == 'sshd' and SyslogMessage has 'Accepted' | summarize Value = count() | extend Metric = 'SSH Accepted Logins', Sort = 4),\n  (Syslog | where TimeGenerated {TimeRange} | where ProcessName == 'sudo' | summarize Value = count() | extend Metric = 'sudo Invocations', Sort = 5),\n  (Syslog | where TimeGenerated {TimeRange} | where SeverityLevel in ('error','critical','alert','emergency') | summarize Value = count() | extend Metric = 'Error+ Severity', Sort = 6)\n| project Metric, Value, Sort\n| sort by Sort asc",
+              "size": 3,
+              "title": "Linux Threat Snapshot (Syslog via AMA)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": { "columnMatch": "Metric", "formatter": 1 },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": { "palette": "green" },
+                  "numberFormat": { "unit": 17, "options": { "style": "decimal", "maximumFractionDigits": 0 } }
+                },
+                "showBorder": true
+              }
+            },
+            "name": "linux-kpis"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "Syslog\n| where TimeGenerated {TimeRange}\n| where ProcessName == 'sshd'\n| where SyslogMessage has 'password'\n| summarize Accepted = countif(SyslogMessage has 'Accepted'), Failed = countif(SyslogMessage has 'Failed') by bin(TimeGenerated, {TimeRange:grain})\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "SSH Logon Trend - Accepted vs Failed (Brute Force / Spray Signal)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "linechart"
+            },
+            "customWidth": "60",
+            "name": "linux-ssh-trend"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "Syslog\n| where TimeGenerated {TimeRange}\n| summarize Events = count() by Facility\n| sort by Events desc",
+              "size": 0,
+              "title": "Syslog Volume by Facility",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "40",
+            "name": "linux-facility"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "Syslog\n| where TimeGenerated {TimeRange}\n| where ProcessName == 'sshd'\n| where SyslogMessage has 'Failed password' or SyslogMessage has 'Invalid user'\n| extend SrcIP = extract(@'from (\\d+\\.\\d+\\.\\d+\\.\\d+)', 1, SyslogMessage)\n| extend TargetUser = extract(@'(?:Failed password for|Invalid user)(?: invalid user)? (\\S+)', 1, SyslogMessage)\n| where isnotempty(SrcIP)\n| summarize Failures = count(), Hosts = dcount(Computer), TargetUsers = dcount(TargetUser), Users = make_set(TargetUser, 10), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by SrcIP\n| top 25 by Failures desc",
+              "size": 0,
+              "title": "SSH Failed Logins by Source IP (Brute Force / Credential Stuffing)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Failures", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "TargetUsers", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "Hosts", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "FirstSeen", "formatter": 6 },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "Failures", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "linux-ssh-fail"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "Syslog\n| where TimeGenerated {TimeRange}\n| where ProcessName == 'sshd'\n| where SyslogMessage has 'Accepted'\n| extend SrcIP = extract(@'from (\\d+\\.\\d+\\.\\d+\\.\\d+)', 1, SyslogMessage)\n| extend User = extract(@'Accepted \\S+ for (\\S+)', 1, SyslogMessage)\n| summarize Logins = count(), Hosts = dcount(Computer), SourceIPs = dcount(SrcIP), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by User\n| top 25 by Logins desc",
+              "size": 0,
+              "title": "Successful SSH Logins by Account",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Logins", "formatter": 8, "formatOptions": { "palette": "blue" } },
+                  { "columnMatch": "SourceIPs", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "FirstSeen", "formatter": 6 },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "Logins", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "linux-ssh-ok"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "Syslog\n| where TimeGenerated {TimeRange}\n| where ProcessName == 'sudo'\n| where SyslogMessage has 'COMMAND='\n| extend User = extract(@'sudo:\\s+(\\S+)', 1, SyslogMessage)\n| extend RunAs = extract(@'USER=(\\S+)', 1, SyslogMessage)\n| extend Command = extract(@'COMMAND=(.+)$', 1, SyslogMessage)\n| summarize Invocations = count(), Hosts = dcount(Computer), DistinctCommands = dcount(Command), Commands = make_set(Command, 8), LastSeen = max(TimeGenerated) by User, RunAs\n| top 25 by Invocations desc",
+              "size": 0,
+              "title": "sudo Command Execution (Privilege Escalation Watch)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Invocations", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "DistinctCommands", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "Hosts", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "Invocations", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "linux-sudo"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "Syslog\n| where TimeGenerated {TimeRange}\n| where SeverityLevel in ('error','critical','alert','emergency')\n| summarize Errors = count(), Facilities = dcount(Facility), TopProcess = take_any(ProcessName), LastSeen = max(TimeGenerated) by Computer\n| top 20 by Errors desc",
+              "size": 0,
+              "title": "Top Linux Hosts by Error+ Severity",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Errors", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "Facilities", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "Errors", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "linux-error-hosts"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "Syslog\n| where TimeGenerated {TimeRange}\n| summarize Events = count() by bin(TimeGenerated, {TimeRange:grain}), Facility\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Syslog Volume Over Time by Facility",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart",
+              "chartSettings": { "createOtherGroup": 0 }
+            },
+            "name": "linux-vol-trend"
+          }
+        ]
+      },
+      "conditionalVisibility": { "parameterName": "selectedTab", "comparison": "isEqualTo", "value": "7" },
+      "name": "group-linux"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "title": "Firewall (SonicWall CEF)",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "Perimeter firewall telemetry from SonicWall, streamed as **CEF** through the Azure Monitor Agent into the **CommonSecurityLog** table. The panes profile allowed versus denied traffic, the noisiest source IPs hitting the edge, top destination ports and protocols, the heaviest talkers by bytes, and a direct correlation of firewall source and destination IPs against the live threat-intel feed. An empty result while the SonicWall CEF connector is still onboarding is expected; every pane lights up automatically once events land in CommonSecurityLog.",
+              "style": "upsell"
+            },
+            "name": "fw-info"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "union isfuzzy=true\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = 'Total Firewall Events', Sort = 1),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = dcount(DeviceName) | extend Metric = 'Firewall Devices', Sort = 2),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | where tolower(DeviceAction) in ('deny','denied','drop','dropped','block','blocked') | summarize Value = count() | extend Metric = 'Denied / Blocked', Sort = 3),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = dcount(SourceIP) | extend Metric = 'Distinct Source IPs', Sort = 4),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = dcount(DestinationIP) | extend Metric = 'Distinct Dest IPs', Sort = 5),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | where tolower(LogSeverity) in ('high','critical') or coalesce(toint(LogSeverity), 0) >= 7 | summarize Value = count() | extend Metric = 'High Severity', Sort = 6)\n| project Metric, Value, Sort\n| sort by Sort asc",
+              "size": 3,
+              "title": "Firewall Threat Snapshot (CommonSecurityLog)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": { "columnMatch": "Metric", "formatter": 1 },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": { "palette": "red" },
+                  "numberFormat": { "unit": 17, "options": { "style": "decimal", "maximumFractionDigits": 0 } }
+                },
+                "showBorder": true
+              }
+            },
+            "name": "fw-kpis"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| summarize Events = count(), Devices = dcount(DeviceName), LastSeen = max(TimeGenerated) by DeviceVendor, DeviceProduct\n| sort by Events desc",
+              "size": 0,
+              "title": "CEF Source Inventory (Vendor / Product)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Events", "formatter": 8, "formatOptions": { "palette": "blue" } },
+                  { "columnMatch": "Devices", "formatter": 8, "formatOptions": { "palette": "green" } },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "sortBy": [ { "itemKey": "Events", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "fw-inventory"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| extend Action = iff(isnotempty(DeviceAction), tolower(DeviceAction), 'unknown')\n| summarize Events = count() by Action\n| sort by Events desc",
+              "size": 0,
+              "title": "Firewall Action Mix (Allow vs Deny)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "name": "fw-action-mix"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| summarize Events = count() by bin(TimeGenerated, {TimeRange:grain}), DeviceAction\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Firewall Traffic Over Time by Action",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart",
+              "chartSettings": { "createOtherGroup": 0 }
+            },
+            "name": "fw-traffic-trend"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| where tolower(DeviceAction) in ('deny','denied','drop','dropped','block','blocked')\n| summarize Denied = count(), DestPorts = dcount(DestinationPort), Dests = dcount(DestinationIP), Ports = make_set(DestinationPort, 10), LastSeen = max(TimeGenerated) by SourceIP\n| top 25 by Denied desc",
+              "size": 0,
+              "title": "Top Denied Source IPs (Edge Recon / Scanning)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Denied", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "DestPorts", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "Dests", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "Denied", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "fw-denied-src"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| where isnotempty(DestinationPort)\n| summarize Events = count(), Sources = dcount(SourceIP), Denied = countif(tolower(DeviceAction) in ('deny','denied','drop','dropped','block','blocked')) by DestinationPort, Protocol\n| top 25 by Events desc",
+              "size": 0,
+              "title": "Top Destination Ports & Protocols",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Events", "formatter": 8, "formatOptions": { "palette": "blue" } },
+                  { "columnMatch": "Sources", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "Denied", "formatter": 8, "formatOptions": { "palette": "red" } }
+                ],
+                "rowLimit": 1000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "Events", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "fw-ports"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| summarize SentBytes = sum(tolong(SentBytes)), ReceivedBytes = sum(tolong(ReceivedBytes)), Events = count(), LastSeen = max(TimeGenerated) by SourceIP, DestinationIP\n| extend TotalBytes = SentBytes + ReceivedBytes\n| top 25 by TotalBytes desc",
+              "size": 0,
+              "title": "Top Talkers by Bytes (Possible Exfiltration)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "TotalBytes", "formatter": 8, "formatOptions": { "palette": "red" }, "numberFormat": { "unit": 2, "options": { "style": "decimal" } } },
+                  { "columnMatch": "SentBytes", "formatter": 0, "numberFormat": { "unit": 2, "options": { "style": "decimal" } } },
+                  { "columnMatch": "ReceivedBytes", "formatter": 0, "numberFormat": { "unit": 2, "options": { "style": "decimal" } } },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "TotalBytes", "sortOrder": 2 } ]
+              }
+            },
+            "name": "fw-top-talkers"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "### MDTI Correlation Against Firewall Traffic\nThe grid below correlates live threat-intel IP indicators against every source and destination IP seen by the firewall. An empty result is the healthy outcome. Any row is a confirmed brush with known-bad infrastructure at the network edge: an inbound hit means a tracked malicious host probed you, an outbound hit means an internal asset reached known-bad infrastructure and warrants immediate triage.",
+              "style": "info"
+            },
+            "name": "fw-ti-header"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let tiIps = ThreatIntelIndicators\n  | where TimeGenerated {TimeRange}\n  | where ObservableKey has \"ipv4-addr\"\n  | distinct ObservableValue;\nCommonSecurityLog\n| where TimeGenerated {TimeRange}\n| where SourceIP in (tiIps) or DestinationIP in (tiIps)\n| extend BadIP = iff(SourceIP in (tiIps), SourceIP, DestinationIP), Direction = iff(SourceIP in (tiIps), \"Inbound from known-bad source\", \"Outbound to known-bad destination\")\n| summarize Hits = count(), Devices = dcount(DeviceName), Actions = make_set(DeviceAction, 5), Ports = make_set(DestinationPort, 8), LastSeen = max(TimeGenerated) by BadIP, Direction\n| sort by Hits desc",
+              "size": 0,
+              "title": "MDTI Match - Known Bad IPs at the Firewall Edge",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Hits", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "Direction", "formatter": 1 },
+                  { "columnMatch": "Devices", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 5000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "Hits", "sortOrder": 2 } ]
+              }
+            },
+            "name": "fw-ti-match"
+          }
+        ]
+      },
+      "conditionalVisibility": { "parameterName": "selectedTab", "comparison": "isEqualTo", "value": "8" },
+      "name": "group-firewall"
     }
   ],
   "fallbackResourceIds": [],

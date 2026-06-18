@@ -1,0 +1,30 @@
+### Demo: humao REST Client - Microsoft Graph "who am I"
+### Click "Send Request" above the GET line. Reply shows up in a side panel.
+
+@graphBase = https://graph.microsoft.com/v1.0
+@token = PASTE-A-GRAPH-BEARER-HERE
+
+### 1. Identity check
+GET {{graphBase}}/me
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### 2. Latest 5 sign-ins for current user (audit log)
+GET {{graphBase}}/auditLogs/signIns?$top=5&$orderby=createdDateTime desc
+Authorization: Bearer {{token}}
+Accept: application/json
+
+### Demo: Defender XDR Advanced Hunting via API
+### POST a query and get JSON back. Replace tenant + token first.
+
+@xdr = https://api.security.microsoft.com/api/advancedhunting/run
+@xdrToken = PASTE-A-DEFENDER-API-TOKEN-HERE
+
+### 3. Run a KQL hunt against your tenant
+POST {{xdr}}
+Authorization: Bearer {{xdrToken}}
+Content-Type: application/json
+
+{
+  "Query": "DeviceProcessEvents | where Timestamp > ago(1d) | where FileName =~ 'rundll32.exe' | take 5"
+}

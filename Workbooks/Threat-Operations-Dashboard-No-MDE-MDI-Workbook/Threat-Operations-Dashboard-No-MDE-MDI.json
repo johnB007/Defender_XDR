@@ -226,7 +226,7 @@
           {
             "type": 1,
             "content": {
-              "json": "Endpoint and server threat activity from Windows Security events and Linux Syslog. Lead indicators: failed logon spikes (brute force / password spray), privileged logons (4672), and anomalous process creation (4688). The Security Sensitive Events panel surfaces classic attacker tradecraft such as account creation, privileged group membership changes, audit log clearing, scheduled task and service installation, mapping directly to MITRE ATT&CK persistence, privilege escalation, and defense evasion techniques. Microsoft Defender for Endpoint (MDE) enriches every host pivot here once onboarded.",
+              "json": "Threat activity from Windows servers and workstations onboarded to Azure Arc with the Azure Monitor Agent (AMA), streamed through the **Windows Security Events via AMA** connector only. No Microsoft Defender for Endpoint, no Defender for Identity, no Linux. Every pane below is built purely on the **SecurityEvent** table and is organised around what a threat actor actually does on a host: gain access with credentials, run tooling, move laterally, escalate privilege, establish persistence, and tamper with logging to evade detection. The Adversary Tactics chart maps raw Windows Event IDs to MITRE ATT&CK tactics so you read attacker behaviour, not just log volume.",
               "style": "info"
             },
             "name": "host-info"
@@ -235,9 +235,9 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "union isfuzzy=true\n  (Heartbeat | where TimeGenerated {TimeRange} | summarize Value = dcount(Computer) | extend Metric = \"Hosts Reporting\", Sort = 1),\n  (SecurityEvent | where TimeGenerated {TimeRange} | where EventID == 4625 | summarize Value = count() | extend Metric = \"Failed Logons (4625)\", Sort = 2),\n  (SecurityEvent | where TimeGenerated {TimeRange} | where EventID == 4672 | summarize Value = count() | extend Metric = \"Privileged Logons (4672)\", Sort = 3),\n  (SecurityEvent | where TimeGenerated {TimeRange} | where EventID == 4688 | summarize Value = count() | extend Metric = \"Process Creations (4688)\", Sort = 4),\n  (Syslog | where TimeGenerated {TimeRange} | where SeverityLevel in (\"err\",\"crit\",\"alert\",\"emerg\") | summarize Value = count() | extend Metric = \"Linux Critical Syslog\", Sort = 5)\n| project Metric, Value, Sort\n| sort by Sort asc",
+              "query": "union isfuzzy=true\n  (SecurityEvent | where TimeGenerated {TimeRange} | summarize Value = dcount(Computer) | extend Metric = 'Windows Hosts Logging', Sort = 1),\n  (SecurityEvent | where TimeGenerated {TimeRange} | where EventID == 4625 | summarize Value = count() | extend Metric = 'Failed Logons (4625)', Sort = 2),\n  (SecurityEvent | where TimeGenerated {TimeRange} | where EventID == 4672 | summarize Value = count() | extend Metric = 'Privileged Logons (4672)', Sort = 3),\n  (SecurityEvent | where TimeGenerated {TimeRange} | where EventID == 4648 | summarize Value = count() | extend Metric = 'Explicit Cred Use (4648)', Sort = 4),\n  (SecurityEvent | where TimeGenerated {TimeRange} | where EventID == 4769 | summarize Value = count() | extend Metric = 'Kerberos Tickets (4769)', Sort = 5),\n  (SecurityEvent | where TimeGenerated {TimeRange} | where EventID == 4688 | summarize Value = count() | extend Metric = 'Process Creations (4688)', Sort = 6)\n| project Metric, Value, Sort\n| sort by Sort asc",
               "size": 3,
-              "title": "Host Activity Snapshot",
+              "title": "Host Threat Snapshot (Windows Security Events via AMA)",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "tiles",
@@ -258,72 +258,132 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID == 4625\n| summarize Failures = count() by bin(TimeGenerated, {TimeRange:grain})\n| order by TimeGenerated asc",
+              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID in (4625, 4771, 4776, 4648, 4769, 4768, 4698, 4699, 4702, 4697, 7045, 4720, 4722, 4724, 4728, 4732, 4756, 1102, 4719, 4688, 4798)\n| extend Tactic = case(\n    EventID in (4625, 4771, 4776), 'Credential Access',\n    EventID in (4648, 4769, 4768), 'Lateral Movement',\n    EventID in (4698, 4699, 4702, 4697, 7045, 4720, 4722, 4724, 4728, 4732, 4756), 'Persistence',\n    EventID in (1102, 4719), 'Defense Evasion',\n    EventID == 4688, 'Execution',\n    EventID == 4798, 'Discovery',\n    'Other')\n| summarize Events = count() by Tactic\n| sort by Events desc",
               "size": 0,
-              "title": "Failed Logon Trend (4625) Brute Force / Spray Signal",
+              "title": "Adversary Tactics Observed (Windows Event IDs Mapped to MITRE ATT&CK)",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "visualization": "barchart",
+              "chartSettings": { "createOtherGroup": 0 }
+            },
+            "name": "host-attack-tactics"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID in (4624, 4625)\n| summarize SuccessfulLogons = countif(EventID == 4624), FailedLogons = countif(EventID == 4625) by bin(TimeGenerated, {TimeRange:grain})\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Logon Activity Trend - Success vs Failed (Brute Force / Spray Signal)",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "linechart"
             },
             "customWidth": "60",
-            "name": "host-failed-trend"
+            "name": "host-logon-trend"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Syslog\n| where TimeGenerated {TimeRange}\n| summarize Events = count() by SeverityLevel\n| sort by Events desc",
+              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID == 4624\n| extend LogonTypeName = case(\n    LogonType == 2, '2 Interactive',\n    LogonType == 3, '3 Network',\n    LogonType == 4, '4 Batch',\n    LogonType == 5, '5 Service',\n    LogonType == 7, '7 Unlock',\n    LogonType == 8, '8 NetworkCleartext',\n    LogonType == 9, '9 NewCredentials (RunAs)',\n    LogonType == 10, '10 RemoteInteractive (RDP)',\n    LogonType == 11, '11 CachedInteractive',\n    strcat('Type ', tostring(LogonType)))\n| summarize Count = count() by LogonTypeName\n| sort by Count desc",
               "size": 0,
-              "title": "Linux Syslog by Severity",
+              "title": "Logon Type Distribution (Network & RDP = Lateral Movement Surface)",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "piechart"
             },
             "customWidth": "40",
-            "name": "host-syslog-sev"
+            "name": "host-logontype"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID == 4625\n| summarize Failures = count(), TargetedAccounts = dcount(TargetAccount) by Computer\n| top 15 by Failures desc",
+              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID == 4672\n| summarize PrivilegedLogons = count(), Accounts = dcount(SubjectUserName), LastSeen = max(TimeGenerated) by Computer\n| top 15 by PrivilegedLogons desc",
               "size": 0,
-              "title": "Top Hosts by Failed Logon",
+              "title": "Top Hosts by Privileged Logon (4672) Admin Rights Asserted",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "gridSettings": {
                 "formatters": [
-                  { "columnMatch": "Failures", "formatter": 8, "formatOptions": { "palette": "red" } }
+                  { "columnMatch": "PrivilegedLogons", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
                 ],
                 "rowLimit": 1000,
-                "sortBy": [ { "itemKey": "Failures", "sortOrder": 2 } ]
+                "sortBy": [ { "itemKey": "PrivilegedLogons", "sortOrder": 2 } ]
               }
             },
             "customWidth": "50",
-            "name": "host-top-hosts"
+            "name": "host-priv-hosts"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID == 4625\n| summarize Failures = count(), Hosts = dcount(Computer), SourceIPs = dcount(IpAddress), LogonTypes = make_set(LogonType, 10), TopSourceIP = arg_max(TimeGenerated, IpAddress).IpAddress, FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by TargetAccount\n| top 15 by Failures desc",
+              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID == 4672\n| where SubjectUserName !endswith '$'\n| summarize PrivilegedLogons = count(), Hosts = dcount(Computer), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by Account = SubjectUserName\n| top 20 by PrivilegedLogons desc",
               "size": 0,
-              "title": "Top Targeted Accounts",
+              "title": "Accounts Using Privileged Logon Rights (4672) Privilege Escalation Watch",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "gridSettings": {
                 "formatters": [
-                  { "columnMatch": "Failures", "formatter": 8, "formatOptions": { "palette": "orange" } },
-                  { "columnMatch": "SourceIPs", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "PrivilegedLogons", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "Hosts", "formatter": 8, "formatOptions": { "palette": "red" } },
                   { "columnMatch": "FirstSeen", "formatter": 6 },
                   { "columnMatch": "LastSeen", "formatter": 6 }
                 ],
                 "rowLimit": 1000,
-                "sortBy": [ { "itemKey": "Failures", "sortOrder": 2 } ]
+                "sortBy": [ { "itemKey": "PrivilegedLogons", "sortOrder": 2 } ]
               }
             },
             "customWidth": "50",
-            "name": "host-top-accounts"
+            "name": "host-priv-accounts"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID == 4648\n| summarize Uses = count(), DistinctTargets = dcount(TargetUserName), TargetAccounts = make_set(TargetUserName, 10), Hosts = dcount(Computer), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by SourceAccount = SubjectUserName\n| top 20 by Uses desc",
+              "size": 0,
+              "title": "Explicit Credential Use (4648) RunAs / Pass-the-Hash / Lateral Movement",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Uses", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "DistinctTargets", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "FirstSeen", "formatter": 6 },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "sortBy": [ { "itemKey": "Uses", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "host-explicit-cred"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID == 4769\n| where ServiceName != 'krbtgt'\n| summarize Requests = count(), Services = dcount(ServiceName), ServicesRequested = make_set(ServiceName, 10), Hosts = dcount(Computer), LastSeen = max(TimeGenerated) by Account = TargetAccount\n| top 20 by Requests desc",
+              "size": 0,
+              "title": "Kerberos Service Ticket Requests (4769) Kerberoasting Hunt",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Requests", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "Services", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "sortBy": [ { "itemKey": "Requests", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "host-kerberos"
           },
           {
             "type": 3,
@@ -352,9 +412,31 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID in (4720, 4722, 4724, 4726, 4738, 4728, 4732, 4756, 4740, 1102, 4719, 4698, 4697, 7045)\n| extend Activity = case(\n    EventID == 4720, \"Account Created\",\n    EventID == 4722, \"Account Enabled\",\n    EventID == 4724, \"Password Reset Attempt\",\n    EventID == 4726, \"Account Deleted\",\n    EventID == 4738, \"Account Changed\",\n    EventID == 4728, \"Added to Global Security Group\",\n    EventID == 4732, \"Added to Local Security Group\",\n    EventID == 4756, \"Added to Universal Security Group\",\n    EventID == 4740, \"Account Lockout\",\n    EventID == 1102, \"Audit Log Cleared\",\n    EventID == 4719, \"Audit Policy Changed\",\n    EventID == 4698, \"Scheduled Task Created\",\n    EventID == 4697, \"Service Installed\",\n    EventID == 7045, \"Service Installed (SCM)\",\n    strcat(\"Event \", tostring(EventID)))\n| summarize Count = count(), Hosts = dcount(Computer), Accounts = dcount(SubjectUserName), LastSeen = max(TimeGenerated) by Activity, EventID\n| sort by Count desc",
+              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID == 4688\n| extend Proc = tolower(tostring(split(NewProcessName, \"\\\\\")[-1]))\n| where Proc in ('powershell.exe', 'pwsh.exe', 'cmd.exe', 'wmic.exe', 'rundll32.exe', 'mshta.exe', 'regsvr32.exe', 'certutil.exe', 'bitsadmin.exe', 'cscript.exe', 'wscript.exe', 'psexec.exe', 'net.exe', 'net1.exe', 'schtasks.exe', 'sc.exe', 'reg.exe', 'vssadmin.exe', 'wevtutil.exe', 'whoami.exe', 'nltest.exe')\n| extend Parent = tolower(tostring(split(ParentProcessName, \"\\\\\")[-1]))\n| summarize Executions = count(), Hosts = dcount(Computer), Accounts = dcount(SubjectUserName), Parents = make_set(Parent, 8), LastSeen = max(TimeGenerated) by Proc\n| sort by Executions desc",
               "size": 0,
-              "title": "Security Sensitive Events Persistence, PrivEsc and Defense Evasion",
+              "title": "LOLBin & Dual-Use Tool Execution (4688) Living-off-the-Land Tradecraft",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Executions", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "Hosts", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 5000,
+                "sortBy": [ { "itemKey": "Executions", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "host-lolbins"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID in (4720, 4722, 4724, 4726, 4738, 4728, 4732, 4756, 4740, 1102, 4719, 4698, 4699, 4702, 4697, 7045)\n| extend Activity = case(\n    EventID == 4720, 'Account Created',\n    EventID == 4722, 'Account Enabled',\n    EventID == 4724, 'Password Reset Attempt',\n    EventID == 4726, 'Account Deleted',\n    EventID == 4738, 'Account Changed',\n    EventID == 4728, 'Added to Global Security Group',\n    EventID == 4732, 'Added to Local Security Group',\n    EventID == 4756, 'Added to Universal Security Group',\n    EventID == 4740, 'Account Lockout',\n    EventID == 1102, 'Audit Log Cleared',\n    EventID == 4719, 'Audit Policy Changed',\n    EventID == 4698, 'Scheduled Task Created',\n    EventID == 4699, 'Scheduled Task Deleted',\n    EventID == 4702, 'Scheduled Task Updated',\n    EventID == 4697, 'Service Installed',\n    EventID == 7045, 'Service Installed (SCM)',\n    strcat('Event ', tostring(EventID)))\n| summarize Count = count(), Hosts = dcount(Computer), Accounts = dcount(SubjectUserName), LastSeen = max(TimeGenerated) by Activity, EventID\n| sort by Count desc",
+              "size": 0,
+              "title": "Security Sensitive Events - Persistence, PrivEsc & Defense Evasion",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "gridSettings": {
@@ -369,6 +451,29 @@
             },
             "customWidth": "50",
             "name": "host-sensitive-events"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID == 4798\n| summarize Enumerations = count(), TargetAccounts = dcount(TargetAccount), Hosts = dcount(Computer), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by Actor = SubjectUserName\n| top 20 by Enumerations desc",
+              "size": 0,
+              "title": "Local Group Membership Enumeration (4798) Discovery / Recon",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Enumerations", "formatter": 8, "formatOptions": { "palette": "purple" } },
+                  { "columnMatch": "Hosts", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "FirstSeen", "formatter": 6 },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 5000,
+                "sortBy": [ { "itemKey": "Enumerations", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "host-recon"
           }
         ]
       },

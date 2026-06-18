@@ -12,7 +12,7 @@ Most "single pane of glass" dashboards assume the customer has every Defender wo
 |---|---|---|
 | **Native correlation** | `SecurityIncident`, `SecurityAlert` | Open incidents, high/critical alerts, MITRE ATT&CK tactics, top detections firing. |
 | **Identity & UEBA** | `BehaviorAnalytics`, `AADRiskyUsers`, `AADUserRiskEvents`, `SigninLogs` | Investigation-priority leaderboard, Identity Protection risk detections, risky users and sign-ins, risk source IPs and countries. |
-| **Host telemetry** | `SecurityEvent`, `Syslog`, `Heartbeat` | Failed/privileged logons, process creation inventory, security-sensitive events (persistence, privilege escalation, defense evasion), Linux syslog severity. |
+| **Host telemetry** | `SecurityEvent` (Windows Security Events via AMA) | Adversary tactics mapped to MITRE ATT&CK, logon success vs failure trend, logon-type breakdown, privileged logons, explicit credential use, Kerberos ticket requests, process-creation and LOLBin execution, security-sensitive events (persistence, privilege escalation, defense evasion), and local group enumeration. |
 | **Threat intelligence** | `ThreatIntelIndicators` | Indicator coverage by type, provider, confidence, threat family, and freshness, then correlated against every IP, domain, URL, and file hash the tenant logged. |
 | **Cloud & email** | `OfficeActivity`, `AuditLogs`, `AzureActivity`, `EmailEvents`, `EmailUrlInfo`, `EmailAttachmentInfo`, `EmailPostDeliveryEvents`, `UrlClickEvents` | BEC tradecraft, privileged role abuse, app-consent grants, and the full Microsoft Defender for Office 365 mail-threat picture. |
 | **Sign-in geography** | `SigninLogs` | World map of sign-in origins weighted by volume and colored by failure intensity, plus per-country and per-user drilldowns. |
@@ -29,7 +29,7 @@ Use the **Time Range** picker and the six **tabs** to pivot between threat views
 Whole-environment posture in one view. Headline tiles blend incidents, high/critical alerts, UEBA risk activities, ML anomalies, TI indicators, and risky users. The MITRE ATT&CK chart fuses analytic-alert tactics with UEBA/ML anomaly tactics so leadership sees adversary behavior, not just log volume. Includes incident trend by severity, alert-severity mix, and the top detections firing.
 
 ### Tab 2: Host Based Threats
-Endpoint and server activity from Windows Security events and Linux Syslog. Failed-logon trend (4625 brute-force/spray signal), privileged logons (4672), process-creation inventory (4688), and a Security Sensitive Events grid mapping classic attacker tradecraft (account creation, privileged group changes, audit-log clearing, scheduled tasks, service installs) to MITRE persistence, privilege escalation, and defense evasion. MDE enriches every host pivot once onboarded.
+Windows server and workstation threat activity, built entirely on the `SecurityEvent` table from the **Windows Security Events via AMA** connector (Azure Arc plus Azure Monitor Agent). No MDE, no MDI, no Linux. Every pane is organised around what a threat actor does on a host. Headline tiles cover hosts logging, failed logons (4625), privileged logons (4672), explicit credential use (4648), Kerberos tickets (4769), and process creation (4688). The **Adversary Tactics** chart maps raw Windows Event IDs to MITRE ATT&CK tactics (Credential Access, Lateral Movement, Privilege Escalation, Persistence, Defense Evasion, Execution, Discovery). Drilldowns include the logon success vs failure trend (brute force and spray signal), logon-type distribution (Network and RDP lateral-movement surface), top hosts and accounts by privileged logon, explicit credential use (RunAs / pass-the-hash), Kerberos service-ticket requests (Kerberoasting hunt), process-creation inventory, LOLBin and dual-use tool execution, the Security Sensitive Events grid (account creation, group changes, audit-log clearing, scheduled tasks, service installs), and local group membership enumeration (discovery / recon).
 
 ### Tab 3: Identity & UEBA
 Identity as the perimeter. Leads with Sentinel UEBA InvestigationPriority scoring, fused with Entra ID Identity Protection risk and sign-in telemetry. Includes the UEBA leaderboard, anomalous activity types, Identity Protection risk detections over time, top sign-in failure reasons, the risky-user population by level, new risky users per day, risk-detection types, a live risk-detections feed, risk by country, top risk source IPs, and a risky sign-ins grid.
@@ -75,7 +75,7 @@ Where sign-ins originate worldwide. Bubble size reflects total sign-in volume pe
   - **Microsoft 365**: `OfficeActivity`, `EmailEvents`, `EmailUrlInfo`, `EmailAttachmentInfo`, `EmailPostDeliveryEvents`, `UrlClickEvents`.
   - **Microsoft Graph**: `MicrosoftGraphActivityLogs`.
   - **Azure**: `AzureActivity`.
-  - **Host**: `SecurityEvent`, `Syslog`, `Heartbeat`.
+  - **Host**: `SecurityEvent` via the **Windows Security Events via AMA** connector (Azure Arc + Azure Monitor Agent). `Syslog` is consumed only by the Network tab; the Host tab is `SecurityEvent` only.
   - **Sentinel native**: `SecurityIncident`, `SecurityAlert`, `BehaviorAnalytics` (UEBA), `Anomalies`.
   - **Threat intel**: `ThreatIntelIndicators` (MDTI and/or any TI connector or upload).
 - Permissions to deploy ARM templates in the target resource group.
@@ -84,7 +84,8 @@ Where sign-ins originate worldwide. Bubble size reflects total sign-in volume pe
 
 ## Known Limitations
 
-- **No MDE/MDI sensors required by design.** Host pivots are built on `SecurityEvent`/`Syslog` rather than `Device*` tables, and identity is built on Entra ID + UEBA rather than `IdentityDirectoryEvents`. Onboarding MDE/MDI adds depth (device timelines, lateral-movement graphs) but is not required for the workbook to function.
+- **No MDE/MDI sensors required by design.** Host pivots are built on `SecurityEvent` from the **Windows Security Events via AMA** connector rather than `Device*` tables, and identity is built on Entra ID + UEBA rather than `IdentityDirectoryEvents`. Onboarding MDE/MDI adds depth (device timelines, lateral-movement graphs) but is not required for the workbook to function.
+- **Host tab depends on Windows audit policy.** Panes such as process creation, LOLBin execution, and the Adversary Tactics chart only fill once the relevant Windows audit subcategories are enabled (for example Audit Process Creation for 4688). Sparse 4688/4625 volume means light Execution and brute-force panels until auditing is broadened across the onboarded estate.
 - **MDTI match grids correctly show "no results" when there is no overlap.** The global TI feed tracks tens of millions of indicators; for a healthy tenant, almost none ever touch your logged telemetry. Empty grids are a true negative, not a bug. The surrounding catalog and telemetry panels populate continuously.
 - **Microsoft 365 threat verdicts** (`ThreatTypes`, `DetectionMethods`) populate most fully when the workspace receives the unified Defender email tables; the email panels are also built to light up from delivery action, quarantine location, bulk-complaint level, and the always-populated URL/attachment/ZAP/click tables.
 - Cloud-service source IPs (for example Microsoft datacenter egress ranges seen in `MicrosoftGraphActivityLogs`) are legitimate and will never match threat intelligence.

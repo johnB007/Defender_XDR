@@ -175,7 +175,7 @@
     {
       "type": 1,
       "content": {
-        "json": "## Step 0 : Confirm the spike\n\nTwo bars: average **events per day** in the **Baseline window** vs the **Spike window**. Per day, not totals, so a 14 day baseline and a 7 day spike are directly comparable. If the spike bar is not visibly taller than the baseline bar, there is no spike, stop here. The daily trend below spans both windows for context.\n\n> Demo: **Table = DeviceFileEvents**, **BaselineRange = Last 14 days**, **SpikeRange = Last 7 days**. Spike bar should be roughly 1.4 to 1.7x the baseline bar."
+        "json": "## Step 0 : Confirm the spike\n\nTwo bars: average **events per day** in the **Baseline window** vs the **Spike window**. Per day, not totals, so a 14 day baseline and a 7 day spike are directly comparable. If the spike bar is not visibly taller than the baseline bar, there is no spike, stop here. The daily trend below spans both windows for context.\n\nDemo: **Table = DeviceFileEvents**, **BaselineRange = Last 14 days**, **SpikeRange = Last 7 days**. Spike bar should be roughly 1.4 to 1.7x the baseline bar."
       },
       "name": "h-step0"
     },
@@ -209,7 +209,7 @@
       "type": 3,
       "content": {
         "version": "KqlItem/1.0",
-        "query": "let spikeStart = startofday(datetime({SpikeRange:startISO}));\nlet spikeEnd = startofday(datetime({SpikeRange:endISO}));\nlet baseStart = startofday(datetime({BaselineRange:startISO}));\nlet baseEnd = startofday(datetime({BaselineRange:endISO}));\nlet windowStart = min_of(baseStart, spikeStart);\nlet windowEnd = max_of(baseEnd, spikeEnd);\n{Table}\n| where Timestamp >= windowStart and Timestamp < windowEnd\n| summarize Count = toreal(count()) by Day = bin(Timestamp, 1d)\n| order by Day asc",
+        "query": "let spikeStart = startofday(datetime({SpikeRange:startISO}));\nlet spikeEnd = startofday(datetime({SpikeRange:endISO}));\nlet baseStart = startofday(datetime({BaselineRange:startISO}));\nlet baseEnd = startofday(datetime({BaselineRange:endISO}));\nlet windowStart = min_of(baseStart, spikeStart);\nlet windowEnd = max_of(baseEnd, spikeEnd);\n{Table}\n| where Timestamp >= windowStart and Timestamp < min_of(windowEnd, startofday(now()))\n| summarize Count = toreal(count()) by Day = bin(Timestamp, 1d)\n| order by Day asc",
         "size": 0,
         "title": "Daily trend (context)",
         "queryType": 0,
@@ -635,7 +635,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Following the second Tuesday Patch Tuesday cycle, devices are applying servicing stack and Windows Update packages in a staged rollout. Volume is already trending back to baseline. No transform changes are required."
+        "json": "Following the second Tuesday Patch Tuesday cycle, devices are applying servicing stack and Windows Update packages in a staged rollout. Volume is already trending back to baseline. No transform changes are required."
       },
       "name": "f-patch",
       "conditionalVisibility": {
@@ -647,7 +647,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Spike is a Microsoft Defender platform and signature update rolling through the fleet. Activity is expected and short lived. No transform changes are required."
+        "json": "Spike is a Microsoft Defender platform and signature update rolling through the fleet. Activity is expected and short lived. No transform changes are required."
       },
       "name": "f-defender",
       "conditionalVisibility": {
@@ -659,7 +659,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Volume increase tracks the scheduled MDE onboarding wave for the named device groups. Daily volume will plateau when the wave completes. No transform changes are required."
+        "json": "Volume increase tracks the scheduled MDE onboarding wave for the named device groups. Daily volume will plateau when the wave completes. No transform changes are required."
       },
       "name": "f-mde",
       "conditionalVisibility": {
@@ -671,7 +671,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Spike tracks a third party endpoint agent (endpoint detection, asset discovery, vulnerability scanner, network access control, or remote management tool) generating high volume process and network events on the named device groups. Activity is expected for that class of tool. If the new baseline is excessive, propose a transform filter scoped to the named parent binary identified in Step 3."
+        "json": "Spike tracks a third party endpoint agent (endpoint detection, asset discovery, vulnerability scanner, network access control, or remote management tool) generating high volume process and network events on the named device groups. Activity is expected for that class of tool. If the new baseline is excessive, propose a transform filter scoped to the named parent binary identified in Step 3."
       },
       "name": "f-thirdparty",
       "conditionalVisibility": {
@@ -683,7 +683,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Spike aligns with a Windows feature update (major version uplift) rolling through the named device groups. Activity is concentrated on `setuphost.exe` and `setupplatform.exe` and will subside within the rollout window. No transform changes are required."
+        "json": "Spike aligns with a Windows feature update (major version uplift) rolling through the named device groups. Activity is concentrated on `setuphost.exe` and `setupplatform.exe` and will subside within the rollout window. No transform changes are required."
       },
       "name": "f-featureupdate",
       "conditionalVisibility": {
@@ -695,7 +695,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Spike tracks an Intune or Configuration Manager software deployment wave for the named app. Volume returns to baseline once the deployment completes. If the deployed app keeps generating events at a new baseline, propose a transform filter scoped to the named binary."
+        "json": "Spike tracks an Intune or Configuration Manager software deployment wave for the named app. Volume returns to baseline once the deployment completes. If the deployed app keeps generating events at a new baseline, propose a transform filter scoped to the named binary."
       },
       "name": "f-intunemecm",
       "conditionalVisibility": {
@@ -707,7 +707,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Spike matches the scheduled Microsoft Defender Antivirus scan window for the fleet. Activity is concentrated on `MsMpEng.exe` and is short lived. No transform changes are required."
+        "json": "Spike matches the scheduled Microsoft Defender Antivirus scan window for the fleet. Activity is concentrated on `MsMpEng.exe` and is short lived. No transform changes are required."
       },
       "name": "f-avscan",
       "conditionalVisibility": {
@@ -719,7 +719,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Spike aligns with the scheduled backup job for the named device groups. Activity tracks volume snapshot creation by the backup agent. No transform changes are required."
+        "json": "Spike aligns with the scheduled backup job for the named device groups. Activity tracks volume snapshot creation by the backup agent. No transform changes are required."
       },
       "name": "f-backup",
       "conditionalVisibility": {
@@ -731,7 +731,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Spike tracks the Azure Arc agent rollout for the named server fleet. Volume will plateau once all servers are connected. No transform changes are required."
+        "json": "Spike tracks the Azure Arc agent rollout for the named server fleet. Volume will plateau once all servers are connected. No transform changes are required."
       },
       "name": "f-arc",
       "conditionalVisibility": {
@@ -743,7 +743,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Spike matches a Sysmon configuration push to the named device groups. If volume remains elevated after the push completes, review the new Sysmon config for rules that generate more events than required."
+        "json": "Spike matches a Sysmon configuration push to the named device groups. If volume remains elevated after the push completes, review the new Sysmon config for rules that generate more events than required."
       },
       "name": "f-sysmon",
       "conditionalVisibility": {
@@ -755,7 +755,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Spike matches the rollout of a Microsoft Purview Endpoint DLP policy. Volume returns to a new baseline once the policy reaches all endpoints. If the policy is generating more events than required, scope the policy to a smaller location set."
+        "json": "Spike matches the rollout of a Microsoft Purview Endpoint DLP policy. Volume returns to a new baseline once the policy reaches all endpoints. If the policy is generating more events than required, scope the policy to a smaller location set."
       },
       "name": "f-dlp",
       "conditionalVisibility": {
@@ -767,7 +767,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Spike matches a certificate auto enrollment wave from the Enterprise Certificate Authority. Activity is concentrated on `certutil.exe` and `certreq.exe`. Volume returns to baseline once enrollment completes."
+        "json": "Spike matches a certificate auto enrollment wave from the Enterprise Certificate Authority. Activity is concentrated on `certutil.exe` and `certreq.exe`. Volume returns to baseline once enrollment completes."
       },
       "name": "f-cert",
       "conditionalVisibility": {
@@ -779,7 +779,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Spike matches a Group Policy or Intune policy refresh storm following a published policy change. Activity is short lived and returns to baseline within hours. No transform changes are required."
+        "json": "Spike matches a Group Policy or Intune policy refresh storm following a published policy change. Activity is short lived and returns to baseline within hours. No transform changes are required."
       },
       "name": "f-policy",
       "conditionalVisibility": {
@@ -791,7 +791,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Spike matches a scheduled vulnerability scan from the named scanner appliance subnet against the fleet. Activity is concentrated on process, network, and logon events and ends when the scan window closes. No transform changes are required unless the scan cadence is increasing."
+        "json": "Spike matches a scheduled vulnerability scan from the named scanner appliance subnet against the fleet. Activity is concentrated on process, network, and logon events and ends when the scan window closes. No transform changes are required unless the scan cadence is increasing."
       },
       "name": "f-vulnscan",
       "conditionalVisibility": {
@@ -803,7 +803,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Spike is a steady stream of network and discovery activity from an asset inventory or network access control tool. Volume is proportional to fleet size, not bursty. If the new baseline is excessive, scope a transform filter to traffic originating from the named scanner appliance addresses."
+        "json": "Spike is a steady stream of network and discovery activity from an asset inventory or network access control tool. Volume is proportional to fleet size, not bursty. If the new baseline is excessive, scope a transform filter to traffic originating from the named scanner appliance addresses."
       },
       "name": "f-discoverysweep",
       "conditionalVisibility": {
@@ -815,7 +815,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Spike tracks a scheduled action pushed across the fleet by the remote management tool. Activity is concentrated on the management tool parent process named in Step 3 and is short lived. Volume returns to baseline once the run window ends."
+        "json": "Spike tracks a scheduled action pushed across the fleet by the remote management tool. Activity is concentrated on the management tool parent process named in Step 3 and is short lived. Volume returns to baseline once the run window ends."
       },
       "name": "f-rmmscript",
       "conditionalVisibility": {
@@ -827,7 +827,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Spike matches a browser enterprise update wave for Edge, Chrome, or Firefox across the named device groups. Activity is concentrated on update helper and setup binaries and is short lived. No transform changes are required."
+        "json": "Spike matches a browser enterprise update wave for Edge, Chrome, or Firefox across the named device groups. Activity is concentrated on update helper and setup binaries and is short lived. No transform changes are required."
       },
       "name": "f-browserupdate",
       "conditionalVisibility": {
@@ -839,7 +839,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Spike tracks Microsoft Defender for Identity sensor installation on the named domain controllers. Activity is concentrated on service install and process events on those hosts and returns to baseline once all sensors are deployed."
+        "json": "Spike tracks Microsoft Defender for Identity sensor installation on the named domain controllers. Activity is concentrated on service install and process events on those hosts and returns to baseline once all sensors are deployed."
       },
       "name": "f-mdisensor",
       "conditionalVisibility": {
@@ -851,7 +851,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Spike is duplicate telemetry generated during a planned disaster recovery or failover test where the primary and secondary sites are both shipping logs. Volume returns to baseline at the end of the test window. No transform changes are required."
+        "json": "Spike is duplicate telemetry generated during a planned disaster recovery or failover test where the primary and secondary sites are both shipping logs. Volume returns to baseline at the end of the test window. No transform changes are required."
       },
       "name": "f-drtest",
       "conditionalVisibility": {
@@ -863,7 +863,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Spike is caused by a Data Collection Rule edit or Azure Monitor Agent reconfiguration that added new event sources or removed a filter. Confirm against the workspace change log before any transform. If the new sources are not required, revert the rule change instead of adding a transform."
+        "json": "Spike is caused by a Data Collection Rule edit or Azure Monitor Agent reconfiguration that added new event sources or removed a filter. Confirm against the workspace change log before any transform. If the new sources are not required, revert the rule change instead of adding a transform."
       },
       "name": "f-dcrchange",
       "conditionalVisibility": {
@@ -875,7 +875,7 @@
     {
       "type": 1,
       "content": {
-        "json": "> Spike is the same data being ingested twice (overlapping Data Collection Rules, both legacy MMA and newer AMA running, or a syslog forwarder fanning out). Fix at the collection layer by removing the duplicate path. Do not add a transform filter, that will hide the real volume, not stop it."
+        "json": "Spike is the same data being ingested twice (overlapping Data Collection Rules, both legacy MMA and newer AMA running, or a syslog forwarder fanning out). Fix at the collection layer by removing the duplicate path. Do not add a transform filter, that will hide the real volume, not stop it."
       },
       "name": "f-forwarderdup",
       "conditionalVisibility": {
@@ -887,7 +887,7 @@
     {
       "type": 1,
       "content": {
-        "json": "**Custom closeout template** (fill in the blanks):\n\n> Spike in `{Table}` between `{SpikeRange:startISO}` and `{SpikeRange:endISO}` was driven by **[top ActionType from Step 1]** generated by **[top parent and child binaries from Step 3]**. The behavior is concentrated on **[device count from Step 4]** devices, with **[top device from Step 5]** as a representative sample. Pattern does not match any known fingerprint in `FINGERPRINTS.md`. Recommended action: **[transform filter / no action / open ticket with vendor]**."
+        "json": "**Custom closeout template** (fill in the blanks):\n\nSpike in `{Table}` between `{SpikeRange:startISO}` and `{SpikeRange:endISO}` was driven by **[top ActionType from Step 1]** generated by **[top parent and child binaries from Step 3]**. The behavior is concentrated on **[device count from Step 4]** devices, with **[top device from Step 5]** as a representative sample. Pattern does not match any known fingerprint in `FINGERPRINTS.md`. Recommended action: **[transform filter / no action / open ticket with vendor]**."
       },
       "name": "f-unknown",
       "conditionalVisibility": {

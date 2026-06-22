@@ -899,7 +899,7 @@
           {
             "type": 1,
             "content": {
-              "json": "Microsoft Defender Threat Intelligence and network telemetry in one view. The top rows quantify the live MDTI and open-source indicator feed flowing into Sentinel; the catalog charts profile that intelligence by type, provider, confidence, threat family, and freshness. The correlation grids then match those indicators against every IP, domain, URL, and file hash your tenant actually logged, while the Graph API, Syslog, and sign-in panels expose the on-network and programmatic activity an adversary would generate. This is the cross source correlation a legacy SIEM could not do natively.",
+              "json": "Microsoft Defender Threat Intelligence and network telemetry in one view. The top rows quantify the live MDTI and open-source indicator feed flowing into Sentinel; the catalog charts profile that intelligence by type, provider, confidence, threat family, and freshness. The correlation grids then match those indicators against every IP, domain, URL, and file hash your tenant actually logged, while the Graph API, Syslog, and sign-in panels expose the on-network and programmatic activity an adversary would generate.",
               "style": "plain"
             },
             "name": "net-info"
@@ -2211,21 +2211,26 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| summarize SentBytes = sum(tolong(SentBytes)), ReceivedBytes = sum(tolong(ReceivedBytes)), Events = count(), LastSeen = max(TimeGenerated) by SourceIP, DestinationIP\n| extend TotalBytes = SentBytes + ReceivedBytes\n| top 25 by TotalBytes desc",
+              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| extend SB = tolong(SentBytes), RB = tolong(ReceivedBytes)\n| extend AppName = extract(@\"appName='([^']+)'\", 1, AdditionalExtensions)\n| summarize SentBytes = sum(SB), ReceivedBytes = sum(RB), Connections = count(), DistinctDestPorts = dcount(DestinationPort), DestPorts = make_set(DestinationPort, 10), Protocols = make_set(Protocol, 5), Apps = make_set(AppName, 5), Actions = make_set(DeviceAction, 5), Devices = make_set(DeviceName, 4), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by SourceIP, DestinationIP\n| extend TotalBytes = SentBytes + ReceivedBytes\n| extend DestScope = iff(ipv4_is_private(DestinationIP), \"Internal\", \"External\")\n| extend OutboundRatio = round(todouble(SentBytes) / todouble(TotalBytes + 1), 2)\n| project SourceIP, DestinationIP, DestScope, SentBytes, ReceivedBytes, TotalBytes, OutboundRatio, Connections, DistinctDestPorts, DestPorts, Protocols, Apps, Actions, Devices, FirstSeen, LastSeen\n| top 25 by TotalBytes desc",
               "size": 0,
               "title": "Top Talkers by Bytes (Possible Exfiltration)",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "gridSettings": {
                 "formatters": [
-                  { "columnMatch": "TotalBytes", "formatter": 8, "formatOptions": { "palette": "red" }, "numberFormat": { "unit": 2, "options": { "style": "decimal" } } },
-                  { "columnMatch": "SentBytes", "formatter": 0, "numberFormat": { "unit": 2, "options": { "style": "decimal" } } },
+                  { "columnMatch": "DestScope", "formatter": 18, "formatOptions": { "thresholdsOptions": "icons", "thresholdsGrid": [ { "operator": "==", "thresholdValue": "External", "representation": "4", "text": "{0}{1}" }, { "operator": "Default", "thresholdValue": null, "representation": "success", "text": "{0}{1}" } ] } },
+                  { "columnMatch": "SentBytes", "formatter": 8, "formatOptions": { "palette": "red" }, "numberFormat": { "unit": 2, "options": { "style": "decimal" } } },
                   { "columnMatch": "ReceivedBytes", "formatter": 0, "numberFormat": { "unit": 2, "options": { "style": "decimal" } } },
+                  { "columnMatch": "TotalBytes", "formatter": 8, "formatOptions": { "palette": "orange" }, "numberFormat": { "unit": 2, "options": { "style": "decimal" } } },
+                  { "columnMatch": "OutboundRatio", "formatter": 8, "formatOptions": { "palette": "redBright" } },
+                  { "columnMatch": "Connections", "formatter": 8, "formatOptions": { "palette": "blue" } },
+                  { "columnMatch": "DistinctDestPorts", "formatter": 8, "formatOptions": { "palette": "purple" } },
+                  { "columnMatch": "FirstSeen", "formatter": 6 },
                   { "columnMatch": "LastSeen", "formatter": 6 }
                 ],
                 "rowLimit": 1000,
                 "filter": true,
-                "sortBy": [ { "itemKey": "TotalBytes", "sortOrder": 2 } ]
+                "sortBy": [ { "itemKey": "SentBytes", "sortOrder": 2 } ]
               }
             },
             "name": "fw-top-talkers"

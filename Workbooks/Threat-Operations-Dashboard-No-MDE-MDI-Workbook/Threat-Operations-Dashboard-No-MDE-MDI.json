@@ -494,7 +494,7 @@
           {
             "type": 1,
             "content": {
-              "json": "### Network Edge Snapshot (Firewall CEF via AMA)\nQuick read on the new SonicWall firewall feed arriving as CEF through the Azure Monitor Agent into **CommonSecurityLog**. This is a summary only. The dedicated Firewall tab carries the full denied-traffic, top-talker, port, and threat-intel correlation views. Tiles stay at zero until the SonicWall CEF connector starts streaming.",
+              "json": "### Network Edge Snapshot (Firewall CEF via AMA)\nQuick read on the new SonicWall firewall feed arriving as CEF through the Azure Monitor Agent into **CommonSecurityLog**. This is a summary only. The dedicated Firewall tab carries the full denied-traffic, top-talker, port, and threat-intel correlation views.",
               "style": "plain"
             },
             "name": "host-fw-header"

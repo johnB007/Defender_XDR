@@ -1933,7 +1933,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "Syslog\n| where TimeGenerated {TimeRange}\n| where ProcessName == 'sshd'\n| where SyslogMessage has 'password'\n| summarize Accepted = countif(SyslogMessage has 'Accepted'), Failed = countif(SyslogMessage has 'Failed') by bin(TimeGenerated, {TimeRange:grain})\n| where TimeGenerated < bin(now(), {TimeRange:grain})\n| order by TimeGenerated asc",
+              "query": "Syslog\n| where TimeGenerated {TimeRange}\n| where ProcessName == 'sshd'\n| where SyslogMessage has 'Accepted' or SyslogMessage has 'Failed password'\n| summarize Accepted = countif(SyslogMessage has 'Accepted'), Failed = countif(SyslogMessage has 'Failed password') by bin(TimeGenerated, {TimeRange:grain})\n| where TimeGenerated < bin(now(), {TimeRange:grain})\n| order by TimeGenerated asc",
               "size": 0,
               "title": "SSH Logon Trend - Accepted vs Failed (Brute Force / Spray Signal)",
               "queryType": 0,

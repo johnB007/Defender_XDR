@@ -492,6 +492,57 @@
             "name": "host-recon"
           },
           {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID in (4624, 4625)\n| where LogonType == 10\n| extend SrcIP = iff(isempty(IpAddress) or IpAddress == '-', 'local/unknown', IpAddress)\n| summarize Attempts = count(), Failed = countif(EventID == 4625), Success = countif(EventID == 4624), TargetsAttempted = dcount(TargetUserName), Targets = make_set(TargetUserName, 8), Hosts = dcount(Computer), HostList = make_set(Computer, 6), Workstations = make_set(WorkstationName, 6), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by SrcIP\n| extend FailRate = round(100.0 * Failed / Attempts, 1)\n| project SrcIP, Attempts, Failed, Success, FailRate, TargetsAttempted, Targets, Hosts, HostList, Workstations, FirstSeen, LastSeen\n| top 25 by Attempts desc",
+              "size": 0,
+              "title": "RDP / Port 3389 Logon Abuse (4624 & 4625 Type 10) Brute Force & Lateral Movement",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Attempts", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "Failed", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "TargetsAttempted", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "Hosts", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "FirstSeen", "formatter": 6 },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "Attempts", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "host-rdp-abuse"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "SecurityEvent\n| where TimeGenerated {TimeRange}\n| where EventID == 4688\n| extend Proc = tolower(tostring(split(NewProcessName, \"\\\\\")[-1]))\n| where Proc in ('powershell.exe', 'pwsh.exe')\n| where TokenElevationType has '1937' or TokenElevationType has 'Full'\n| extend Parent = tolower(tostring(split(ParentProcessName, \"\\\\\")[-1]))\n| summarize Executions = count(), Hosts = dcount(Computer), HostList = make_set(Computer, 6), ParentProcs = make_set(Parent, 8), DistinctParents = dcount(Parent), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by Account = SubjectUserName, Proc\n| top 25 by Executions desc",
+              "size": 0,
+              "title": "Elevated PowerShell Execution (4688 Admin Token) Privilege Escalation Watch",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "gridSettings": {
+                "formatters": [
+                  { "columnMatch": "Executions", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "Hosts", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "DistinctParents", "formatter": 8, "formatOptions": { "palette": "orange" } },
+                  { "columnMatch": "FirstSeen", "formatter": 6 },
+                  { "columnMatch": "LastSeen", "formatter": 6 }
+                ],
+                "rowLimit": 1000,
+                "filter": true,
+                "sortBy": [ { "itemKey": "Executions", "sortOrder": 2 } ]
+              }
+            },
+            "customWidth": "50",
+            "name": "host-elevated-powershell"
+          },
+          {
             "type": 1,
             "content": {
               "json": "### Network Edge Snapshot (Firewall CEF via AMA)\nQuick read on the new SonicWall firewall feed arriving as CEF through the Azure Monitor Agent into **CommonSecurityLog**. This is a summary only. The dedicated Firewall tab carries the full denied-traffic, top-talker, port, and threat-intel correlation views.",
@@ -2031,7 +2082,7 @@
           {
             "type": 1,
             "content": {
-              "json": "Perimeter firewall telemetry from SonicWall, streamed as **CEF** through the Azure Monitor Agent into the **CommonSecurityLog** table. The panes profile allowed versus denied traffic, the noisiest source IPs hitting the edge, top destination ports and protocols, the heaviest talkers by bytes, and a direct correlation of firewall source and destination IPs against the live threat-intel feed. An empty result while the SonicWall CEF connector is still onboarding is expected; every pane lights up automatically once events land in CommonSecurityLog.",
+              "json": "Perimeter firewall telemetry from SonicWall, streamed as **CEF** through the Azure Monitor Agent into the **CommonSecurityLog** table. The panes profile allowed versus denied traffic, the noisiest source IPs hitting the edge, top destination ports and protocols, the heaviest talkers by bytes, and a direct correlation of firewall source and destination IPs against the live threat-intel feed.",
               "style": "plain"
             },
             "name": "fw-info"

@@ -208,48 +208,6 @@ This package is for one specific case: a table volume spiked,
 leadership wants to know why, and you have a short window to find
 out and write it up.
 
-## Closeout template
-
-Every investigation finishes with this structure. Paste it into the
-ticket or brief:
-
-```
-Outcome
--------
-<one sentence: what is the spike, was anything broken, what action
-follows?>
-
-Evidence chain
---------------
-- Step 0 (00_what_table_spiked.kql): <which table led, by how much>
-- Step 1 (01_when_spiked_timechart.kql): <when it started, ongoing or not>
-- Step 2 (02_top_actiontypes.kql): <which ActionType dominated>
-- Step 3 (03_spike_vs_baseline.kql): <named binary and parent>
-- Step 4 (04_top_destinations.kql): <where the binary wrote / connected>
-- Step 5 (05_device_concentration.kql): <fleet wide or a few hosts>
-- Step 6 (06_drill_processtree.kql): <full parent chain on one host>
-
-Brief language
---------------
-<plain English paragraph for leadership: no KQL, name the activity,
-state whether action is required.>
-```
-
-## Layout of a typical investigation
-
-A normal investigation ends in three to fifteen minutes of click time
-plus query runtime. The walltime is dominated by KQL queries against
-big tables. Expect:
-
-- Step 0 against `Usage`: a few seconds.
-- Steps 1 and 2 hourly against one `Device*` table over 10 days:
-  10 to 30 seconds each.
-- Step 3 over 10 days grouped by three columns: 20 to 90 seconds.
-- Steps 4 through 6 narrowed by binary or device: a few seconds each.
-
-If a query times out, narrow the spike window first, then the table
-filter, then add an `ActionType` prefilter.
-
 ## Repo, license, and contribution
 
 This folder lives in the public `johnB007/Defender_XDR` repository

@@ -30,7 +30,7 @@ VirusTotal does not return Microsoft's Security Intelligence signature version. 
 
 ## Prerequisites
 
-- Windows PowerShell 5.1 or PowerShell 7.
+- PowerShell 7. Windows PowerShell 5.1 is not supported and will not work.
 - A VirusTotal API key. Free tier is fine, use `-VtDelayMs 15000` to stay under 4 req/min.
 - `ImportExcel` module. Install it once before the first run, see the parent [Bulk IOC Validation README](../README.md#install-importexcel-once-before-you-run-anything).
 

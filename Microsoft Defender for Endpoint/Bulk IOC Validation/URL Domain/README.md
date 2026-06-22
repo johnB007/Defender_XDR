@@ -53,6 +53,7 @@ Run on a Windows 10 or 11 lab host (or Windows Server with Microsoft Defender An
 
 - SmartScreen is on (default on Windows 10/11).
 - `ImportExcel` module. Install it once before the first run, see the parent [Bulk IOC Validation README](../README.md#install-importexcel-once-before-you-run-anything).
+- PowerShell 7. Windows PowerShell 5.1 is not supported and will not work.
 
 The script refuses to run if NP is disabled.
 
@@ -68,7 +69,7 @@ If the VM was previously onboarded, offboard it first: `Settings > Endpoints > O
 
 1. Export your URL/Domain indicators from MDE: Settings, Endpoints, Indicators, URLs/Domains, Export.
 2. Drop the `.csv` or `.xlsx` file into this folder next to `Validate-UrlDomainIOCs.ps1`.
-3. Run PowerShell as Administrator in this folder:
+3. Run PowerShell 7 as Administrator in this folder:
 
    ```powershell
    .\Validate-UrlDomainIOCs.ps1

@@ -15,7 +15,9 @@ Each subfolder has its own README with the exact usage, CSV format, and output c
 
 ## Install ImportExcel once before you run anything
 
-1. Use PowerShell 7 or Windows PowerShell 5.1, as Administrator.
+> **PowerShell 7 is required. Windows PowerShell 5.1 does not work and is not supported.**
+
+1. Use PowerShell 7 as Administrator.
 2. In an elevated window run:
 
    ```powershell
@@ -24,7 +26,7 @@ Each subfolder has its own README with the exact usage, CSV format, and output c
 
    Answer Y if it asks about the untrusted PSGallery repository. When the prompt returns, it is done.
 
-   On PowerShell 7 you can ignore any `Install-PackageProvider NuGet` error from older docs. PS7 does not use that provider.
+   You can ignore any `Install-PackageProvider NuGet` error from older docs. PS7 does not use that provider.
 
 3. Close that window. Open a new PowerShell window before you run the script.
 4. Verify:

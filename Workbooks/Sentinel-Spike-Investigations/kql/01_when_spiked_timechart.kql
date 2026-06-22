@@ -1,0 +1,21 @@
+// =========================================================================
+// 01 : When did it spike? (hourly timechart)
+// Hourly bin of the suspect table across the spike window plus 7 days
+// of baseline. Pin the exact hour the spike started and whether it is
+// still active.
+// =========================================================================
+//
+// Edit the table name on the first table line below the let block, and
+// the two datetimes. Tables you can swap in include DeviceEvents,
+// DeviceFileEvents, DeviceProcessEvents, DeviceNetworkEvents,
+// DeviceRegistryEvents, DeviceImageLoadEvents, DeviceLogonEvents,
+// SecurityEvent, Syslog, CommonSecurityLog.
+//
+let spikeStart = datetime(2026-06-09);
+let spikeEnd   = datetime(2026-06-12);
+DeviceEvents
+| where TimeGenerated between (spikeStart - 7d .. spikeEnd + 1d)
+| summarize Events = count() by bin(TimeGenerated, 1h)
+| render timechart
+    with (title = "Hourly volume (spike window plus 7d baseline)",
+          ytitle = "Events per hour")

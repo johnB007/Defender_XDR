@@ -1,0 +1,31 @@
+// =========================================================================
+// 06 : Process tree drill on a sample device
+// Given a noisy device from query 05 and a suspect binary from query
+// 03, pull DeviceProcessEvents for that one device in a 3 hour slice
+// around the spike start. Shows the full parent chain (services.exe to
+// TrustedInstaller.exe to tiworker.exe, etc.) so the activity can be
+// named for the brief.
+// =========================================================================
+//
+let device     = "REPLACE_WITH_DEVICENAME"; // from query 05
+let suspect    = "tiworker.exe";            // from query 03
+let windowStart = datetime(2026-06-09T00:00:00Z);
+let windowEnd   = windowStart + 3h;
+DeviceProcessEvents
+| where TimeGenerated between (windowStart .. windowEnd)
+| where DeviceName == device
+| where FileName == suspect
+   or InitiatingProcessFileName == suspect
+   or InitiatingProcessParentFileName == suspect
+| project Timestamp = TimeGenerated,
+          DeviceName,
+          Grandparent = InitiatingProcessParentFileName,
+          Parent      = InitiatingProcessFileName,
+          Child       = FileName,
+          ChildCmd    = ProcessCommandLine,
+          AccountName,
+          InitiatingProcessAccountName,
+          InitiatingProcessFolderPath,
+          FolderPath
+| order by Timestamp asc
+| take 200

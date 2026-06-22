@@ -1,0 +1,91 @@
+// =========================================================================
+// 04 : Top destinations during the spike
+// Drill into WHAT the noisy process is touching. Each table needs a
+// different destination column. Uncomment exactly one of the blocks
+// below for the table you are investigating, edit the spike window at
+// the top, and run.
+// =========================================================================
+//
+let spikeStart = datetime(2026-06-09);
+let spikeEnd   = datetime(2026-06-12);
+//
+// Optional scope: paste the Init process name from query 03 here to
+// narrow results to that one binary. Blank includes every initiator.
+//
+let initFilter = ""; // e.g. "tiworker.exe", "secureconnector.exe", ""
+//
+// -------------------------------------------------------------------------
+// DeviceFileEvents : top folder roots being written or modified
+// -------------------------------------------------------------------------
+DeviceFileEvents
+| where TimeGenerated between (spikeStart .. spikeEnd)
+| where initFilter == "" or InitiatingProcessFileName == initFilter
+| extend FolderRoot = tolower(strcat(
+        tostring(split(FolderPath, @"\")[0]), @"\",
+        tostring(split(FolderPath, @"\")[1]), @"\",
+        tostring(split(FolderPath, @"\")[2])))
+| extend Ext = tolower(tostring(split(FileName, ".")[-1]))
+| summarize Events     = count(),
+            Devices    = dcount(DeviceName),
+            SampleFile = any(FileName),
+            SampleCmd  = any(InitiatingProcessCommandLine)
+    by FolderRoot, Ext
+| top 30 by Events desc
+//
+// -------------------------------------------------------------------------
+// DeviceProcessEvents : top command lines being executed
+// -------------------------------------------------------------------------
+// DeviceProcessEvents
+// | where TimeGenerated between (spikeStart .. spikeEnd)
+// | where initFilter == "" or InitiatingProcessFileName == initFilter
+// | extend CmdShort = substring(tolower(ProcessCommandLine), 0, 200)
+// | summarize Events  = count(),
+//             Devices = dcount(DeviceName),
+//             Sample  = any(ProcessCommandLine)
+//     by FileName, CmdShort
+// | top 30 by Events desc
+//
+// -------------------------------------------------------------------------
+// DeviceNetworkEvents : top remote endpoints
+// -------------------------------------------------------------------------
+// DeviceNetworkEvents
+// | where TimeGenerated between (spikeStart .. spikeEnd)
+// | where initFilter == "" or InitiatingProcessFileName == initFilter
+// | summarize Events    = count(),
+//             Devices   = dcount(DeviceName),
+//             Ports     = make_set(RemotePort, 10),
+//             SampleUrl = any(RemoteUrl)
+//     by RemoteIP, RemoteIPType
+// | top 30 by Events desc
+//
+// -------------------------------------------------------------------------
+// DeviceRegistryEvents : top registry key roots
+// -------------------------------------------------------------------------
+// DeviceRegistryEvents
+// | where TimeGenerated between (spikeStart .. spikeEnd)
+// | where initFilter == "" or InitiatingProcessFileName == initFilter
+// | extend KeyRoot = tolower(strcat(
+//         tostring(split(RegistryKey, @"\")[0]), @"\",
+//         tostring(split(RegistryKey, @"\")[1]), @"\",
+//         tostring(split(RegistryKey, @"\")[2])))
+// | summarize Events  = count(),
+//             Devices = dcount(DeviceName),
+//             Sample  = any(RegistryKey)
+//     by KeyRoot, ActionType
+// | top 30 by Events desc
+//
+// -------------------------------------------------------------------------
+// DeviceImageLoadEvents : top images being loaded
+// -------------------------------------------------------------------------
+// DeviceImageLoadEvents
+// | where TimeGenerated between (spikeStart .. spikeEnd)
+// | where initFilter == "" or InitiatingProcessFileName == initFilter
+// | extend FolderRoot = tolower(strcat(
+//         tostring(split(FolderPath, @"\")[0]), @"\",
+//         tostring(split(FolderPath, @"\")[1]), @"\",
+//         tostring(split(FolderPath, @"\")[2])))
+// | summarize Events  = count(),
+//             Devices = dcount(DeviceName),
+//             Signers = make_set(Signer, 10)
+//     by FolderRoot, FileName
+// | top 30 by Events desc

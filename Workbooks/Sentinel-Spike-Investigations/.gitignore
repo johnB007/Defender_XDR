@@ -1,0 +1,5 @@
+# local HTML previews generated from the markdown, never committed
+*.html
+
+# local tooling and doc generators, kept on disk but never pushed
+.tools/

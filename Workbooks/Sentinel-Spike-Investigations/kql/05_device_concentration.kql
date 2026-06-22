@@ -1,0 +1,32 @@
+// =========================================================================
+// 05 : Device concentration
+// Is this spike fleet wide (Patch Tuesday, MDE platform update,
+// signature push) or a small set of runaway machines (broken agent,
+// misconfigured policy, single misbehaving host)?
+//
+// If the top 5 devices account for most of the volume, this is a
+// single host problem. If volume is spread evenly across thousands of
+// devices, this is a fleet wide rollout.
+// =========================================================================
+//
+let spikeStart = datetime(2026-06-09);
+let spikeEnd   = datetime(2026-06-12);
+let initFilter = ""; // e.g. "tiworker.exe", "secureconnector.exe", ""
+//
+// Swap DeviceEvents for whichever table you are investigating.
+//
+DeviceEvents
+| where TimeGenerated between (spikeStart .. spikeEnd)
+| where initFilter == "" or InitiatingProcessFileName == initFilter
+| summarize Events = count(),
+            DistinctInitiators = dcount(InitiatingProcessFileName),
+            TopInitiator       = arg_max(InitiatingProcessFileName, "")
+    by DeviceName
+| top 25 by Events desc
+| extend FleetShare = round(todouble(Events) /
+                            toscalar(
+                                DeviceEvents
+                                | where TimeGenerated between (spikeStart .. spikeEnd)
+                                | where initFilter == "" or InitiatingProcessFileName == initFilter
+                                | count
+                            ) * 100.0, 2)

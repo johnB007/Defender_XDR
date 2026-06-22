@@ -1,0 +1,22 @@
+// =========================================================================
+// 02 : Top ActionTypes during the spike
+// For tables that have an ActionType column (DeviceEvents,
+// DeviceFileEvents, DeviceNetworkEvents, DeviceRegistryEvents,
+// DeviceImageLoadEvents, DeviceLogonEvents), this often pinpoints a
+// single noisy action (FileCreated, ProcessCreated,
+// AntivirusScanCompleted, RegistryValueSet, etc.) that explains 80% of
+// the volume.
+//
+// Skip this query for SecurityEvent, Syslog, and CommonSecurityLog,
+// and go straight to 03_spike_vs_baseline.kql.
+// =========================================================================
+//
+let spikeStart = datetime(2026-06-09);
+let spikeEnd   = datetime(2026-06-12);
+DeviceEvents
+| where TimeGenerated between (spikeStart .. spikeEnd)
+| summarize Events  = count(),
+            Devices = dcount(DeviceName)
+    by ActionType
+| extend EventsPerDevice = round(todouble(Events) / todouble(Devices), 1)
+| top 30 by Events desc

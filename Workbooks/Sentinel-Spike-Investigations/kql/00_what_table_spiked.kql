@@ -1,0 +1,42 @@
+// =========================================================================
+// 00 : What table spiked?
+// Ranks every billable DataType by daily GB delta during the spike
+// window vs the prior 7 days. Run this first when an ingestion spike
+// alert fires or the workbook shows unexplained growth.
+// =========================================================================
+//
+// Edit these two values, then run as one block. Everything else is
+// derived. The baseline is the 7 days immediately before spikeStart.
+//
+let spikeStart = datetime(2026-06-09);
+let spikeEnd   = datetime(2026-06-12);
+//
+let baseEnd    = spikeStart;
+let baseStart  = baseEnd - 7d;
+let spikeDays  = todouble((spikeEnd - spikeStart) / 1d);
+let baseline =
+    Usage
+    | where IsBillable
+    | where TimeGenerated between (baseStart .. baseEnd)
+    | summarize BaselineGB = sum(Quantity) / 1024.0 by DataType
+    | extend BaselinePerDayGB = BaselineGB / 7.0
+    | project DataType, BaselinePerDayGB;
+let spike =
+    Usage
+    | where IsBillable
+    | where TimeGenerated between (spikeStart .. spikeEnd)
+    | summarize SpikeGB = sum(Quantity) / 1024.0 by DataType
+    | extend SpikePerDayGB = SpikeGB / spikeDays
+    | project DataType, SpikePerDayGB;
+spike
+| join kind=leftouter baseline on DataType
+| extend BaselinePerDayGB = coalesce(BaselinePerDayGB, 0.0)
+| extend DeltaPerDayGB    = SpikePerDayGB - BaselinePerDayGB
+| extend RatioVsBaseline  = iff(BaselinePerDayGB == 0.0, todouble(SpikePerDayGB),
+                                SpikePerDayGB / BaselinePerDayGB)
+| project DataType,
+          BaselinePerDayGB = round(BaselinePerDayGB, 2),
+          SpikePerDayGB    = round(SpikePerDayGB, 2),
+          DeltaPerDayGB    = round(DeltaPerDayGB, 2),
+          RatioVsBaseline  = round(RatioVsBaseline, 2)
+| top 25 by DeltaPerDayGB desc

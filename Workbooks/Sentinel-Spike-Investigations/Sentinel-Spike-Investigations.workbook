@@ -1,0 +1,902 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# Sentinel Spike Investigator\n\nThis workbook walks an analyst through the same seven step playbook in this folder, but each step runs in place against the connected Log Analytics workspace. Set the parameters once, work down the page, click a device row to drill in, then pick the matching fingerprint at the bottom to get ready to paste closeout language.\n\n**Prerequisites**: the workspace must have the **Microsoft Defender XDR** data connector enabled so the `Device*` tables exist. The query in Step 0 will return zero rows if the connector is not in place."
+      },
+      "name": "intro"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "p-table",
+            "version": "KqlParameterItem/1.0",
+            "name": "Table",
+            "label": "Table to investigate",
+            "type": 2,
+            "isRequired": true,
+            "value": "DeviceFileEvents",
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "jsonData": "[\"DeviceEvents\",\"DeviceFileEvents\",\"DeviceProcessEvents\",\"DeviceNetworkEvents\",\"DeviceRegistryEvents\",\"DeviceImageLoadEvents\",\"DeviceLogonEvents\"]"
+          },
+          {
+            "id": "p-spike",
+            "version": "KqlParameterItem/1.0",
+            "name": "SpikeRange",
+            "label": "Spike window",
+            "type": 4,
+            "isRequired": true,
+            "value": {
+              "durationMs": 604800000
+            },
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 172800000
+                },
+                {
+                  "durationMs": 259200000
+                },
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 1209600000
+                }
+              ]
+            }
+          },
+          {
+            "id": "p-baseline",
+            "version": "KqlParameterItem/1.0",
+            "name": "BaselineRange",
+            "label": "Baseline duration (auto-anchored before the spike)",
+            "type": 4,
+            "isRequired": true,
+            "value": {
+              "durationMs": 1209600000
+            },
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 1209600000
+                },
+                {
+                  "durationMs": 2419200000
+                },
+                {
+                  "durationMs": 5184000000
+                }
+              ]
+            }
+          },
+          {
+            "id": "p-selectpct",
+            "version": "KqlParameterItem/1.0",
+            "name": "SelectPct",
+            "label": "Anomaly spikes %",
+            "description": "Anomaly section at the top: only show tables whose ingestion is up by at least this percent versus predicted.",
+            "type": 2,
+            "isRequired": true,
+            "value": "50",
+            "typeSettings": {
+              "additionalResourceOptions": []
+            },
+            "jsonData": "[{\"value\": \"10\", \"label\": \"10\"}, {\"value\": \"20\", \"label\": \"20\"}, {\"value\": \"30\", \"label\": \"30\"}, {\"value\": \"40\", \"label\": \"40\"}, {\"value\": \"50\", \"label\": \"50\"}, {\"value\": \"60\", \"label\": \"60\"}, {\"value\": \"70\", \"label\": \"70\"}, {\"value\": \"80\", \"label\": \"80\"}, {\"value\": \"90\", \"label\": \"90\"}, {\"value\": \"100\", \"label\": \"100\"}]"
+          },
+          {
+            "id": "p-threshold",
+            "version": "KqlParameterItem/1.0",
+            "name": "Threshold",
+            "label": "Delta threshold (Step 3)",
+            "description": "Marks rows in Step 3 where (Spike per day) - (Baseline per day) exceeds this value. Step 3 always returns top 50 by Delta. Raise this to make the check icon stricter, lower it to mark more rows.",
+            "type": 2,
+            "isRequired": true,
+            "value": "100",
+            "typeSettings": {
+              "additionalResourceOptions": []
+            },
+            "jsonData": "[{\"value\":\"100\",\"label\":\"100\"},{\"value\":\"1000\",\"label\":\"1000\"},{\"value\":\"5000\",\"label\":\"5000\"},{\"value\":\"10000\",\"label\":\"10000\"},{\"value\":\"50000\",\"label\":\"50000\"},{\"value\":\"100000\",\"label\":\"100000\"},{\"value\":\"500000\",\"label\":\"500000\"}]"
+          },
+          {
+            "id": "p-device",
+            "version": "KqlParameterItem/1.0",
+            "name": "Device",
+            "label": "Drill device (set by clicking a row in Step 4)",
+            "type": 1,
+            "value": ""
+          },
+          {
+            "id": "p-fingerprint",
+            "version": "KqlParameterItem/1.0",
+            "name": "Fingerprint",
+            "label": "Fingerprint match (Step 6)",
+            "type": 2,
+            "value": "none",
+            "typeSettings": {
+              "additionalResourceOptions": []
+            },
+            "jsonData": "[{\"value\":\"none\",\"label\":\"Not picked yet\"},{\"value\":\"patch-tuesday\",\"label\":\"Windows Patch Tuesday\"},{\"value\":\"feature-update\",\"label\":\"Windows Feature Update wave (major version uplift)\"},{\"value\":\"defender-update\",\"label\":\"Defender platform or signature update\"},{\"value\":\"mde-onboarding\",\"label\":\"MDE onboarding wave\"},{\"value\":\"intune-mecm\",\"label\":\"Intune or Configuration Manager software deployment\"},{\"value\":\"av-scan\",\"label\":\"Defender Antivirus scheduled scan window\"},{\"value\":\"backup-job\",\"label\":\"Backup agent run wave\"},{\"value\":\"arc-onboarding\",\"label\":\"Azure Arc agent rollout\"},{\"value\":\"sysmon-reconfig\",\"label\":\"Sysmon configuration push\"},{\"value\":\"dlp-rollout\",\"label\":\"Purview Endpoint DLP policy rollout\"},{\"value\":\"cert-renewal\",\"label\":\"Certificate auto enrollment wave\"},{\"value\":\"policy-refresh\",\"label\":\"Group Policy or Intune policy refresh storm\"},{\"value\":\"third-party\",\"label\":\"Third party agent or scanner activity\"},{\"value\":\"vuln-scan\",\"label\":\"Vulnerability scanner sweep\"},{\"value\":\"discovery-sweep\",\"label\":\"Asset discovery or NAC sweep\"},{\"value\":\"rmm-script\",\"label\":\"Remote management tool scheduled script wave\"},{\"value\":\"browser-update\",\"label\":\"Browser enterprise update wave\"},{\"value\":\"mdi-sensor\",\"label\":\"MDI sensor deployment\"},{\"value\":\"dr-test\",\"label\":\"Disaster recovery or failover test\"},{\"value\":\"dcr-change\",\"label\":\"Data Collection Rule or AMA change\"},{\"value\":\"forwarder-dup\",\"label\":\"Duplicate ingestion from a forwarder\"},{\"value\":\"unknown\",\"label\":\"Nothing matched, custom closeout\"}]"
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "parameters"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Find anomalous tables first\n\nLook back 30 days at billable ingestion across every `DataType` in this workspace and decompose each series with `series_decompose_anomalies`. A row appears below when (a) the anomaly score on the most recent point is at least 3 (strong) and (b) the percent increase versus the predicted baseline is at least the **Anomaly spikes %** parameter at the top. **Click any row that starts with `Device`** and the workbook will pin that table into the `Table` parameter, which is what every step below uses."
+      },
+      "name": "h-anomaly"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "// source: https://techcommunity.microsoft.com/t5/azure-sentinel/ingestion-cost-spike-detection-playbook/ba-p/2591301\n// Detects abrupt 1-day spikes in billable ingestion using series_decompose_anomalies.\n// Note: sustained multi-day rises (like a 7-day uptick) get absorbed into the baseline and will not score here -- use Steps 0-2 for those.\nlet UpperAnomalyThreshold = 3.0;\nlet MinDailyVolume = 100;\nlet PercentIncrease = toreal('{SelectPct}');\nUsage\n| where IsBillable == 'true'\n| where Quantity > 0\n| make-series Qty = sum(Quantity) on TimeGenerated from ago(30d) to now() step 1d by DataType\n| extend (anomalies, score, baseline) = series_decompose_anomalies(Qty, 1.5, 7, 'linefit', 1, 'ctukey', 0.01)\n| where anomalies[-1] == 1\n| extend Score = round(todouble(score[-1]), 2)\n| where Score >= UpperAnomalyThreshold\n| extend ActualQty = round(todouble(Qty[-1]), 0)\n| extend ExpectedQty = round(todouble(baseline[-1]), 0)\n| where ActualQty >= MinDailyVolume\n| extend PercentageQtyIncrease = iff(ExpectedQty > 0, round(((ActualQty - ExpectedQty) / ExpectedQty) * 100, 0), real(100))\n| project DataType, ExpectedQty, ActualQty, PercentageQtyIncrease, Score\n| where PercentageQtyIncrease >= PercentIncrease\n| order by PercentageQtyIncrease desc",
+        "size": 0,
+        "title": "Anomalous tables (last 30 days, score >= 3)",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "exportFieldName": "DataType",
+        "exportParameterName": "Table",
+        "exportDefaultValue": "",
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "PercentageQtyIncrease",
+              "formatter": 8,
+              "formatOptions": {
+                "palette": "red"
+              }
+            }
+          ]
+        }
+      },
+      "name": "q-anomaly"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Step 0 : Confirm the spike\n\nTwo bars: average **events per day** in the **Baseline window** vs the **Spike window**. Per day, not totals, so a 14 day baseline and a 7 day spike are directly comparable. If the spike bar is not visibly taller than the baseline bar, there is no spike, stop here. The daily trend below spans both windows for context.\n\n> Demo: **Table = DeviceFileEvents**, **BaselineRange = Last 14 days**, **SpikeRange = Last 7 days**. Spike bar should be roughly 1.4 to 1.7x the baseline bar."
+      },
+      "name": "h-step0"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let spikeStart = startofday(datetime({SpikeRange:startISO}));\nlet spikeEnd = startofday(datetime({SpikeRange:endISO}));\nlet baseStart = startofday(datetime({BaselineRange:startISO}));\nlet baseEnd = startofday(datetime({BaselineRange:endISO}));\nlet spikeDays = toreal(toint((spikeEnd - spikeStart) / 1d));\nlet baseDays = toreal(toint((baseEnd - baseStart) / 1d));\nlet spike = {Table} | where Timestamp >= spikeStart and Timestamp < spikeEnd | summarize Total = toreal(count()) | extend Period = strcat(\"Spike (last \", toint(spikeDays), \" d, avg/day)\"), PerDay = Total / spikeDays;\nlet base = {Table} | where Timestamp >= baseStart and Timestamp < baseEnd | summarize Total = toreal(count()) | extend Period = strcat(\"Baseline (\", toint(baseDays), \" d, avg/day)\"), PerDay = Total / baseDays;\nunion base, spike\n| project Period, EventsPerDay = round(PerDay, 0)\n| order by Period asc",
+        "size": 0,
+        "title": "Events per day: baseline window vs spike window",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "barchart",
+        "chartSettings": {
+          "createOtherGroup": 0,
+          "showLegend": true,
+          "ySettings": {
+            "numberFormatSettings": {
+              "unit": 0,
+              "options": {
+                "style": "decimal",
+                "useGrouping": true
+              }
+            }
+          }
+        }
+      },
+      "name": "q-step0"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let spikeStart = startofday(datetime({SpikeRange:startISO}));\nlet spikeEnd = startofday(datetime({SpikeRange:endISO}));\nlet baseStart = startofday(datetime({BaselineRange:startISO}));\nlet baseEnd = startofday(datetime({BaselineRange:endISO}));\nlet windowStart = min_of(baseStart, spikeStart);\nlet windowEnd = max_of(baseEnd, spikeEnd);\n{Table}\n| where Timestamp >= windowStart and Timestamp < windowEnd\n| summarize Count = toreal(count()) by Day = bin(Timestamp, 1d)\n| order by Day asc",
+        "size": 0,
+        "title": "Daily trend (context)",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "linechart"
+      },
+      "name": "q-step0-trend"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Step 1 : ActionType breakdown during the spike\n\nWhich ActionType values dominate the spike window. A single ActionType taking over half the rows is your starting thread."
+      },
+      "name": "h-step1"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let spikeStart = datetime({SpikeRange:startISO});\nlet spikeEnd = datetime({SpikeRange:endISO});\nlet agg = materialize(\n    {Table}\n    | where Timestamp between (spikeStart .. spikeEnd)\n    | extend Vendor = column_ifexists('InitiatingProcessVersionInfoCompanyName', '')\n    | extend Product = column_ifexists('InitiatingProcessVersionInfoProductName', '')\n    | summarize hint.strategy=shuffle hint.shufflekey=ActionType\n        Rows = count(),\n        DistinctDevices = dcount(DeviceName),\n        TopVendors = make_set(Vendor, 5),\n        TopProducts = make_set(Product, 5),\n        TopParents = make_set(InitiatingProcessFileName, 5)\n        by ActionType\n);\nlet total = toscalar(agg | summarize sum(Rows));\nagg\n| extend PctOfSpike = round(100.0 * Rows / todouble(total), 2)\n| top 20 by Rows desc\n| project ActionType, Rows, PctOfSpike, DistinctDevices, TopVendors, TopProducts, TopParents",
+        "size": 0,
+        "title": "Top 20 ActionTypes with vendor attribution",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "q-step1"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Step 2 : ActionType spike vs baseline\n\nDaily average per ActionType in the spike window compared to the baseline window. The baseline is **auto-anchored to end where the spike starts**, so it never overlaps the spike. Sort by `Delta` desc to find the ActionTypes that grew."
+      },
+      "name": "h-step2"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let spikeStart = datetime({SpikeRange:startISO});\nlet spikeEnd = datetime({SpikeRange:endISO});\nlet baseDuration = datetime({BaselineRange:endISO}) - datetime({BaselineRange:startISO});\nlet baseStart = spikeStart - baseDuration;\nlet baseEnd = spikeStart;\nlet spikeDays = toscalar(print d = (spikeEnd - spikeStart) / 1d);\nlet baseDays = toscalar(print d = baseDuration / 1d);\nlet spike =\n    {Table}\n    | where Timestamp >= spikeStart and Timestamp <= spikeEnd\n    | summarize SpikePerDay = todouble(count()) / spikeDays by ActionType;\nlet base =\n    {Table}\n    | where Timestamp >= baseStart and Timestamp < baseEnd\n    | summarize BasePerDay = todouble(count()) / baseDays by ActionType;\nspike\n| join kind=fullouter base on ActionType\n| extend ActionType = coalesce(ActionType, ActionType1), SpikePerDay = coalesce(SpikePerDay, real(0)), BasePerDay = coalesce(BasePerDay, real(0))\n| extend Delta = SpikePerDay - BasePerDay\n| extend Ratio = iff(BasePerDay > 0, round(SpikePerDay / BasePerDay, 3), real(null))\n| project ActionType, BasePerDay = round(BasePerDay, 3), SpikePerDay = round(SpikePerDay, 3), Delta = round(Delta, 3), Ratio\n| order by Delta desc",
+        "size": 0,
+        "title": "ActionType: spike per day vs baseline per day",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "q-step2"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let spikeStart = datetime({SpikeRange:startISO});\nlet spikeEnd = datetime({SpikeRange:endISO});\nlet baseStart = datetime({BaselineRange:startISO});\nlet baseEnd = datetime({BaselineRange:endISO});\nlet spikeDays = toscalar(print d = (spikeEnd - spikeStart) / 1d);\nlet baseDays = toscalar(print d = (baseEnd - baseStart) / 1d);\nlet spike = materialize(\n    {Table}\n    | where Timestamp between (spikeStart .. spikeEnd)\n    | summarize hint.strategy=shuffle hint.shufflekey=ActionType\n        SpikePerDay = todouble(count()) / spikeDays\n        by ActionType\n);\nlet base = materialize(\n    {Table}\n    | where Timestamp between (baseStart .. baseEnd)\n    | summarize hint.strategy=shuffle hint.shufflekey=ActionType\n        BasePerDay = todouble(count()) / baseDays\n        by ActionType\n);\nspike\n| join kind=fullouter base on ActionType\n| extend ActionType = coalesce(ActionType, ActionType1)\n| extend SpikePerDay = coalesce(SpikePerDay, real(0)), BasePerDay = coalesce(BasePerDay, real(0))\n| extend Delta = SpikePerDay - BasePerDay\n| order by Delta desc\n| take 15\n| project ActionType, BasePerDay = round(BasePerDay, 0), SpikePerDay = round(SpikePerDay, 0), Delta = round(Delta, 0)",
+        "size": 0,
+        "title": "Top 15 ActionTypes: baseline per day vs spike per day",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table",
+        "chartSettings": {},
+        "gridSettings": {
+          "formatters": [
+            {
+              "columnMatch": "ActionType",
+              "formatter": 0
+            },
+            {
+              "columnMatch": "BasePerDay",
+              "formatter": 8,
+              "formatOptions": {
+                "palette": "blue",
+                "min": 0
+              },
+              "numberFormat": {
+                "unit": 17,
+                "options": {
+                  "style": "decimal",
+                  "useGrouping": true,
+                  "maximumFractionDigits": 0
+                }
+              }
+            },
+            {
+              "columnMatch": "SpikePerDay",
+              "formatter": 8,
+              "formatOptions": {
+                "palette": "red",
+                "min": 0
+              },
+              "numberFormat": {
+                "unit": 17,
+                "options": {
+                  "style": "decimal",
+                  "useGrouping": true,
+                  "maximumFractionDigits": 0
+                }
+              }
+            },
+            {
+              "columnMatch": "Delta",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": ">",
+                    "thresholdValue": "0",
+                    "representation": "Failed",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "<",
+                    "thresholdValue": "0",
+                    "representation": "Success",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "unknown",
+                    "text": "{0}{1}"
+                  }
+                ]
+              },
+              "numberFormat": {
+                "unit": 17,
+                "options": {
+                  "style": "decimal",
+                  "useGrouping": true,
+                  "maximumFractionDigits": 0
+                }
+              }
+            }
+          ],
+          "sortBy": [
+            {
+              "itemKey": "Delta",
+              "sortOrder": 2
+            }
+          ]
+        }
+      },
+      "name": "q-step2-chart",
+      "title": "Top 15 ActionTypes: baseline per day vs spike per day"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Step 3 : Process pairs that grew the most\n\nParent and child binary pairs with the largest jump from baseline. The baseline window is **auto-anchored to end where the spike window starts**, so it never overlaps the spike, regardless of what duration you pick at the top. The `Threshold` parameter filters out pairs whose `Delta` is below the number you set. Anything above the threshold is what is actually driving the spike."
+      },
+      "name": "h-step3"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let spikeStart = datetime({SpikeRange:startISO});\nlet spikeEnd = datetime({SpikeRange:endISO});\nlet baseRangeStart = datetime({BaselineRange:startISO});\nlet baseRangeEnd = datetime({BaselineRange:endISO});\nlet baseDuration = baseRangeEnd - baseRangeStart;\nlet baseStart = spikeStart - baseDuration;\nlet baseEnd = spikeStart;\nlet spikeDays = toscalar(print d = (spikeEnd - spikeStart) / 1d);\nlet baseDays = toscalar(print d = (baseEnd - baseStart) / 1d);\nlet threshold = toreal('{Threshold}');\nlet topParents = toscalar(\n    {Table}\n    | where Timestamp between (spikeStart .. spikeEnd)\n    | summarize hint.strategy=shuffle hint.shufflekey=InitiatingProcessFileName SpikeCount = count() by InitiatingProcessFileName\n    | top 50 by SpikeCount desc\n    | summarize make_set(InitiatingProcessFileName)\n);\nlet spike = {Table}\n    | where Timestamp between (spikeStart .. spikeEnd)\n    | where InitiatingProcessFileName in (topParents)\n    | extend ChildName = column_ifexists('FileName', '')\n    | summarize Spike = todouble(count()) / spikeDays, DistinctDevices = dcount(DeviceName)\n        by InitiatingProcessFileName, ChildName;\nlet base = {Table}\n    | where Timestamp between (baseStart .. baseEnd)\n    | where InitiatingProcessFileName in (topParents)\n    | extend ChildName = column_ifexists('FileName', '')\n    | summarize Baseline = todouble(count()) / baseDays\n        by InitiatingProcessFileName, ChildName;\nlet attribution = {Table}\n    | where Timestamp between (spikeStart .. spikeEnd)\n    | where InitiatingProcessFileName in (topParents)\n    | extend Vendor = column_ifexists('InitiatingProcessVersionInfoCompanyName', '')\n    | extend Product = column_ifexists('InitiatingProcessVersionInfoProductName', '')\n    | extend ParentPath = column_ifexists('InitiatingProcessFolderPath', '')\n    | summarize\n        Vendors = make_set_if(Vendor, isnotempty(Vendor), 3),\n        Products = make_set_if(Product, isnotempty(Product), 3),\n        ParentPaths = make_set_if(ParentPath, isnotempty(ParentPath), 3)\n        by InitiatingProcessFileName;\nspike\n| join kind=leftouter base on InitiatingProcessFileName, ChildName\n| extend Baseline = coalesce(Baseline, real(0))\n| extend Delta = Spike - Baseline\n| join kind=leftouter attribution on InitiatingProcessFileName\n| extend AboveThreshold = iff(Delta > threshold, 'true', 'false')\n| extend Vendors = iff(array_length(Vendors) == 0, dynamic(['(unknown)']), Vendors)\n| extend Products = iff(array_length(Products) == 0, dynamic(['(unknown)']), Products)\n| project\n    AboveThreshold,\n    Vendors,\n    Products,\n    ParentFileName = InitiatingProcessFileName,\n    ParentPaths,\n    ChildName,\n    DistinctDevices,\n    Baseline = round(Baseline, 3),\n    Spike = round(Spike, 3),\n    Delta = round(Delta, 3)\n| top 50 by Delta desc",
+        "size": 0,
+        "title": "Top process pairs above threshold (with vendor attribution)",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "gridSettings": {
+          "rowLimit": 100,
+          "filter": true,
+          "sortBy": [
+            {
+              "itemKey": "Delta",
+              "sortOrder": 2
+            }
+          ],
+          "columnSettings": [
+            {
+              "columnId": "AboveThreshold",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": "==",
+                    "thresholdValue": "true",
+                    "representation": "Success",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "==",
+                    "thresholdValue": "false",
+                    "representation": "Failed",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "unknown",
+                    "text": "{0}{1}"
+                  }
+                ],
+                "customColumnWidthSetting": "110px"
+              }
+            },
+            {
+              "columnId": "Vendors",
+              "formatter": 1,
+              "formatOptions": {
+                "customColumnWidthSetting": "220px"
+              }
+            },
+            {
+              "columnId": "Products",
+              "formatter": 1,
+              "formatOptions": {
+                "customColumnWidthSetting": "220px"
+              }
+            },
+            {
+              "columnId": "ParentFileName",
+              "formatter": 1,
+              "formatOptions": {
+                "customColumnWidthSetting": "200px"
+              }
+            },
+            {
+              "columnId": "ParentPaths",
+              "formatter": 1,
+              "formatOptions": {
+                "customColumnWidthSetting": "260px"
+              }
+            },
+            {
+              "columnId": "ChildName",
+              "formatter": 1,
+              "formatOptions": {
+                "customColumnWidthSetting": "180px"
+              }
+            },
+            {
+              "columnId": "DistinctDevices",
+              "formatter": 0,
+              "formatOptions": {
+                "customColumnWidthSetting": "110px"
+              }
+            },
+            {
+              "columnId": "Baseline",
+              "formatter": 0,
+              "formatOptions": {
+                "customColumnWidthSetting": "110px"
+              }
+            },
+            {
+              "columnId": "Spike",
+              "formatter": 0,
+              "formatOptions": {
+                "customColumnWidthSetting": "110px"
+              }
+            },
+            {
+              "columnId": "Delta",
+              "formatter": 18,
+              "formatOptions": {
+                "thresholdsOptions": "colors",
+                "thresholdsGrid": [
+                  {
+                    "operator": ">",
+                    "thresholdValue": "0",
+                    "representation": "Failed",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "<",
+                    "thresholdValue": "0",
+                    "representation": "Success",
+                    "text": "{0}{1}"
+                  },
+                  {
+                    "operator": "Default",
+                    "thresholdValue": null,
+                    "representation": "unknown",
+                    "text": "{0}{1}"
+                  }
+                ],
+                "customColumnWidthSetting": "110px"
+              }
+            }
+          ]
+        },
+        "visualization": "table"
+      },
+      "name": "q-step3",
+      "title": "Top 50 process pairs by spike delta (threshold marker)"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Step 4 : Devices contributing the most rows\n\nTop devices in the spike window. **Click a row** and the workbook will pin that device into the `Device` parameter, which unlocks Step 5 below."
+      },
+      "name": "h-step4"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "{Table}\n| where Timestamp >= datetime({SpikeRange:startISO}) and Timestamp <= datetime({SpikeRange:endISO})\n| summarize Rows = count() by DeviceName\n| top 50 by Rows desc",
+        "size": 0,
+        "title": "Top 50 devices in the spike",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "exportFieldName": "DeviceName",
+        "exportParameterName": "Device",
+        "exportDefaultValue": "",
+        "showExportToExcel": true
+      },
+      "name": "q-step4"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Step 5 : Process tree for `{Device}`\n\nTop process pairs on the selected device in the spike window. Pair this view with the Step 3 output to confirm the device is doing exactly what the fleet wide pattern says it is doing."
+      },
+      "name": "h-step5",
+      "conditionalVisibility": {
+        "parameterName": "Device",
+        "comparison": "isNotEqualTo",
+        "value": ""
+      }
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let win = {Table}\n    | where Timestamp >= datetime({SpikeRange:startISO}) and Timestamp <= datetime({SpikeRange:endISO})\n    | where DeviceName == '{Device}'\n    | extend ChildName = column_ifexists('FileName', '')\n    | extend ChildPath = column_ifexists('FolderPath', '')\n    | extend ParentPath = column_ifexists('InitiatingProcessFolderPath', '')\n    | extend VendorRaw = column_ifexists('InitiatingProcessVersionInfoCompanyName', '')\n    | extend ProductRaw = column_ifexists('InitiatingProcessVersionInfoProductName', '')\n    | extend FileDescRaw = column_ifexists('InitiatingProcessVersionInfoFileDescription', '')\n    | extend CmdLine = column_ifexists('InitiatingProcessCommandLine', '')\n    | extend Account = column_ifexists('InitiatingProcessAccountName', '')\n;\nlet attribution = win\n    | where isnotempty(VendorRaw) or isnotempty(ProductRaw) or isnotempty(FileDescRaw) or isnotempty(ParentPath)\n    | summarize\n        VendorAttr = take_anyif(VendorRaw, isnotempty(VendorRaw)),\n        ProductAttr = take_anyif(ProductRaw, isnotempty(ProductRaw)),\n        FileDescAttr = take_anyif(FileDescRaw, isnotempty(FileDescRaw)),\n        ParentPathAttr = take_anyif(ParentPath, isnotempty(ParentPath))\n        by InitiatingProcessFileName\n;\nwin\n| summarize\n    Rows = count(),\n    SampleChildPath = any(ChildPath),\n    SampleCmdLine = any(CmdLine),\n    Accounts = make_set_if(Account, isnotempty(Account), 3)\n    by InitiatingProcessFileName, ChildName\n| join kind=leftouter attribution on InitiatingProcessFileName\n| extend ParentLower = tolower(coalesce(ParentPathAttr, ''))\n| extend Vendor = case(\n    isnotempty(VendorAttr), VendorAttr,\n    ParentLower startswith @'c:\\windows\\system32', 'Microsoft Windows',\n    ParentLower startswith @'c:\\windows\\winsxs', 'Microsoft Windows',\n    ParentLower startswith @'c:\\windows\\softwaredistribution', 'Microsoft Windows Update',\n    ParentLower startswith @'c:\\windows\\', 'Microsoft Windows',\n    ParentLower contains 'microsoft', 'Microsoft',\n    ParentLower contains 'forescout' or ParentLower contains 'secureconnector', 'Forescout',\n    ParentLower contains 'crowdstrike', 'CrowdStrike',\n    ParentLower contains 'defender' or ParentLower contains 'mssense' or ParentLower contains 'msmpeng', 'Microsoft Defender',\n    ParentLower contains 'sentinelone', 'SentinelOne',\n    ParentLower startswith @'c:\\program files\\', tostring(split(ParentPathAttr, @'\\')[2]),\n    ParentLower startswith @'c:\\program files (x86)\\', tostring(split(ParentPathAttr, @'\\')[2]),\n    '(unknown)')\n| extend Product = case(\n    isnotempty(ProductAttr), ProductAttr,\n    isnotempty(FileDescAttr), FileDescAttr,\n    '(unknown)')\n| extend ParentPath = coalesce(ParentPathAttr, '')\n| top 30 by Rows desc\n| project\n    Rows,\n    Vendor,\n    Product,\n    ParentFileName = InitiatingProcessFileName,\n    ParentPath,\n    ChildName,\n    SampleChildPath,\n    Accounts,\n    SampleCmdLine",
+        "size": 0,
+        "title": "Process tree on the selected device (with vendor attribution)",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "table",
+        "gridSettings": {
+          "rowLimit": 100,
+          "filter": true,
+          "sortBy": [
+            {
+              "itemKey": "Rows",
+              "sortOrder": 2
+            }
+          ],
+          "columnSettings": [
+            {
+              "columnId": "Rows",
+              "formatter": 0,
+              "formatOptions": {
+                "customColumnWidthSetting": "90px"
+              }
+            },
+            {
+              "columnId": "Vendor",
+              "formatter": 1,
+              "formatOptions": {
+                "customColumnWidthSetting": "180px"
+              }
+            },
+            {
+              "columnId": "Product",
+              "formatter": 1,
+              "formatOptions": {
+                "customColumnWidthSetting": "220px"
+              }
+            },
+            {
+              "columnId": "ParentFileName",
+              "formatter": 1,
+              "formatOptions": {
+                "customColumnWidthSetting": "180px"
+              }
+            },
+            {
+              "columnId": "ParentPath",
+              "formatter": 1,
+              "formatOptions": {
+                "customColumnWidthSetting": "260px"
+              }
+            },
+            {
+              "columnId": "ChildName",
+              "formatter": 1,
+              "formatOptions": {
+                "customColumnWidthSetting": "180px"
+              }
+            },
+            {
+              "columnId": "SampleChildPath",
+              "formatter": 1,
+              "formatOptions": {
+                "customColumnWidthSetting": "300px"
+              }
+            },
+            {
+              "columnId": "Accounts",
+              "formatter": 1,
+              "formatOptions": {
+                "customColumnWidthSetting": "160px"
+              }
+            },
+            {
+              "columnId": "SampleCmdLine",
+              "formatter": 1,
+              "formatOptions": {
+                "customColumnWidthSetting": "360px"
+              }
+            }
+          ]
+        }
+      },
+      "name": "q-step5",
+      "conditionalVisibility": {
+        "parameterName": "Device",
+        "comparison": "isNotEqualTo",
+        "value": ""
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "## Step 6 : Match the fingerprint and grab the closeout\n\nPick the matching pattern from the **Fingerprint match** dropdown at the top of the workbook. The closeout language for that pattern will appear below, ready to copy into the ticket."
+      },
+      "name": "h-step6"
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Following the second Tuesday Patch Tuesday cycle, devices are applying servicing stack and Windows Update packages in a staged rollout. Volume is already trending back to baseline. No transform changes are required."
+      },
+      "name": "f-patch",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "patch-tuesday"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Spike is a Microsoft Defender platform and signature update rolling through the fleet. Activity is expected and short lived. No transform changes are required."
+      },
+      "name": "f-defender",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "defender-update"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Volume increase tracks the scheduled MDE onboarding wave for the named device groups. Daily volume will plateau when the wave completes. No transform changes are required."
+      },
+      "name": "f-mde",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "mde-onboarding"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Spike tracks a third party endpoint agent (endpoint detection, asset discovery, vulnerability scanner, network access control, or remote management tool) generating high volume process and network events on the named device groups. Activity is expected for that class of tool. If the new baseline is excessive, propose a transform filter scoped to the named parent binary identified in Step 3."
+      },
+      "name": "f-thirdparty",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "third-party"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Spike aligns with a Windows feature update (major version uplift) rolling through the named device groups. Activity is concentrated on `setuphost.exe` and `setupplatform.exe` and will subside within the rollout window. No transform changes are required."
+      },
+      "name": "f-featureupdate",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "feature-update"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Spike tracks an Intune or Configuration Manager software deployment wave for the named app. Volume returns to baseline once the deployment completes. If the deployed app keeps generating events at a new baseline, propose a transform filter scoped to the named binary."
+      },
+      "name": "f-intunemecm",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "intune-mecm"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Spike matches the scheduled Microsoft Defender Antivirus scan window for the fleet. Activity is concentrated on `MsMpEng.exe` and is short lived. No transform changes are required."
+      },
+      "name": "f-avscan",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "av-scan"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Spike aligns with the scheduled backup job for the named device groups. Activity tracks volume snapshot creation by the backup agent. No transform changes are required."
+      },
+      "name": "f-backup",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "backup-job"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Spike tracks the Azure Arc agent rollout for the named server fleet. Volume will plateau once all servers are connected. No transform changes are required."
+      },
+      "name": "f-arc",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "arc-onboarding"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Spike matches a Sysmon configuration push to the named device groups. If volume remains elevated after the push completes, review the new Sysmon config for rules that generate more events than required."
+      },
+      "name": "f-sysmon",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "sysmon-reconfig"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Spike matches the rollout of a Microsoft Purview Endpoint DLP policy. Volume returns to a new baseline once the policy reaches all endpoints. If the policy is generating more events than required, scope the policy to a smaller location set."
+      },
+      "name": "f-dlp",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "dlp-rollout"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Spike matches a certificate auto enrollment wave from the Enterprise Certificate Authority. Activity is concentrated on `certutil.exe` and `certreq.exe`. Volume returns to baseline once enrollment completes."
+      },
+      "name": "f-cert",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "cert-renewal"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Spike matches a Group Policy or Intune policy refresh storm following a published policy change. Activity is short lived and returns to baseline within hours. No transform changes are required."
+      },
+      "name": "f-policy",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "policy-refresh"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Spike matches a scheduled vulnerability scan from the named scanner appliance subnet against the fleet. Activity is concentrated on process, network, and logon events and ends when the scan window closes. No transform changes are required unless the scan cadence is increasing."
+      },
+      "name": "f-vulnscan",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "vuln-scan"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Spike is a steady stream of network and discovery activity from an asset inventory or network access control tool. Volume is proportional to fleet size, not bursty. If the new baseline is excessive, scope a transform filter to traffic originating from the named scanner appliance addresses."
+      },
+      "name": "f-discoverysweep",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "discovery-sweep"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Spike tracks a scheduled action pushed across the fleet by the remote management tool. Activity is concentrated on the management tool parent process named in Step 3 and is short lived. Volume returns to baseline once the run window ends."
+      },
+      "name": "f-rmmscript",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "rmm-script"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Spike matches a browser enterprise update wave for Edge, Chrome, or Firefox across the named device groups. Activity is concentrated on update helper and setup binaries and is short lived. No transform changes are required."
+      },
+      "name": "f-browserupdate",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "browser-update"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Spike tracks Microsoft Defender for Identity sensor installation on the named domain controllers. Activity is concentrated on service install and process events on those hosts and returns to baseline once all sensors are deployed."
+      },
+      "name": "f-mdisensor",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "mdi-sensor"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Spike is duplicate telemetry generated during a planned disaster recovery or failover test where the primary and secondary sites are both shipping logs. Volume returns to baseline at the end of the test window. No transform changes are required."
+      },
+      "name": "f-drtest",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "dr-test"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Spike is caused by a Data Collection Rule edit or Azure Monitor Agent reconfiguration that added new event sources or removed a filter. Confirm against the workspace change log before any transform. If the new sources are not required, revert the rule change instead of adding a transform."
+      },
+      "name": "f-dcrchange",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "dcr-change"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "> Spike is the same data being ingested twice (overlapping Data Collection Rules, both legacy MMA and newer AMA running, or a syslog forwarder fanning out). Fix at the collection layer by removing the duplicate path. Do not add a transform filter, that will hide the real volume, not stop it."
+      },
+      "name": "f-forwarderdup",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "forwarder-dup"
+      }
+    },
+    {
+      "type": 1,
+      "content": {
+        "json": "**Custom closeout template** (fill in the blanks):\n\n> Spike in `{Table}` between `{SpikeRange:startISO}` and `{SpikeRange:endISO}` was driven by **[top ActionType from Step 1]** generated by **[top parent and child binaries from Step 3]**. The behavior is concentrated on **[device count from Step 4]** devices, with **[top device from Step 5]** as a representative sample. Pattern does not match any known fingerprint in `FINGERPRINTS.md`. Recommended action: **[transform filter / no action / open ticket with vendor]**."
+      },
+      "name": "f-unknown",
+      "conditionalVisibility": {
+        "parameterName": "Fingerprint",
+        "comparison": "isEqualTo",
+        "value": "unknown"
+      }
+    }
+  ],
+  "fallbackResourceIds": [],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

@@ -1,4 +1,4 @@
-# Threat Operations Dashboard (No MDE/MDI)
+# Threat Operations Dashboard (No EDR AV Logs)
 
 A single pane of glass Microsoft Sentinel workbook that delivers a complete threat-operations picture **without** requiring Microsoft Defender for Endpoint (MDE) or Defender for Identity (MDI) sensors. It is built for tenants that have Sentinel, Entra ID, Microsoft 365, and Microsoft Defender Threat Intelligence (MDTI) but have not yet onboarded the endpoint or identity sensors, and it lights up entirely from data those tenants already collect.
 
@@ -94,7 +94,7 @@ Where sign-ins originate worldwide. Bubble size reflects total sign-in volume pe
 
 ## Files
 
-- `Threat-Operations-Dashboard-No-MDE-MDI.json`: workbook JSON payload for manual import.
+- `Threat-Operations-Dashboard-No-EDR-AV-Logs.json`: workbook JSON payload for manual import.
 - `azuredeploy.json`: one-click ARM deployment template (Commercial plus Gov).
 - `images/`: screenshots referenced in this README.
 
@@ -104,16 +104,16 @@ Where sign-ins originate worldwide. Bubble size reflects total sign-in volume pe
 
 Use one of the deployment buttons below.
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FThreat-Operations-Dashboard-No-MDE-MDI-Workbook%2Fazuredeploy.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FThreat-Operations-Dashboard-No-EDR-AV-Logs-Workbook%2Fazuredeploy.json)
 
-[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FThreat-Operations-Dashboard-No-MDE-MDI-Workbook%2Fazuredeploy.json)
+[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FThreat-Operations-Dashboard-No-EDR-AV-Logs-Workbook%2Fazuredeploy.json)
 
 ### Deployment Inputs
 When the deployment blade opens, provide:
 - `workspaceName`: the Log Analytics workspace name (default: `SOC-Central`).
-- `workbookDisplayName` default: `Threat Operations Dashboard No MDE/MDI`.
+- `workbookDisplayName` default: `Threat Operations Dashboard No EDR AV Logs`.
 - `workbookId`: leave the `newGuid()` default to create a new workbook instance.
 
 ### Deployment Note
 - The workbook is deployed as `kind: shared` and is scoped to the selected Log Analytics workspace.
-- To import the workbook manually instead, open Sentinel **Workbooks** > **+ Add workbook**, click the pencil (Edit) icon, then **Advanced Editor**, and paste the contents of `Threat-Operations-Dashboard-No-MDE-MDI.json`.
+- To import the workbook manually instead, open Sentinel **Workbooks** > **+ Add workbook**, click the pencil (Edit) icon, then **Advanced Editor**, and paste the contents of `Threat-Operations-Dashboard-No-EDR-AV-Logs.json`.

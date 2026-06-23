@@ -143,7 +143,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "union isfuzzy=true\n  (SecurityIncident | where TimeGenerated {TimeRange} | summarize arg_max(TimeGenerated, Status) by IncidentNumber | where Status != \"Closed\" | summarize Value = count() | extend Metric = \"Open Incidents\", Sort = 1),\n  (SecurityAlert | where TimeGenerated {TimeRange} | where AlertSeverity in (\"High\",\"Critical\") | summarize Value = count() | extend Metric = \"High/Critical Alerts\", Sort = 2),\n  (BehaviorAnalytics | where TimeGenerated {TimeRange} | where InvestigationPriority > 0 | summarize Value = count() | extend Metric = \"UEBA Risk Activities\", Sort = 3),\n  (Anomalies | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = \"ML Anomalies\", Sort = 4),\n  (ThreatIntelIndicators | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = \"Threat Intel Indicators\", Sort = 5),\n  (AADRiskyUsers | where TimeGenerated {TimeRange} | summarize Value = dcount(UserPrincipalName) | extend Metric = \"Risky Users\", Sort = 6)\n| project Metric, Value, Sort\n| sort by Sort asc",
+              "query": "union isfuzzy=true\n  (SecurityIncident | where TimeGenerated {TimeRange} | summarize arg_max(TimeGenerated, Status) by IncidentNumber | where Status != \"Closed\" | summarize Value = count() | extend Metric = \"Open Incidents\", Sort = 1),\n  (SecurityAlert | where TimeGenerated {TimeRange} | where AlertSeverity in (\"High\",\"Critical\") | summarize Value = count() | extend Metric = \"High/Critical Alerts\", Sort = 2),\n  (BehaviorAnalytics | where TimeGenerated {TimeRange} | where InvestigationPriority > 0 | summarize Value = count() | extend Metric = \"UEBA Risk Activities\", Sort = 3),\n  (Anomalies | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = \"ML Anomalies\", Sort = 4),\n  (ThreatIntelIndicators | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = \"Threat Intel Indicators\", Sort = 5),\n  (SecurityAlert | where TimeGenerated {TimeRange} | where AlertName has \"TI map\" or AlertName has \"Threat Intelligence\" or ProductName has \"Threat Intelligence\" | summarize Value = count() | extend Metric = \"TI Alerts\", Sort = 6),\n  (AADRiskyUsers | where TimeGenerated {TimeRange} | summarize Value = dcount(UserPrincipalName) | extend Metric = \"Risky Users\", Sort = 7)\n| project Metric, Value, Sort\n| sort by Sort asc",
               "size": 3,
               "title": "Threat Posture at a Glance",
               "queryType": 0,
@@ -2114,7 +2114,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| summarize Events = count(), Devices = dcount(DeviceName), LastSeen = max(TimeGenerated) by DeviceVendor, DeviceProduct\n| sort by Events desc",
+              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| extend ActRaw = iif(isnotempty(DeviceAction), DeviceAction, extract(@'fw_action=\"([^\"]+)\"', 1, AdditionalExtensions))\n| extend Action = iif(isempty(ActRaw), 'unknown', tolower(ActRaw))\n| summarize Events = count(), Devices = dcount(DeviceName), Allowed = countif(Action in ('forward','allow','accept','permit')), Denied = countif(Action in ('deny','denied','drop','dropped','block','blocked')), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by DeviceVendor, DeviceProduct\n| sort by Events desc",
               "size": 0,
               "title": "CEF Source Inventory (Vendor / Product)",
               "queryType": 0,
@@ -2123,13 +2123,16 @@
                 "formatters": [
                   { "columnMatch": "Events", "formatter": 8, "formatOptions": { "palette": "blue" } },
                   { "columnMatch": "Devices", "formatter": 8, "formatOptions": { "palette": "green" } },
+                  { "columnMatch": "Allowed", "formatter": 8, "formatOptions": { "palette": "green" } },
+                  { "columnMatch": "Denied", "formatter": 8, "formatOptions": { "palette": "red" } },
+                  { "columnMatch": "FirstSeen", "formatter": 6 },
                   { "columnMatch": "LastSeen", "formatter": 6 }
                 ],
                 "rowLimit": 1000,
                 "sortBy": [ { "itemKey": "Events", "sortOrder": 2 } ]
               }
             },
-            "customWidth": "50",
+            "customWidth": "100",
             "name": "fw-inventory"
           },
           {

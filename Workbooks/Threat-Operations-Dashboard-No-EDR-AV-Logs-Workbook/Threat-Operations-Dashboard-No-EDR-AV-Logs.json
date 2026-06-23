@@ -2150,7 +2150,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| extend ActRaw = iif(isnotempty(DeviceAction), DeviceAction, extract(@'fw_action=\"([^\"]+)\"', 1, AdditionalExtensions))\n| extend Action = iif(isempty(ActRaw), 'unknown', tolower(ActRaw))\n| summarize Events = count() by bin(TimeGenerated, {TimeRange:grain}), Action\n| where TimeGenerated < bin(now(), {TimeRange:grain})\n| order by TimeGenerated asc",
+              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| extend ActRaw = iif(isnotempty(DeviceAction), DeviceAction, extract(@'fw_action=\"([^\"]+)\"', 1, AdditionalExtensions))\n| extend Action = iif(isempty(ActRaw), 'unknown', tolower(ActRaw))\n| summarize Events = count() by bin(TimeGenerated, 1h), Action\n| where TimeGenerated < bin(now(), 1h)\n| order by TimeGenerated asc",
               "size": 0,
               "title": "Firewall Traffic Over Time by Action",
               "queryType": 0,

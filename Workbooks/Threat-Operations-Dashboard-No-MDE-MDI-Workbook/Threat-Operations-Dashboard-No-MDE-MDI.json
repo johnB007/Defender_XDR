@@ -4,7 +4,7 @@
     {
       "type": 1,
       "content": {
-        "json": "## Threat Operations Dashboard No MDE/MDI\nA single pane of glass for threat detection and response across host, identity, network, and cloud. Powered by native incident correlation, UEBA (User and Entity Behavior Analytics), ML anomalies, and Microsoft Defender Threat Intelligence (MDTI). Use the **Time Range** picker and the **tabs** below to pivot between the Overview, Host, Identity, Network, Cloud, and Sign-in Geography threat views."
+        "json": "## Threat Operations Dashboard No EDR AV Logs\nA single pane of glass for threat detection and response across host, identity, network, and cloud. Powered by native incident correlation, UEBA (User and Entity Behavior Analytics), ML anomalies, and Microsoft Defender Threat Intelligence (MDTI). Use the **Time Range** picker and the **tabs** below to pivot between the Overview, Host, Identity, Network, Cloud, and Sign-in Geography threat views."
       },
       "name": "header"
     },
@@ -554,7 +554,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "union isfuzzy=true\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = dcount(DeviceName) | extend Metric = 'Firewalls Reporting (CEF/AMA)', Sort = 1),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = 'Firewall Events', Sort = 2),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | where tolower(DeviceAction) in ('deny','denied','drop','dropped','block','blocked') | summarize Value = count() | extend Metric = 'Denied / Blocked', Sort = 3),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = dcount(SourceIP) | extend Metric = 'Distinct Source IPs', Sort = 4)\n| project Metric, Value, Sort\n| sort by Sort asc",
+              "query": "union isfuzzy=true\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = dcount(DeviceName) | extend Metric = 'Firewalls Reporting (CEF/AMA)', Sort = 1),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = 'Firewall Events', Sort = 2),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | extend ActRaw = iif(isnotempty(DeviceAction), DeviceAction, extract(@'fw_action=\"([^\"]+)\"', 1, AdditionalExtensions)) | where tolower(ActRaw) in ('deny','denied','drop','dropped','block','blocked') | summarize Value = count() | extend Metric = 'Denied / Blocked', Sort = 3),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = dcount(SourceIP) | extend Metric = 'Distinct Source IPs', Sort = 4)\n| project Metric, Value, Sort\n| sort by Sort asc",
               "size": 3,
               "title": "Firewall Edge Snapshot (CommonSecurityLog)",
               "queryType": 0,
@@ -2091,7 +2091,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "union isfuzzy=true\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = 'Total Firewall Events', Sort = 1),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = dcount(DeviceName) | extend Metric = 'Firewall Devices', Sort = 2),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | where tolower(DeviceAction) in ('deny','denied','drop','dropped','block','blocked') | summarize Value = count() | extend Metric = 'Denied / Blocked', Sort = 3),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = dcount(SourceIP) | extend Metric = 'Distinct Source IPs', Sort = 4),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = dcount(DestinationIP) | extend Metric = 'Distinct Dest IPs', Sort = 5),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | where tolower(LogSeverity) in ('high','critical') or coalesce(toint(LogSeverity), 0) >= 7 | summarize Value = count() | extend Metric = 'High Severity', Sort = 6)\n| project Metric, Value, Sort\n| sort by Sort asc",
+              "query": "union isfuzzy=true\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = count() | extend Metric = 'Total Firewall Events', Sort = 1),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = dcount(DeviceName) | extend Metric = 'Firewall Devices', Sort = 2),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | extend ActRaw = iif(isnotempty(DeviceAction), DeviceAction, extract(@'fw_action=\"([^\"]+)\"', 1, AdditionalExtensions)) | where tolower(ActRaw) in ('deny','denied','drop','dropped','block','blocked') | summarize Value = count() | extend Metric = 'Denied / Blocked', Sort = 3),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = dcount(SourceIP) | extend Metric = 'Distinct Source IPs', Sort = 4),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | summarize Value = dcount(DestinationIP) | extend Metric = 'Distinct Dest IPs', Sort = 5),\n  (CommonSecurityLog | where TimeGenerated {TimeRange} | where tolower(LogSeverity) in ('high','critical') or coalesce(toint(LogSeverity), 0) >= 7 | summarize Value = count() | extend Metric = 'High Severity', Sort = 6)\n| project Metric, Value, Sort\n| sort by Sort asc",
               "size": 3,
               "title": "Firewall Threat Snapshot (CommonSecurityLog)",
               "queryType": 0,
@@ -2136,7 +2136,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| extend Action = iff(isnotempty(DeviceAction), tolower(DeviceAction), 'unknown')\n| summarize Events = count() by Action\n| sort by Events desc",
+              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| extend ActRaw = iif(isnotempty(DeviceAction), DeviceAction, extract(@'fw_action=\"([^\"]+)\"', 1, AdditionalExtensions))\n| extend Action = iif(isempty(ActRaw), 'unknown', tolower(ActRaw))\n| summarize Events = count() by Action\n| sort by Events desc",
               "size": 0,
               "title": "Firewall Action Mix (Allow vs Deny)",
               "queryType": 0,
@@ -2150,7 +2150,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| summarize Events = count() by bin(TimeGenerated, {TimeRange:grain}), DeviceAction\n| where TimeGenerated < bin(now(), {TimeRange:grain})\n| order by TimeGenerated asc",
+              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| extend ActRaw = iif(isnotempty(DeviceAction), DeviceAction, extract(@'fw_action=\"([^\"]+)\"', 1, AdditionalExtensions))\n| extend Action = iif(isempty(ActRaw), 'unknown', tolower(ActRaw))\n| summarize Events = count() by bin(TimeGenerated, {TimeRange:grain}), Action\n| where TimeGenerated < bin(now(), {TimeRange:grain})\n| order by TimeGenerated asc",
               "size": 0,
               "title": "Firewall Traffic Over Time by Action",
               "queryType": 0,
@@ -2164,7 +2164,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| where tolower(DeviceAction) in ('deny','denied','drop','dropped','block','blocked')\n| summarize Denied = count(), DestPorts = dcount(DestinationPort), Dests = dcount(DestinationIP), Ports = make_set(DestinationPort, 10), LastSeen = max(TimeGenerated) by SourceIP\n| top 25 by Denied desc",
+              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| extend ActRaw = iif(isnotempty(DeviceAction), DeviceAction, extract(@'fw_action=\"([^\"]+)\"', 1, AdditionalExtensions))\n| where tolower(ActRaw) in ('deny','denied','drop','dropped','block','blocked')\n| summarize Denied = count(), DestPorts = dcount(DestinationPort), Dests = dcount(DestinationIP), Ports = make_set(DestinationPort, 10), LastSeen = max(TimeGenerated) by SourceIP\n| top 25 by Denied desc",
               "size": 0,
               "title": "Top Denied Source IPs (Edge Recon / Scanning)",
               "queryType": 0,
@@ -2188,7 +2188,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| where isnotempty(DestinationPort)\n| summarize Events = count(), Sources = dcount(SourceIP), Denied = countif(tolower(DeviceAction) in ('deny','denied','drop','dropped','block','blocked')) by DestinationPort, Protocol\n| top 25 by Events desc",
+              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| where isnotempty(DestinationPort)\n| extend ActRaw = iif(isnotempty(DeviceAction), DeviceAction, extract(@'fw_action=\"([^\"]+)\"', 1, AdditionalExtensions))\n| summarize Events = count(), Sources = dcount(SourceIP), Denied = countif(tolower(ActRaw) in ('deny','denied','drop','dropped','block','blocked')) by DestinationPort, Protocol\n| top 25 by Events desc",
               "size": 0,
               "title": "Top Destination Ports & Protocols",
               "queryType": 0,
@@ -2211,7 +2211,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| extend SB = tolong(SentBytes), RB = tolong(ReceivedBytes)\n| extend AppName = extract(@\"appName='([^']+)'\", 1, AdditionalExtensions)\n| summarize SentBytes = sum(SB), ReceivedBytes = sum(RB), Connections = count(), DistinctDestPorts = dcount(DestinationPort), DestPorts = make_set(DestinationPort, 10), Protocols = make_set(Protocol, 5), Apps = make_set(AppName, 5), Actions = make_set(DeviceAction, 5), Devices = make_set(DeviceName, 4), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by SourceIP, DestinationIP\n| extend TotalBytes = SentBytes + ReceivedBytes\n| extend DestScope = iff(ipv4_is_private(DestinationIP), \"Internal\", \"External\")\n| extend OutboundRatio = round(todouble(SentBytes) / todouble(TotalBytes + 1), 2)\n| project SourceIP, DestinationIP, DestScope, SentBytes, ReceivedBytes, TotalBytes, OutboundRatio, Connections, DistinctDestPorts, DestPorts, Protocols, Apps, Actions, Devices, FirstSeen, LastSeen\n| top 25 by TotalBytes desc",
+              "query": "CommonSecurityLog\n| where TimeGenerated {TimeRange}\n| extend SB = tolong(SentBytes), RB = tolong(ReceivedBytes)\n| extend AppName = extract(@\"appName='([^']+)'\", 1, AdditionalExtensions)\n| summarize SentBytes = sum(SB), ReceivedBytes = sum(RB), Connections = count(), DistinctDestPorts = dcount(DestinationPort), DestPorts = make_set(DestinationPort, 10), Protocols = make_set(Protocol, 5), Apps = make_set(AppName, 5), Actions = make_set(DeviceAction, 5), Devices = make_set(DeviceName, 4), FirstSeen = min(TimeGenerated), LastSeen = max(TimeGenerated) by SourceIP, DestinationIP\n| extend TotalBytes = SentBytes + ReceivedBytes\n| extend SrcScope = iff(ipv4_is_private(SourceIP), \"Internal\", \"External\")\n| extend DestScope = iff(ipv4_is_private(DestinationIP), \"Internal\", \"External\")\n| extend Direction = strcat(SrcScope, \" to \", DestScope)\n| extend OutboundRatio = round(todouble(SentBytes) / todouble(TotalBytes + 1), 2)\n| project SourceIP, SrcScope, DestinationIP, DestScope, Direction, SentBytes, ReceivedBytes, TotalBytes, OutboundRatio, Connections, DistinctDestPorts, DestPorts, Protocols, Apps, Actions, Devices, FirstSeen, LastSeen\n| top 25 by TotalBytes desc",
               "size": 0,
               "title": "Top Talkers by Bytes (Possible Exfiltration)",
               "queryType": 0,
@@ -2219,6 +2219,7 @@
               "gridSettings": {
                 "formatters": [
                   { "columnMatch": "DestScope", "formatter": 18, "formatOptions": { "thresholdsOptions": "icons", "thresholdsGrid": [ { "operator": "==", "thresholdValue": "External", "representation": "4", "text": "{0}{1}" }, { "operator": "Default", "thresholdValue": null, "representation": "success", "text": "{0}{1}" } ] } },
+                  { "columnMatch": "Direction", "formatter": 18, "formatOptions": { "thresholdsOptions": "icons", "thresholdsGrid": [ { "operator": "==", "thresholdValue": "Internal to External", "representation": "4", "text": "{0}{1}" }, { "operator": "Default", "thresholdValue": null, "representation": "success", "text": "{0}{1}" } ] } },
                   { "columnMatch": "SentBytes", "formatter": 8, "formatOptions": { "palette": "red" }, "numberFormat": { "unit": 2, "options": { "style": "decimal" } } },
                   { "columnMatch": "ReceivedBytes", "formatter": 0, "numberFormat": { "unit": 2, "options": { "style": "decimal" } } },
                   { "columnMatch": "TotalBytes", "formatter": 8, "formatOptions": { "palette": "orange" }, "numberFormat": { "unit": 2, "options": { "style": "decimal" } } },

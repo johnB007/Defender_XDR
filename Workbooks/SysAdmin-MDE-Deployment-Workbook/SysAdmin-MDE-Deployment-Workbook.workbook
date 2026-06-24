@@ -1,4 +1,4 @@
-﻿{
+{
   "version": "Notebook/1.0",
   "items": [
     {
@@ -1418,7 +1418,7 @@
     }
   ],
   "fallbackResourceIds": [
-    "/subscriptions/882d9ca8-f61e-4cc8-a081-dc01aab06b8a/resourcegroups/soc-central/providers/microsoft.operationalinsights/workspaces/soc-central"
+    "/subscriptions/00000000-0000-0000-0000-000000000000/resourcegroups/soc-central/providers/microsoft.operationalinsights/workspaces/soc-central"
   ],
   "fromTemplateId": "sentinel-UserWorkbook",
   "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"

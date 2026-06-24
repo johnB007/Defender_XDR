@@ -487,7 +487,7 @@ SOC-Central lab values as a reference.
     "location":       { "type": "string", "defaultValue": "eastus" },
     "workspaceResourceId": {
       "type": "string",
-      "defaultValue": "/subscriptions/882d9ca8-f61e-4cc8-a081-dc01aab06b8a/resourceGroups/SOC-Central/providers/Microsoft.OperationalInsights/workspaces/<your-workspace-name>"
+      "defaultValue": "/subscriptions/<subscription-id>/resourceGroups/SOC-Central/providers/Microsoft.OperationalInsights/workspaces/<your-workspace-name>"
     }
   },
   "resources": [

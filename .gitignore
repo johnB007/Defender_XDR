@@ -9,3 +9,7 @@ _*
 inspect*.ps1
 *.tmp
 
+# Local-only workbook helper scripts (never committed)
+fix_export.py
+Workbooks/**/fix_export.py
+

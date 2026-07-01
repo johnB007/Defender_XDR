@@ -2,6 +2,9 @@
 
 A Microsoft Sentinel starter shell workbook for anyone who needs to begin a custom investigation without writing a workbook from scratch. It has two tabs, six ready-to-replace KQL query tiles, six matching time series charts with time brushing, and built-in instructions on every tab so the recipient knows exactly what to change and how.
 
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FTemplate-Workbook%2Fazuredeploy.json)
+[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FTemplate-Workbook%2Fazuredeploy.json)
+
 ---
 
 ## Who this is for

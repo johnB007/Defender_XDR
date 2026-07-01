@@ -1,0 +1,49 @@
+﻿{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workspaceName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the Log Analytics workspace where the workbook will be deployed"
+      }
+    },
+    "resourceGroupName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the resource group containing the Log Analytics workspace"
+      }
+    },
+    "workbookDisplayName": {
+      "type": "string",
+      "defaultValue": "Template Workbook",
+      "metadata": {
+        "description": "Display name for the workbook"
+      }
+    }
+  },
+  "variables": {
+    "workbookId": "[newGuid()]"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Insights/workbooks",
+      "apiVersion": "2021-08-01",
+      "name": "[variables('workbookId')]",
+      "location": "[resourceGroup().location]",
+      "kind": "shared",
+      "properties": {
+        "displayName": "[parameters('workbookDisplayName')]",
+        "serializedData": "{\"version\":\"Notebook/1.0\",\"items\":[{\"type\":1,\"content\":{\"json\":\"# Template Workbook\\r\\n\\r\\n---\\r\\n\\r\\n## What is this?\\r\\nThis is a **starter shell** workbook for Microsoft Sentinel. It has two tabs:\\r\\n\\r\\n- **KQL Queries** - Six query tiles arranged two across per row (3 rows x 2 columns = 6 total). Each tile runs a KQL query and shows results as a table.\\r\\n- **Visuals** - The same layout but rendered as time series charts with **time brushing**. Click and drag on any chart to zoom into a spike. Every chart updates together.\\r\\n\\r\\n---\\r\\n\\r\\n## How to customize this workbook\\r\\n\\r\\n1. **Set the time range** using the Time Range pill at the top. Default is Last 7 days.\\r\\n2. **Pick a user** from the Select User dropdown. It is populated from Entra sign-in logs. Leave it blank to see all users.\\r\\n3. **Replace any example query** by clicking the pencil (edit) icon on a tile. Paste your KQL. Click Done Editing to save.\\r\\n4. **The `{SelectedUser}` token** inside each query is replaced automatically at run time with the user you selected. If no user is selected the condition is skipped and all users are returned.\\r\\n5. **Rename a tile** by clicking the pencil icon and changing the Title field at the top of the edit panel.\\r\\n6. **Add more tiles** by clicking Add query at the bottom of a group while in edit mode.\\r\\n7. **Change layout width** by clicking the pencil on a tile and adjusting the Custom width percentage (50 = two across, 33 = three across, 100 = full width).\\r\\n8. **Save the workbook** using the Save button in the top toolbar. Give it a name and pick a resource group.\\r\\n\\r\\n---\\r\\n\\r\\n> **Tip for the Visuals tab:** There are two time pills at the top. **Time Range** controls the six charts (they always show the full picture). **Results Window** controls the six result grids below each chart. When you drag to select a spike on any chart, Results Window updates to that narrow window and the grids re-run. To reset the grids back to the full view, click the Results Window pill and pick your original window (e.g. Last 7 days).\",\"style\":\"info\"},\"name\":\"banner-instructions\"}]}",
+        "sourceId": "[concat('/subscriptions/', subscription().subscriptionId, '/resourcegroups/', parameters('resourceGroupName'), '/providers/microsoft.operationalinsights/workspaces/', parameters('workspaceName'))]",
+        "etag": "*"
+      }
+    }
+  ],
+  "outputs": {
+    "workbookId": {
+      "type": "string",
+      "value": "[variables('workbookId')]"
+    }
+  }
+}

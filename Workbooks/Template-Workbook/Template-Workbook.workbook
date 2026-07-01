@@ -1,0 +1,434 @@
+﻿{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# Template Workbook\r\n\r\n---\r\n\r\n## What is this?\r\nThis is a **starter shell** workbook for Microsoft Sentinel. It has two tabs:\r\n\r\n- **KQL Queries** - Six query tiles arranged two across per row (3 rows x 2 columns = 6 total). Each tile runs a KQL query and shows results as a table.\r\n- **Visuals** - The same layout but rendered as time series charts with **time brushing**. Click and drag on any chart to zoom into a spike. Every chart updates together.\r\n\r\n---\r\n\r\n## How to customize this workbook\r\n\r\n1. **Set the time range** using the Time Range pill at the top. Default is Last 7 days.\r\n2. **Pick a user** from the Select User dropdown. It is populated from Entra sign-in logs. Leave it blank to see all users.\r\n3. **Replace any example query** by clicking the pencil (edit) icon on a tile. Paste your KQL. Click Done Editing to save.\r\n4. **The `{SelectedUser}` token** inside each query is replaced automatically at run time with the user you selected. If no user is selected the condition is skipped and all users are returned.\r\n5. **Rename a tile** by clicking the pencil icon and changing the Title field at the top of the edit panel.\r\n6. **Add more tiles** by clicking Add query at the bottom of a group while in edit mode.\r\n7. **Change layout width** by clicking the pencil on a tile and adjusting the Custom width percentage (50 = two across, 33 = three across, 100 = full width).\r\n8. **Save the workbook** using the Save button in the top toolbar. Give it a name and pick a resource group.\r\n\r\n---\r\n\r\n> **Tip for the Visuals tab:** There are two time pills at the top. **Time Range** controls the six charts (they always show the full picture). **Results Window** controls the six result grids below each chart. When you drag to select a spike on any chart, Results Window updates to that narrow window and the grids re-run. To reset the grids back to the full view, click the Results Window pill and pick your original window (e.g. Last 7 days).",
+        "style": "info"
+      },
+      "name": "banner-instructions"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "parameters": [
+          {
+            "id": "a1b2c3d4-0001-4001-8001-000000000001",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "label": "Time Range",
+            "type": 4,
+            "isRequired": true,
+            "isGlobal": true,
+            "typeSettings": {
+              "selectableValues": [
+                { "durationMs": 3600000 },
+                { "durationMs": 14400000 },
+                { "durationMs": 43200000 },
+                { "durationMs": 86400000 },
+                { "durationMs": 259200000 },
+                { "durationMs": 604800000 },
+                { "durationMs": 2592000000 }
+              ],
+              "allowCustom": true
+            },
+            "value": { "durationMs": 604800000 }
+          },
+          {
+            "id": "a1b2c3d4-0002-4001-8001-000000000002",
+            "version": "KqlParameterItem/1.0",
+            "name": "SelectedUser",
+            "label": "Select User",
+            "type": 2,
+            "isRequired": false,
+            "isGlobal": true,
+            "multiSelect": false,
+            "query": "SigninLogs\r\n| summarize by UserPrincipalName\r\n| order by UserPrincipalName asc\r\n| project Value=UserPrincipalName, Label=UserPrincipalName",
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "timeContextFromParameter": "TimeRange",
+            "queryType": 0,
+            "resourceType": "microsoft.operationalinsights/workspaces",
+            "defaultValue": ""
+          },
+          {
+            "id": "a1b2c3d4-0003-4001-8001-000000000003",
+            "version": "KqlParameterItem/1.0",
+            "name": "Tab",
+            "type": 1,
+            "isRequired": false,
+            "isHiddenWhenLocked": true,
+            "defaultValue": "Queries"
+          },
+          {
+            "id": "a1b2c3d4-0004-4001-8001-000000000004",
+            "version": "KqlParameterItem/1.0",
+            "name": "BrushTime",
+            "label": "Results Window",
+            "type": 4,
+            "isRequired": true,
+            "isGlobal": true,
+            "typeSettings": {
+              "selectableValues": [
+                { "durationMs": 3600000 },
+                { "durationMs": 14400000 },
+                { "durationMs": 43200000 },
+                { "durationMs": 86400000 },
+                { "durationMs": 259200000 },
+                { "durationMs": 604800000 },
+                { "durationMs": 2592000000 }
+              ],
+              "allowCustom": true
+            },
+            "value": { "durationMs": 604800000 }
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "global-params"
+    },
+    {
+      "type": 11,
+      "content": {
+        "version": "LinkItem/1.0",
+        "style": "tabs",
+        "links": [
+          {
+            "id": "tab-link-queries",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "KQL Queries",
+            "subTarget": "Queries",
+            "style": "link"
+          },
+          {
+            "id": "tab-link-visuals",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "Visuals",
+            "subTarget": "Visuals",
+            "style": "link"
+          }
+        ]
+      },
+      "name": "tab-nav"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "## KQL Queries\r\n\r\nSix query tiles are arranged two across per row (three rows of two = six total). Every tile uses the **Time Range** and **Select User** parameters set at the top.\r\n\r\n**To replace an example query with your own:**\r\n1. Click the **pencil icon** in the top-right corner of any tile.\r\n2. Delete the example KQL and paste yours.\r\n3. Keep `{SelectedUser}` anywhere you want the user filter applied - the workbook replaces that token at run time.\r\n4. Click **Done Editing** and then **Save** in the top toolbar.\r\n\r\n**To change column formatting:** After a query runs, click the **Column Settings** gear at the bottom of the grid.",
+              "style": "info"
+            },
+            "name": "tab1-instructions"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// KQL 1 - Sign-in summary by application\r\n// INSTRUCTIONS: Replace this example query with your own KQL.\r\n// The {SelectedUser} token is substituted with the user picked in the dropdown at run time.\r\n// If no user is selected the condition is skipped and all users are returned.\r\nSigninLogs\r\n| where \"{SelectedUser}\" == \"\" or UserPrincipalName =~ \"{SelectedUser}\"\r\n| summarize SignIns=count(), FailedSignIns=countif(ResultType != \"0\") by AppDisplayName\r\n| order by SignIns desc",
+              "size": 0,
+              "title": "KQL 1 - Sign-In Summary by Application",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "customWidth": "50",
+            "name": "kql-1"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// KQL 2 - Failed sign-in errors\r\n// INSTRUCTIONS: Replace this example query with your own KQL.\r\n// {SelectedUser} is substituted with the selected user at run time.\r\nSigninLogs\r\n| where \"{SelectedUser}\" == \"\" or UserPrincipalName =~ \"{SelectedUser}\"\r\n| where ResultType != \"0\"\r\n| summarize FailureCount=count() by ResultDescription, ResultType\r\n| order by FailureCount desc",
+              "size": 0,
+              "title": "KQL 2 - Failed Sign-In Errors",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "customWidth": "50",
+            "name": "kql-2"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// KQL 3 - Sign-in locations\r\n// INSTRUCTIONS: Replace this example query with your own KQL.\r\n// {SelectedUser} is substituted with the selected user at run time.\r\nSigninLogs\r\n| where \"{SelectedUser}\" == \"\" or UserPrincipalName =~ \"{SelectedUser}\"\r\n| summarize SignIns=count() by Location, CountryOrRegion=tostring(LocationDetails.countryOrRegion), City=tostring(LocationDetails.city)\r\n| order by SignIns desc",
+              "size": 0,
+              "title": "KQL 3 - Sign-In Locations",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "customWidth": "50",
+            "name": "kql-3"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// KQL 4 - Audit log operations\r\n// INSTRUCTIONS: Replace this example query with your own KQL.\r\n// {SelectedUser} is substituted with the selected user at run time.\r\nAuditLogs\r\n| where \"{SelectedUser}\" == \"\" or tostring(InitiatedBy.user.userPrincipalName) =~ \"{SelectedUser}\"\r\n| summarize Count=count() by OperationName, Result\r\n| order by Count desc",
+              "size": 0,
+              "title": "KQL 4 - Audit Log Operations",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "customWidth": "50",
+            "name": "kql-4"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// KQL 5 - Audit log target resources\r\n// INSTRUCTIONS: Replace this example query with your own KQL.\r\n// {SelectedUser} is substituted with the selected user at run time.\r\nAuditLogs\r\n| where \"{SelectedUser}\" == \"\" or tostring(InitiatedBy.user.userPrincipalName) =~ \"{SelectedUser}\"\r\n| mv-expand TargetResources\r\n| summarize Count=count() by TargetType=tostring(TargetResources.type), ResourceName=tostring(TargetResources.displayName)\r\n| order by Count desc",
+              "size": 0,
+              "title": "KQL 5 - Audit Log Target Resources",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "customWidth": "50",
+            "name": "kql-5"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// KQL 6 - Sign-in device and client details\r\n// INSTRUCTIONS: Replace this example query with your own KQL.\r\n// {SelectedUser} is substituted with the selected user at run time.\r\nSigninLogs\r\n| where \"{SelectedUser}\" == \"\" or UserPrincipalName =~ \"{SelectedUser}\"\r\n| summarize Count=count() by ClientAppUsed, Browser=tostring(DeviceDetail.browser), OS=tostring(DeviceDetail.operatingSystem)\r\n| order by Count desc",
+              "size": 0,
+              "title": "KQL 6 - Sign-In Device and Client Details",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "customWidth": "50",
+            "name": "kql-6"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "Queries"
+      },
+      "name": "group-queries"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "## Visuals\r\n\r\nThis tab has six time series charts and six result grids. There are **two time pickers in the pill strip at the top**.\r\n\r\n| Pill | Controls | How it changes |\r\n|---|---|---|\r\n| **Time Range** | All 6 charts | You set it manually |\r\n| **Results Window** | All 6 result grids | Updates automatically when you drag on any chart, or set manually |\r\n\r\n**How to drill into a spike:**\r\n1. Look for a spike on any chart.\r\n2. Click and drag across that spike on the chart. A blue selection appears.\r\n3. The **Results Window** pill updates to that narrow time window. The charts stay at the full Time Range.\r\n4. The result grids below immediately re-run showing only rows from that narrow window.\r\n5. To reset: click the **Results Window** pill and pick your original window (e.g. Last 7 days).\r\n\r\n**Layout:** Row 1 = Charts 1 and 2. Row 2 = their result grids. Row 3 = Charts 3 and 4. Row 4 = their grids. Row 5 = Charts 5 and 6. Row 6 = their grids.\r\n\r\n**To customize:** Click the pencil icon on any tile to change the query, chart type, or title.",
+              "style": "info"
+            },
+            "name": "tab2-instructions"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// Visual 1 - Sign-in volume over time\r\n// Brush on this chart to zoom in on a spike. The Time Range updates and the grid below re-runs.\r\nSigninLogs\r\n| where \"{SelectedUser}\" == \"\" or UserPrincipalName =~ \"{SelectedUser}\"\r\n| summarize SignIns=count() by bin(TimeGenerated, 1h)\r\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Visual 1 - Sign-In Volume Over Time",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "timeBrushParameterName": "BrushTime",
+              "visualization": "timechart"
+            },
+            "customWidth": "50",
+            "name": "visual-1"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// Visual 2 - Failed sign-in trend over time\r\n// Brush on this chart to zoom in on a spike. The Time Range updates and the grid below re-runs.\r\nSigninLogs\r\n| where \"{SelectedUser}\" == \"\" or UserPrincipalName =~ \"{SelectedUser}\"\r\n| where ResultType != \"0\"\r\n| summarize FailedSignIns=count() by bin(TimeGenerated, 1h)\r\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Visual 2 - Failed Sign-In Trend",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "timeBrushParameterName": "BrushTime",
+              "visualization": "timechart"
+            },
+            "customWidth": "50",
+            "name": "visual-2"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// Results for Visual 1 - Sign-in detail for the brushed window\r\n// This grid uses the same Time Range as the chart above. Brush the chart to filter these results.\r\nSigninLogs\r\n| where \"{SelectedUser}\" == \"\" or UserPrincipalName =~ \"{SelectedUser}\"\r\n| summarize SignIns=count(), FailedSignIns=countif(ResultType != \"0\") by AppDisplayName\r\n| order by SignIns desc",
+              "size": 0,
+              "title": "Results - KQL 1 (Brushed Window)",
+              "timeContextFromParameter": "BrushTime",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "customWidth": "50",
+            "name": "visual-grid-1"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// Results for Visual 2 - Failed sign-ins for the brushed window\r\n// This grid uses the same Time Range as the chart above. Brush the chart to filter these results.\r\nSigninLogs\r\n| where \"{SelectedUser}\" == \"\" or UserPrincipalName =~ \"{SelectedUser}\"\r\n| where ResultType != \"0\"\r\n| summarize FailureCount=count() by ResultDescription, ResultType\r\n| order by FailureCount desc",
+              "size": 0,
+              "title": "Results - KQL 2 (Brushed Window)",
+              "timeContextFromParameter": "BrushTime",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "customWidth": "50",
+            "name": "visual-grid-2"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// Visual 3 - Sign-ins by location over time\r\n// Brush on this chart to zoom in on a spike. The Time Range updates and the grid below re-runs.\r\nSigninLogs\r\n| where \"{SelectedUser}\" == \"\" or UserPrincipalName =~ \"{SelectedUser}\"\r\n| summarize Count=count() by bin(TimeGenerated, 1h), Location\r\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Visual 3 - Sign-Ins by Location Over Time",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "timeBrushParameterName": "BrushTime",
+              "visualization": "timechart"
+            },
+            "customWidth": "50",
+            "name": "visual-3"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// Visual 4 - Audit log activity over time\r\n// Brush on this chart to zoom in on a spike. The Time Range updates and the grid below re-runs.\r\nAuditLogs\r\n| where \"{SelectedUser}\" == \"\" or tostring(InitiatedBy.user.userPrincipalName) =~ \"{SelectedUser}\"\r\n| summarize Count=count() by bin(TimeGenerated, 1h)\r\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Visual 4 - Audit Log Activity Over Time",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "timeBrushParameterName": "BrushTime",
+              "visualization": "timechart"
+            },
+            "customWidth": "50",
+            "name": "visual-4"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// Results for Visual 3 - Sign-in locations for the brushed window\r\n// This grid uses the same Time Range as the chart above. Brush the chart to filter these results.\r\nSigninLogs\r\n| where \"{SelectedUser}\" == \"\" or UserPrincipalName =~ \"{SelectedUser}\"\r\n| summarize SignIns=count() by Location, CountryOrRegion=tostring(LocationDetails.countryOrRegion), City=tostring(LocationDetails.city)\r\n| order by SignIns desc",
+              "size": 0,
+              "title": "Results - KQL 3 (Brushed Window)",
+              "timeContextFromParameter": "BrushTime",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "customWidth": "50",
+            "name": "visual-grid-3"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// Results for Visual 4 - Audit operations for the brushed window\r\n// This grid uses the same Time Range as the chart above. Brush the chart to filter these results.\r\nAuditLogs\r\n| where \"{SelectedUser}\" == \"\" or tostring(InitiatedBy.user.userPrincipalName) =~ \"{SelectedUser}\"\r\n| summarize Count=count() by OperationName, Result\r\n| order by Count desc",
+              "size": 0,
+              "title": "Results - KQL 4 (Brushed Window)",
+              "timeContextFromParameter": "BrushTime",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "customWidth": "50",
+            "name": "visual-grid-4"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// Visual 5 - Audit operations over time by operation name\r\n// Brush on this chart to zoom in on a spike. The Time Range updates and the grid below re-runs.\r\nAuditLogs\r\n| where \"{SelectedUser}\" == \"\" or tostring(InitiatedBy.user.userPrincipalName) =~ \"{SelectedUser}\"\r\n| summarize Count=count() by bin(TimeGenerated, 1h), OperationName\r\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Visual 5 - Audit Operations Over Time",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "timeBrushParameterName": "BrushTime",
+              "visualization": "timechart"
+            },
+            "customWidth": "50",
+            "name": "visual-5"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// Visual 6 - Sign-ins by application over time\r\n// Brush on this chart to zoom in on a spike. The Time Range updates and the grid below re-runs.\r\nSigninLogs\r\n| where \"{SelectedUser}\" == \"\" or UserPrincipalName =~ \"{SelectedUser}\"\r\n| summarize Count=count() by bin(TimeGenerated, 1h), AppDisplayName\r\n| order by TimeGenerated asc",
+              "size": 0,
+              "title": "Visual 6 - Sign-Ins by Application Over Time",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "timeBrushParameterName": "BrushTime",
+              "visualization": "timechart"
+            },
+            "customWidth": "50",
+            "name": "visual-6"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// Results for Visual 5 - Audit target resources for the brushed window\r\n// This grid uses the same Time Range as the chart above. Brush the chart to filter these results.\r\nAuditLogs\r\n| where \"{SelectedUser}\" == \"\" or tostring(InitiatedBy.user.userPrincipalName) =~ \"{SelectedUser}\"\r\n| mv-expand TargetResources\r\n| summarize Count=count() by TargetType=tostring(TargetResources.type), ResourceName=tostring(TargetResources.displayName)\r\n| order by Count desc",
+              "size": 0,
+              "title": "Results - KQL 5 (Brushed Window)",
+              "timeContextFromParameter": "BrushTime",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "customWidth": "50",
+            "name": "visual-grid-5"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "// Results for Visual 6 - Sign-in device and client details for the brushed window\r\n// This grid uses the same Time Range as the chart above. Brush the chart to filter these results.\r\nSigninLogs\r\n| where \"{SelectedUser}\" == \"\" or UserPrincipalName =~ \"{SelectedUser}\"\r\n| summarize Count=count() by ClientAppUsed, Browser=tostring(DeviceDetail.browser), OS=tostring(DeviceDetail.operatingSystem)\r\n| order by Count desc",
+              "size": 0,
+              "title": "Results - KQL 6 (Brushed Window)",
+              "timeContextFromParameter": "BrushTime",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "customWidth": "50",
+            "name": "visual-grid-6"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "Visuals"
+      },
+      "name": "group-visuals"
+    }
+  ],
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

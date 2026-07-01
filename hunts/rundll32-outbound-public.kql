@@ -1,0 +1,13 @@
+// Title: Rundll32 Outbound Connections to Public IPs
+// Author: John Barbare
+// Tables: DeviceNetworkEvents
+// MITRE: T1218.011 Signed Binary Proxy Execution: Rundll32
+// Time window: Last 24 hours
+// Notes: Hunt for rundll32.exe making external network connections to public IP addresses, which may indicate malicious DLL execution or data exfiltration attempts.
+
+DeviceNetworkEvents
+| where Timestamp > ago(1d)
+| where InitiatingProcessFileName =~ 'rundll32.exe'
+| where RemoteIPType == 'Public'
+| project Timestamp, DeviceName, InitiatingProcessAccountName, InitiatingProcessCommandLine, RemoteIP, RemotePort, RemoteUrl
+| order by Timestamp desc

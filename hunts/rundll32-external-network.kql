@@ -1,0 +1,9 @@
+// Hunt: rundll32.exe making external (public) network connections
+// Source: DeviceNetworkEvents (Defender XDR)
+// Validated against SOC-Central (workspace 2dde2f51-1428-4f3f-afcb-9aa3e150796e)
+DeviceNetworkEvents
+| where Timestamp > ago(7d)
+| where InitiatingProcessFileName =~ "rundll32.exe"
+| where RemoteIPType == "Public"
+| project Timestamp, DeviceName, RemoteIP, RemotePort, RemoteUrl, InitiatingProcessFolderPath, InitiatingProcessCommandLine
+| order by Timestamp desc

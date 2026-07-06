@@ -1,0 +1,77 @@
+// Suspicious .lnk File Creation and Modification Hunt
+// Detects .lnk files created in risky locations or by unusual processes
+// Optimized for 30 days of data with early filtering and aggregation
+//
+// Detection Focus:
+// 1. .lnk files in Startup, Desktop, Quick Access, Recent, and Links folders
+// 2. .lnk files created/modified by unusual processes (not explorer.exe, shell.exe, etc.)
+// 3. Bulk or rapid .lnk creation patterns (5+ files per hour)
+// 4. Suspicion scoring based on location risk and process anomaly
+//
+// Performance Optimizations:
+// - Early time filter (30 days)
+// - File extension filter applied immediately
+// - ActionType filtering (FileCreated, FileModified)
+// - Hourly binning for aggregation
+// - Projected essential columns only
+
+DeviceFileEvents
+| where Timestamp > ago(30d)
+| where FileName endswith ".lnk"
+| where ActionType in~ ("FileCreated", "FileModified")
+// Flag risky locations where persistence mechanisms often hide
+| extend RiskyLocation = case(
+    FolderPath has_any (
+        "\\AppData\\Roaming\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
+        "\\ProgramData\\Microsoft\\Windows\\Start Menu\\Programs\\Startup",
+        "\\Desktop\\",
+        "\\AppData\\Roaming\\Microsoft\\Windows\\Recent\\",
+        "\\Quick Access\\",
+        "\\Links\\"
+    ), 1,
+    0
+)
+// Flag unusual processes creating .lnk files
+| extend UnusualProcess = case(
+    InitiatingProcessFileName !in~ (
+        "explorer.exe",
+        "shell.exe", 
+        "cmd.exe",
+        "powershell.exe",
+        "svchost.exe",
+        "msiexec.exe"
+    ), 1,
+    0
+)
+// Filter to only risky scenarios
+| where RiskyLocation == 1 or UnusualProcess == 1
+// Calculate base suspicion score
+| extend SuspicionScore = RiskyLocation + UnusualProcess
+// Aggregate by device, process, and hour to detect bulk creation
+| summarize 
+    FileCount = count(),
+    FirstSeen = min(Timestamp),
+    LastSeen = max(Timestamp),
+    UniqueFolders = dcount(FolderPath),
+    Files = make_set(FileName, 10)
+    by DeviceName, DeviceId, InitiatingProcessFileName, InitiatingProcessId, bin(Timestamp, 1h)
+// Flag bulk creation patterns (5+ files in an hour)
+| extend BulkCreation = iff(FileCount >= 5, 1, 0)
+// Calculate final suspicion score
+| extend FinalScore = FileCount + BulkCreation
+// Filter to high confidence detections
+| where FinalScore >= 2
+// Project essential columns for investigation
+| project 
+    Timestamp,
+    DeviceName,
+    DeviceId,
+    InitiatingProcessFileName,
+    InitiatingProcessId,
+    FileCount,
+    UniqueFolders,
+    FirstSeen,
+    LastSeen,
+    Files,
+    FinalScore
+| order by FinalScore desc, Timestamp desc

@@ -1,0 +1,37 @@
+// AV Status and EDR Running Mode - Windows, macOS, Linux - All Devices
+// Tables: DeviceTvmSecureConfigurationAssessment, DeviceTvmInfoGathering, DeviceInfo
+// Returns: Device inventory with AV versions, running mode, and onboarding status
+
+let AvModeMap =
+    DeviceTvmInfoGathering
+    | extend AvModeRaw = tostring(AdditionalFields.AvMode)
+    | where isnotnull(AvModeRaw)
+    | extend AVMode = case(
+        AvModeRaw == "0", "Active",
+        AvModeRaw == "1", "Passive",
+        AvModeRaw == "2", "Disabled",
+        AvModeRaw == "4", "EDR Block Mode",
+        strcat("Unknown (", AvModeRaw, ")")
+      )
+    | project DeviceId, AVMode;
+let AvDetails =
+    DeviceTvmSecureConfigurationAssessment
+    | where isnotnull(Context)
+    | where (ConfigurationId == "scid-2011" and OSPlatform startswith "Windows")
+        or  (ConfigurationId == "scid-5095" and OSPlatform == "macOS")
+        or  (ConfigurationId == "scid-6095" and OSPlatform == "Linux")
+    | extend avdata            = parsejson(Context)
+    | extend AVSigVersion        = tostring(avdata[0][0])
+    | extend AVEngineVersion     = tostring(avdata[0][1])
+    | extend AVSigLastUpdateTime = tostring(avdata[0][2])
+    | extend AVProductVersion    = tostring(avdata[0][3])
+    | project DeviceId, AVSigVersion, AVEngineVersion, AVSigLastUpdateTime, AVProductVersion, IsCompliant, IsApplicable;
+DeviceInfo
+| where isnotempty(DeviceName)
+| summarize arg_max(Timestamp, *) by DeviceId
+| where OSPlatform startswith "Windows" or OSPlatform == "macOS" or OSPlatform == "Linux"
+| project DeviceId, DeviceName, OSPlatform, OnboardingStatus
+| join kind=leftouter AvDetails on DeviceId
+| join kind=leftouter AvModeMap on DeviceId
+| project DeviceId, DeviceName, OSPlatform, OnboardingStatus, AVSigVersion, AVEngineVersion, AVSigLastUpdateTime, AVProductVersion, AVMode, IsCompliant, IsApplicable
+| order by OSPlatform asc, DeviceName asc

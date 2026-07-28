@@ -1034,7 +1034,7 @@
             "name": "threat-grid",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AlertsData = parse_json(AdditionalData)\n| extend AlertCount = toint(AlertsData.alertsCount)\n| extend BookmarksCount = toint(AlertsData.bookmarksCount)\n| extend CommentsCount = toint(AlertsData.commentsCount)\n| extend IncidentUrl = tostring(AlertsData.providerIncidentUrl)\n| extend IncidentNum = extract(@'incident2/(\\d+)/', 1, IncidentUrl)\n| extend IncidentStatus = tostring(column_ifexists('Status', ''))\n| extend IncidentSeverity = tostring(column_ifexists('Severity', ''))\n| extend TacticsArray = parse_json(tostring(AlertsData.tactics))\n| extend DeterminationValue = tostring(column_ifexists('Determination', ''))\n| where isnotempty(IncidentNum)\n| summarize AlertCount=max(AlertCount), BookmarksCount=max(BookmarksCount), CommentsCount=max(CommentsCount), Status=any(IncidentStatus), Severity=any(IncidentSeverity), Tactics=any(TacticsArray), Determination=any(DeterminationValue), LatestUpdate=max(TimeGenerated) by IncidentNum, IncidentName=Title\n| extend PrimaryTactic = iff(isempty(Tactics), 'Unknown', tostring(Tactics[0]))\n| summarize ['Incident Count']=count(), ['Total Alerts']=sum(AlertCount), ['Bookmarks']=sum(BookmarksCount), ['Comments']=sum(CommentsCount), ['Active']=countif(Status == 'Active'), ['Resolved']=countif(Status == 'Resolved'), ['High Severity']=countif(Severity == 'High'), ['Medium Severity']=countif(Severity == 'Medium'), ['Primary Tactic']=any(PrimaryTactic), ['Determination']=any(Determination) by IncidentName\n| order by ['Incident Count'] desc",
+              "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AlertsData = parse_json(AdditionalData)\n| extend AlertCount = toint(AlertsData.alertsCount)\n| extend IncidentUrl = tostring(AlertsData.providerIncidentUrl)\n| extend IncidentNum = extract(@'incident2/(\\d+)/', 1, IncidentUrl)\n| extend IncidentStatus = tostring(column_ifexists('Status', ''))\n| extend IncidentSeverity = tostring(column_ifexists('Severity', ''))\n| extend TacticsArray = parse_json(tostring(AlertsData.tactics))\n| extend DeterminationValue = tostring(column_ifexists('Determination', ''))\n| where isnotempty(IncidentNum)\n| summarize AlertCount=max(AlertCount), Status=any(IncidentStatus), Severity=any(IncidentSeverity), Tactics=any(TacticsArray), Determination=any(DeterminationValue), LatestUpdate=max(TimeGenerated) by IncidentNum, IncidentName=Title\n| extend PrimaryTactic = iff(isempty(Tactics), 'Unknown', tostring(Tactics[0]))\n| summarize ['Incident Count']=count(), ['Total Alerts']=sum(AlertCount), ['Active']=countif(Status == 'Active'), ['Resolved']=countif(Status == 'Resolved'), ['High Severity']=countif(Severity == 'High'), ['Primary Tactic']=any(PrimaryTactic), ['Determination']=any(Determination) by IncidentName\n| order by ['Incident Count'] desc",
               "size": 2,
               "title": "Threat Event Details",
               "timeContextFromParameter": "TimeRange",
@@ -1046,60 +1046,6 @@
                 "filter": true,
                 "rowLimit": 10000,
                 "formatters": [
-                  {
-                    "columnMatch": "Bookmarks",
-                    "formatter": 18,
-                    "formatOptions": {
-                      "thresholdsOptions": "colors",
-                      "thresholdsGrid": [
-                        {
-                          "operator": "==",
-                          "thresholdValue": "0",
-                          "representation": "lightBlue",
-                          "text": "{0}{1}"
-                        },
-                        {
-                          "operator": ">",
-                          "thresholdValue": "0",
-                          "representation": "blue",
-                          "text": "{0}{1}"
-                        },
-                        {
-                          "operator": "Default",
-                          "thresholdValue": null,
-                          "representation": "blue",
-                          "text": "{0}{1}"
-                        }
-                      ]
-                    }
-                  },
-                  {
-                    "columnMatch": "Comments",
-                    "formatter": 18,
-                    "formatOptions": {
-                      "thresholdsOptions": "colors",
-                      "thresholdsGrid": [
-                        {
-                          "operator": "==",
-                          "thresholdValue": "0",
-                          "representation": "lightBlue",
-                          "text": "{0}{1}"
-                        },
-                        {
-                          "operator": ">",
-                          "thresholdValue": "0",
-                          "representation": "blue",
-                          "text": "{0}{1}"
-                        },
-                        {
-                          "operator": "Default",
-                          "thresholdValue": null,
-                          "representation": "blue",
-                          "text": "{0}{1}"
-                        }
-                      ]
-                    }
-                  },
                   {
                     "columnMatch": "Active",
                     "formatter": 18,

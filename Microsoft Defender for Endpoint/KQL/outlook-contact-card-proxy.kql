@@ -1,0 +1,24 @@
+// Title: Outlook contact card lookup proxy activity
+// Author: John Barbare
+// Tables: DeviceProcessEvents, DeviceNetworkEvents
+// MITRE: T1087, T1071
+// Time window: last 7d
+// Notes: Outlook contact card UI clicks are not directly logged as a discrete event. This hunt uses a proxy by correlating Outlook process activity with contact resolution style network lookups.
+
+let timeRange = 7d;
+let outlookProcessContext = DeviceProcessEvents
+| where Timestamp > ago(timeRange)
+| where FileName =~ "outlook.exe"
+| project OutlookStartTime = Timestamp, DeviceId, DeviceName, AccountName, AccountUpn, LogonId, OutlookProcessId = ProcessId, OutlookCmd = ProcessCommandLine;
+let outlookContactLookupNetwork = DeviceNetworkEvents
+| where Timestamp > ago(timeRange)
+| where InitiatingProcessFileName =~ "outlook.exe"
+| where isnotempty(RemoteUrl)
+| where RemoteUrl has_any ("autodiscover", "/ews/", "/mapi/", "ResolveNames", "GetPersona", "FindPeople", "people", "contacts", "gal")
+| project NetworkTime = Timestamp, DeviceId, DeviceName, InitiatingProcessAccountName, InitiatingProcessAccountUpn, InitiatingProcessId, RemoteUrl, RemoteIP, RemotePort, Protocol, InitiatingProcessCommandLine;
+outlookContactLookupNetwork
+| join kind=inner outlookProcessContext on DeviceId
+| where NetworkTime between (OutlookStartTime .. OutlookStartTime + 30m)
+| extend UserUPN = coalesce(InitiatingProcessAccountUpn, AccountUpn), UserName = coalesce(InitiatingProcessAccountName, AccountName)
+| project Timestamp = NetworkTime, DeviceName, UserName, UserUPN, RemoteUrl, RemoteIP, RemotePort, Protocol, OutlookProcessId, InitiatingProcessId, OutlookCmd, InitiatingProcessCommandLine
+| order by Timestamp desc

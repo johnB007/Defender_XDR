@@ -1,0 +1,16 @@
+// IOC Hunt: Domains
+// Paste comma-separated domains (example.com, malicious.net) into the let statement
+
+let IOCDomains = dynamic(["", ""]); // Paste domains here
+
+union (
+  DeviceNetworkEvents
+  | where RemoteUrl has_any (IOCDomains) or RemoteIP in (IOCDomains)
+  | project TimeGenerated, DeviceName, ActionType, RemoteUrl, RemoteIP, RemotePort, InitiatingProcessFileName, InitiatingProcessId
+),
+(
+  EmailEvents
+  | where RecipientEmailAddress has_any (IOCDomains) or SenderFromAddress has_any (IOCDomains)
+  | project TimeGenerated, SenderFromAddress, RecipientEmailAddress, Subject, ThreatTypes, DeliveryAction
+)
+| sort by TimeGenerated desc

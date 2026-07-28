@@ -1,0 +1,26 @@
+// Title: Outlook contact card proxy for Entra ID Protection Weekly Digest
+// Author: John Barbare
+// Tables: EmailEvents, DeviceNetworkEvents
+// MITRE: T1087, T1071
+// Time window: last 24h
+// Notes: Contact card clicks are not exposed as a direct event. This query correlates digest email delivery with Outlook contact lookup style network activity from the same user.
+
+EmailEvents
+| where Timestamp > ago(24h)
+| where SenderFromAddress =~ "MSSecurity-noreply@microsoft.com"
+| where Subject has "Microsoft Entra ID Protection Weekly Digest"
+| extend UserUPN = tolower(RecipientEmailAddress)
+| project MailTimestamp = Timestamp, UserUPN, Subject, SenderFromAddress, RecipientEmailAddress, NetworkMessageId
+| join kind=inner (
+	DeviceNetworkEvents
+	| where Timestamp > ago(24h)
+	| where InitiatingProcessFileName =~ "outlook.exe"
+	| where isnotempty(RemoteUrl)
+	| where RemoteUrl has_any ("GetPersona", "FindPeople", "ResolveNames", "contacts", "people", "gal", "/mapi/", "/ews/", "autodiscover")
+	| extend UserUPN = tolower(InitiatingProcessAccountUpn)
+	| project LookupTimestamp = Timestamp, UserUPN, DeviceName, DeviceId, InitiatingProcessAccountName, InitiatingProcessAccountUpn, RemoteUrl, RemoteIP, RemotePort, Protocol
+) on UserUPN
+| where LookupTimestamp between (MailTimestamp .. MailTimestamp + 2h)
+| where RemoteUrl has "System Administrator" or RemoteUrl has "System%20Administrator" or RemoteUrl has "systemadministrator"
+| project Timestamp = LookupTimestamp, DeviceName, InitiatingProcessAccountName, InitiatingProcessAccountUpn, Subject, SenderFromAddress, RecipientEmailAddress, NetworkMessageId, RemoteUrl, RemoteIP, RemotePort, Protocol
+| order by Timestamp desc

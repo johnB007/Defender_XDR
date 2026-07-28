@@ -1,0 +1,17 @@
+// Browser Extension Inventory
+// Captures browser extension metadata with SHA256 hashes and JavaScript file enumeration
+// Target: Last 7 days
+// Returns: Extension name, SHA256 hashes of extension files, count of JS files, and list of JS files per extension
+
+DeviceFileEvents
+| where Timestamp > ago(7d)
+| where FolderPath has_any ('extensions', 'Extensions')
+| where FileName endswith '.js' or FileName endswith '.crx' or FileName endswith '.json'
+| extend ExtensionPath = substring(FolderPath, 0, indexof(FolderPath, 'xtensions') + 15)
+| extend PathParts = split(FolderPath, '\\')
+| extend ExtensionFolder = tostring(PathParts[array_length(PathParts) - 2])
+| where isnotempty(ExtensionFolder)
+| summarize arg_max(Timestamp, *), JSFiles = make_set_if(FileName, FileName endswith '.js', 50), AllFiles = make_set(FileName, 50), FileCount = dcount(FileName), SHA256Set = make_set(SHA256, 10) by DeviceId, DeviceName, ExtensionFolder, FolderPath
+| extend ExtensionName = ExtensionFolder, JSFileCount = array_length(JSFiles)
+| project Timestamp, DeviceId, DeviceName, ExtensionName, SHA256Set, JSFileCount, JSFiles, FileCount, AllFiles, ExtensionPath = FolderPath
+| order by Timestamp desc

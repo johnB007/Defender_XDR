@@ -1,0 +1,16 @@
+// IOC Hunt: URLs
+// Paste comma-separated full URLs (https://example.com/path, http://malicious.net/payload) into the let statement
+
+let IOCURLs = dynamic(["", ""]); // Paste full URLs here
+
+union (
+  DeviceNetworkEvents
+  | where RemoteUrl has_any (IOCURLs)
+  | project TimeGenerated, DeviceName, ActionType, RemoteUrl, RemoteIP, RemotePort, InitiatingProcessFileName, InitiatingProcessId
+),
+(
+  EmailEvents
+  | where Subject has_any (IOCURLs)
+  | project TimeGenerated, SenderFromAddress, RecipientEmailAddress, Subject, ThreatTypes, DeliveryAction
+)
+| sort by TimeGenerated desc

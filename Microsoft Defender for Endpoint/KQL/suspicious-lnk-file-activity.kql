@@ -1,6 +1,6 @@
 // Suspicious .lnk File Creation and Modification Hunt
 // Detects .lnk files created in risky locations or by unusual processes
-// Optimized for 999 days of data with early filtering and aggregation
+// Optimized for 30 days of data with early filtering and aggregation
 //
 // Detection Focus:
 // 1. .lnk files in Startup, Desktop, Quick Access, Recent, and Links folders
@@ -9,14 +9,14 @@
 // 4. Suspicion scoring based on location risk and process anomaly
 //
 // Performance Optimizations:
-// - Early time filter (999 days)
+// - Early time filter (30 days)
 // - File extension filter applied immediately
 // - ActionType filtering (FileCreated, FileModified)
 // - Hourly binning for aggregation
 // - Projected essential columns only
 
 DeviceFileEvents
-| where Timestamp > ago(999d)
+| where Timestamp > ago(30d)
 | where FileName endswith ".lnk"
 | where ActionType in~ ("FileCreated", "FileModified")
 // Flag risky locations where persistence mechanisms often hide

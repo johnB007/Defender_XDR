@@ -1,0 +1,9 @@
+// IOC Hunt: IP Addresses
+// Paste comma-separated IP addresses (192.168.1.1, 10.0.0.5) into the let statement
+
+let IOCIPs = dynamic(["", ""]); // Paste IPs here
+
+DeviceNetworkEvents
+| where RemoteIP in (IOCIPs)
+| project TimeGenerated, DeviceName, ActionType, RemoteIP, RemotePort, RemoteUrl, InitiatingProcessFileName, InitiatingProcessId
+| sort by TimeGenerated desc

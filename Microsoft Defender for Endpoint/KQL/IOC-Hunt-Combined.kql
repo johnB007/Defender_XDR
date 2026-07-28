@@ -1,0 +1,50 @@
+// IOC Hunt: Combined (Hashes, Domains, URLs)
+// Paste comma-separated IOCs into the let statements below
+// Hashes: SHA1, MD5, SHA256 (case insensitive)
+// Domains: example.com, malicious.net (case insensitive)
+// URLs: https://example.com/path, http://malicious.net/payload (full URLs)
+
+let FileHashes = dynamic(["", ""]); // Paste file hashes here (SHA1, MD5, SHA256)
+let Domains = dynamic(["", ""]); // Paste domains here (e.g., example.com, evil.ru)
+let URLs = dynamic(["", ""]); // Paste URLs here (full URLs with http/https)
+let IPs = dynamic(["", ""]); // Paste IP addresses here (e.g., 192.168.1.1, 10.0.0.5)
+
+// Search file hashes in device file events
+let FileHashHits = DeviceFileEvents
+| where SHA1 in (FileHashes) or MD5 in (FileHashes) or SHA256 in (FileHashes)
+| extend IOCType = "FileHash", IOCValue = coalesce(SHA1, MD5, SHA256)
+| project TimeGenerated, IOCType, IOCValue, DeviceName, FileName, FolderPath, ActionType;
+
+// Search domains in device network events
+let DomainNetworkHits = DeviceNetworkEvents
+| where RemoteUrl has_any (Domains) or RemoteIP in (Domains)
+| extend IOCType = "Domain", IOCValue = coalesce(RemoteUrl, RemoteIP)
+| project TimeGenerated, IOCType, IOCValue, DeviceName, ActionType, RemoteUrl, RemoteIP, RemotePort;
+
+// Search URLs in device network events
+let URLNetworkHits = DeviceNetworkEvents
+| where RemoteUrl has_any (URLs)
+| extend IOCType = "URL", IOCValue = RemoteUrl
+| project TimeGenerated, IOCType, IOCValue, DeviceName, ActionType, RemoteUrl, RemotePort;
+
+// Search domains in email events
+let DomainEmailHits = EmailEvents
+| where RecipientEmailAddress has_any (Domains) or SenderFromAddress has_any (Domains)
+| extend IOCType = "Domain", IOCValue = coalesce(SenderFromAddress, RecipientEmailAddress)
+| project TimeGenerated, IOCType, IOCValue, SenderFromAddress, RecipientEmailAddress, Subject, ThreatTypes;
+
+// Search URLs in email events
+let URLEmailHits = EmailEvents
+| where Subject has_any (URLs)
+| extend IOCType = "URL", IOCValue = Subject
+| project TimeGenerated, IOCType, IOCValue, SenderFromAddress, RecipientEmailAddress, Subject, ThreatTypes;
+
+// Search IPs in device network events
+let IPNetworkHits = DeviceNetworkEvents
+| where RemoteIP in (IPs)
+| extend IOCType = "IP", IOCValue = RemoteIP
+| project TimeGenerated, IOCType, IOCValue, DeviceName, ActionType, RemoteIP, RemotePort, RemoteUrl;
+
+// Combine and sort by time
+union FileHashHits, DomainNetworkHits, URLNetworkHits, DomainEmailHits, URLEmailHits, IPNetworkHits
+| sort by TimeGenerated desc

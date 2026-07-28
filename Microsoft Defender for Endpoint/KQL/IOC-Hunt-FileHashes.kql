@@ -1,0 +1,10 @@
+// IOC Hunt: File Hashes
+// Paste comma-separated file hashes (SHA1, MD5, SHA256) into the let statement
+
+let IOCHashes = dynamic(["", ""]); // Paste file hashes here
+
+DeviceFileEvents
+| where SHA1 in (IOCHashes) or MD5 in (IOCHashes) or SHA256 in (IOCHashes)
+| extend HashValue = coalesce(SHA1, MD5, SHA256)
+| project TimeGenerated, DeviceName, FileName, FolderPath, HashValue, ActionType, InitiatingProcessFileName, InitiatingProcessMD5, InitiatingProcessId
+| sort by TimeGenerated desc

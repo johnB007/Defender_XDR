@@ -1034,7 +1034,7 @@
             "name": "threat-grid",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AlertsData = parse_json(AdditionalData)\n| extend AlertCount = toint(AlertsData.alertsCount)\n| extend IncidentUrl = tostring(AlertsData.providerIncidentUrl)\n| extend IncidentNum = extract(@'incident2/(\\d+)/', 1, IncidentUrl)\n| extend IncidentStatus = tostring(column_ifexists('Status', ''))\n| extend IncidentSeverity = tostring(column_ifexists('Severity', ''))\n| extend TacticsArray = parse_json(tostring(AlertsData.tactics))\n| extend DeterminationValue = tostring(column_ifexists('Determination', ''))\n| where isnotempty(IncidentNum)\n| summarize AlertCount=max(AlertCount), Status=any(IncidentStatus), Severity=any(IncidentSeverity), Tactics=any(TacticsArray), Determination=any(DeterminationValue), LatestUpdate=max(TimeGenerated) by IncidentNum, IncidentName=Title\n| extend PrimaryTactic = iff(isempty(Tactics), 'Unknown', tostring(Tactics[0]))\n| summarize ['Incident Count']=count(), ['Total Alerts']=sum(AlertCount), ['Active']=countif(Status == 'Active'), ['Resolved']=countif(Status == 'Resolved'), ['High Severity']=countif(Severity == 'High'), ['Primary Tactic']=any(PrimaryTactic), ['Determination']=any(Determination) by IncidentName\n| order by ['Incident Count'] desc",
+              "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AlertsData = parse_json(AdditionalData)\n| extend AlertCount = toint(AlertsData.alertsCount)\n| extend IncidentUrl = tostring(AlertsData.providerIncidentUrl)\n| extend IncidentNum = extract(@'incident2/(\\d+)/', 1, IncidentUrl)\n| extend IncidentStatus = tostring(column_ifexists('Status', ''))\n| extend IncidentSeverity = tostring(column_ifexists('Severity', ''))\n| extend TacticsArray = parse_json(tostring(AlertsData.tactics))\n| extend ProviderNames = parse_json(tostring(AlertsData.alertProductNames))\n| extend DeterminationValue = tostring(column_ifexists('Determination', ''))\n| extend DescriptionValue = tostring(column_ifexists('Description', ''))\n| where isnotempty(IncidentNum)\n| summarize AlertCount=max(AlertCount), Status=any(IncidentStatus), Severity=any(IncidentSeverity), Tactics=any(TacticsArray), Providers=any(ProviderNames), Determination=any(DeterminationValue), Description=any(DescriptionValue) by IncidentNum, IncidentName=Title\n| extend PrimaryTactic = iff(isempty(Tactics), 'Unknown', tostring(Tactics[0]))\n| extend ProviderList = iff(isempty(Providers), 'Unknown', strcat_array(Providers, ', '))\n| summarize ['Incident Count']=count(), ['Total Alerts']=sum(AlertCount), ['Active']=countif(Status == 'Active'), ['Resolved']=countif(Status == 'Resolved'), ['High Severity']=countif(Severity == 'High'), ['Primary Tactic']=any(PrimaryTactic), ['Providers']=any(ProviderList), ['Determination']=any(Determination), ['Description']=any(Description) by IncidentName\n| order by ['Incident Count'] desc",
               "size": 2,
               "title": "Threat Event Details",
               "timeContextFromParameter": "TimeRange",
@@ -1106,9 +1106,21 @@
                     "formatOptions": {}
                   },
                   {
+                    "columnMatch": "Providers",
+                    "formatter": 1,
+                    "formatOptions": {}
+                  },
+                  {
                     "columnMatch": "Determination",
                     "formatter": 1,
                     "formatOptions": {}
+                  },
+                  {
+                    "columnMatch": "Description",
+                    "formatter": 1,
+                    "formatOptions": {
+                      "customColumnWidthSetting": "300px"
+                    }
                   }
                 ]
               }

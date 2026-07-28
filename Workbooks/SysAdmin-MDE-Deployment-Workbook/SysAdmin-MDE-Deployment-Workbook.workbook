@@ -1011,6 +1011,9 @@
               "visualization": "categoricalbar",
               "chartSettings": {
                 "xAxis": "IncidentLabel",
+                "yAxis": ["IncidentCount", "TotalAlerts"],
+                "xAxisLabelRotation": 45,
+                "showDataPoints": "true",
                 "seriesLabelSettings": [
                   {
                     "seriesName": "IncidentCount",

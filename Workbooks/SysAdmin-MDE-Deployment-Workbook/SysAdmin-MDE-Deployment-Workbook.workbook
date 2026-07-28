@@ -970,7 +970,7 @@
             "name": "threat-piechart",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AD = parse_json(AdditionalData)\n| extend Sources = parse_json(tostring(AD.alertProductNames))\n| mv-expand Source = Sources\n| extend SourceName = tostring(Source)\n| where isnotempty(SourceName)\n| summarize Count=count() by SourceName\n| order by Count desc",
+              "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AlertsData = parse_json(AdditionalData)\n| extend IncidentUrl = tostring(AlertsData.providerIncidentUrl)\n| extend IncidentNum = extract(@'incident2/(\\d+)/', 1, IncidentUrl)\n| where isnotempty(IncidentNum)\n| summarize by IncidentNum, AlertsData_json=tostring(AlertsData)\n| extend AD = parse_json(AlertsData_json)\n| extend Sources = parse_json(tostring(AD.alertProductNames))\n| mv-expand Source = Sources\n| extend SourceName = tostring(Source)\n| where isnotempty(SourceName)\n| summarize Count=dcount(IncidentNum) by SourceName\n| order by Count desc",
               "size": 3,
               "title": "Incidents by Detection Source",
               "timeContextFromParameter": "TimeRange",
@@ -986,7 +986,7 @@
             "name": "threat-tacticschart",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AD = parse_json(AdditionalData)\n| extend Tactics = parse_json(tostring(AD.tactics))\n| mv-expand Tactic = Tactics\n| extend TacticName = tostring(Tactic)\n| where isnotempty(TacticName)\n| summarize Count=count() by TacticName\n| order by Count desc\n| take 5",
+              "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AlertsData = parse_json(AdditionalData)\n| extend IncidentUrl = tostring(AlertsData.providerIncidentUrl)\n| extend IncidentNum = extract(@'incident2/(\\d+)/', 1, IncidentUrl)\n| where isnotempty(IncidentNum)\n| summarize by IncidentNum, AlertsData_json=tostring(AlertsData)\n| extend AD = parse_json(AlertsData_json)\n| extend Tactics = parse_json(tostring(AD.tactics))\n| mv-expand Tactic = Tactics\n| extend TacticName = tostring(Tactic)\n| where isnotempty(TacticName)\n| summarize Count=dcount(IncidentNum) by TacticName\n| order by Count desc\n| take 5",
               "size": 3,
               "title": "Top 5 Incidents by Tactic",
               "timeContextFromParameter": "TimeRange",

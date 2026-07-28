@@ -934,7 +934,7 @@
             "name": "threat-tiles",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AlertsData = parse_json(AdditionalData)\n| extend AlertCount = toint(AlertsData.alertsCount)\n| summarize TotalIncidents=count(), TotalAlerts=sum(AlertCount), OpenIncidents=countif(Status != 'Closed'), HighSeverity=countif(Severity == 'High')\n| extend r = pack_array(pack('label','Total Incidents','value',TotalIncidents), pack('label','Total Alerts','value',TotalAlerts), pack('label','Open Incidents','value',OpenIncidents), pack('label','High Severity','value',HighSeverity))\n| mv-expand r\n| project label=tostring(r.label), value=toint(r.value)",
+              "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AlertsData = parse_json(AdditionalData)\n| extend AlertCount = toint(AlertsData.alertsCount)\n| extend IncidentUrl = tostring(AlertsData.providerIncidentUrl)\n| extend IncidentNum = extract(@'incident2/(\\d+)/', 1, IncidentUrl)\n| where isnotempty(IncidentNum)\n| summarize AlertCount=max(AlertCount), Status=any(Status), Severity=any(Severity), Title=any(Title) by IncidentNum\n| summarize TotalIncidents=count(), TotalAlerts=sum(AlertCount), OpenIncidents=countif(Status != 'Closed'), HighSeverity=countif(Severity == 'High')\n| extend r = pack_array(pack('label','Total Incidents','value',TotalIncidents), pack('label','Total Alerts','value',TotalAlerts), pack('label','Open Incidents','value',OpenIncidents), pack('label','High Severity','value',HighSeverity))\n| mv-expand r\n| project label=tostring(r.label), value=toint(r.value)",
               "size": 4,
               "title": "Threat Events Summary",
               "timeContextFromParameter": "TimeRange",
@@ -1002,7 +1002,7 @@
             "name": "threat-barchart",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AlertsData = parse_json(AdditionalData)\n| extend AlertCount = toint(AlertsData.alertsCount)\n| summarize IncidentCount = count(), TotalAlerts = sum(AlertCount) by IncidentName = Title\n| top 5 by IncidentCount desc\n| extend IncidentLabel = iff(strlen(IncidentName) > 24, strcat(substring(IncidentName, 0, 24), '...'), IncidentName)\n| project IncidentLabel, IncidentCount, TotalAlerts\n| order by IncidentCount desc",
+              "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AlertsData = parse_json(AdditionalData)\n| extend AlertCount = toint(AlertsData.alertsCount)\n| extend IncidentUrl = tostring(AlertsData.providerIncidentUrl)\n| extend IncidentNum = extract(@'incident2/(\\d+)/', 1, IncidentUrl)\n| where isnotempty(IncidentNum)\n| summarize AlertCount=max(AlertCount), IncidentName=any(Title) by IncidentNum\n| summarize IncidentCount = count(), TotalAlerts = sum(AlertCount) by IncidentName\n| top 5 by IncidentCount desc\n| extend IncidentLabel = iff(strlen(IncidentName) > 24, strcat(substring(IncidentName, 0, 24), '...'), IncidentName)\n| project IncidentLabel, IncidentCount, TotalAlerts\n| order by IncidentCount desc",
               "size": 0,
               "title": "Threat Events - Top 5 Incidents by Count",
               "timeContextFromParameter": "TimeRange",
@@ -1031,7 +1031,7 @@
             "name": "threat-grid",
             "content": {
               "version": "KqlItem/1.0",
-              "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AlertsData = parse_json(AdditionalData)\n| extend AlertCount = toint(AlertsData.alertsCount)\n| extend IncidentStatus = tostring(column_ifexists('Status', ''))\n| extend IncidentSeverity = tostring(column_ifexists('Severity', ''))\n| summarize ['Incident Count']=count(), ['Total Alerts']=sum(AlertCount), ['Open Incidents']=countif(IncidentStatus != 'Closed'), ['High Severity Incidents']=countif(IncidentSeverity == 'High') by ['Incident Name']=Title\n| order by ['Incident Count'] desc",
+              "query": "SecurityIncident\n| where TimeGenerated {TimeRange}\n| extend AlertsData = parse_json(AdditionalData)\n| extend AlertCount = toint(AlertsData.alertsCount)\n| extend IncidentUrl = tostring(AlertsData.providerIncidentUrl)\n| extend IncidentNum = extract(@'incident2/(\\d+)/', 1, IncidentUrl)\n| extend IncidentStatus = tostring(column_ifexists('Status', ''))\n| extend IncidentSeverity = tostring(column_ifexists('Severity', ''))\n| where isnotempty(IncidentNum)\n| summarize AlertCount=max(AlertCount), Status=any(IncidentStatus), Severity=any(IncidentSeverity) by IncidentNum, IncidentName=Title\n| summarize ['Incident Count']=count(), ['Total Alerts']=sum(AlertCount), ['Open Incidents']=countif(Status != 'Closed'), ['High Severity Incidents']=countif(Severity == 'High') by IncidentName\n| order by ['Incident Count'] desc",
               "size": 2,
               "title": "Threat Event Details",
               "timeContextFromParameter": "TimeRange",

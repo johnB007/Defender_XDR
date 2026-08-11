@@ -1,0 +1,1610 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 1,
+      "content": {
+        "json": "# Microsoft 365 Copilot: Security, Adoption & Usage\nExecutive adoption and engagement signals combined with Copilot security telemetry (jailbreak, cross prompt injection, and data grounding), sourced from **Microsoft Defender XDR** (`CloudAppEvents`) and **Office 365** (`OfficeActivity`) and enriched from `IdentityInfo`."
+      },
+      "name": "title"
+    },
+    {
+      "type": 9,
+      "content": {
+        "version": "KqlParameterItem/1.0",
+        "crossComponentResources": [
+          "{Workspace}"
+        ],
+        "parameters": [
+          {
+            "id": "11111111-1111-1111-1111-111111111001",
+            "version": "KqlParameterItem/1.0",
+            "name": "Subscription",
+            "type": 6,
+            "description": "Subscriptions you can access, including tenants delegated to you via Azure Lighthouse.",
+            "isRequired": true,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "query": "resources\r\n| summarize by subscriptionId\r\n| project value = strcat('/subscriptions/', subscriptionId), label = subscriptionId, selected = true",
+            "crossComponentResources": [
+              "value::all"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "showDefault": false
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": [
+              "/subscriptions/53cdad3e-cd4d-4de5-be26-9b74f4b14541"
+            ]
+          },
+          {
+            "id": "11111111-1111-1111-1111-111111111002",
+            "version": "KqlParameterItem/1.0",
+            "name": "Workspace",
+            "type": 5,
+            "description": "Microsoft Sentinel workspaces. Each managed tenant appears here — pick one or more to run cross-tenant.",
+            "isRequired": true,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "query": "resources\n| where type =~ 'microsoft.operationsmanagement/solutions'\n| where name contains 'SecurityInsights'\n| project id = tolower(tostring(properties.workspaceResourceId))\n| join (resources\n    | where type =~ 'microsoft.operationalinsights/workspaces'\n    | extend id=tolower(id)\n) on id\n| project id",
+            "crossComponentResources": [
+              "{Subscription}"
+            ],
+            "typeSettings": {
+              "resourceTypeFilter": {
+                "microsoft.operationalinsights/workspaces": true
+              },
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "showDefault": false
+            },
+            "queryType": 1,
+            "resourceType": "microsoft.resourcegraph/resources",
+            "value": [
+              "value::all"
+            ]
+          },
+          {
+            "id": "11111111-1111-1111-1111-111111111005",
+            "version": "KqlParameterItem/1.0",
+            "name": "BusinessUnit",
+            "label": "Business Unit",
+            "type": 2,
+            "description": "Filter the workbook by business unit from IdentityInfo.CompanyName.",
+            "isRequired": true,
+            "multiSelect": true,
+            "quote": "'",
+            "delimiter": ",",
+            "query": "IdentityInfo\n| where isnotempty(CompanyName)\n| extend CompanyName = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n| summarize by CompanyName\n| order by CompanyName asc",
+            "crossComponentResources": [
+              "{Workspace}"
+            ],
+            "typeSettings": {
+              "additionalResourceOptions": [
+                "value::all"
+              ],
+              "showDefault": false
+            },
+            "timeContext": {
+              "durationMs": 7776000000
+            },
+            "defaultValue": "value::all",
+            "queryType": 0,
+            "resourceType": "microsoft.operationalinsights/workspaces",
+            "value": [
+              "value::all"
+            ]
+          },
+          {
+            "id": "11111111-1111-1111-1111-111111111003",
+            "version": "KqlParameterItem/1.0",
+            "name": "TimeRange",
+            "label": "Time range",
+            "type": 4,
+            "isRequired": true,
+            "typeSettings": {
+              "selectableValues": [
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 172800000
+                },
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 1209600000
+                },
+                {
+                  "durationMs": 2592000000
+                },
+                {
+                  "durationMs": 5184000000
+                },
+                {
+                  "durationMs": 7776000000
+                }
+              ],
+              "allowCustom": true
+            },
+            "value": {
+              "durationMs": 2592000000
+            }
+          },
+          {
+            "id": "11111111-1111-1111-1111-111111111004",
+            "version": "KqlParameterItem/1.0",
+            "name": "Help",
+            "label": "Help text",
+            "type": 2,
+            "description": "Show or hide the guidance panel.",
+            "isRequired": true,
+            "typeSettings": {
+              "additionalResourceOptions": [],
+              "showDefault": false
+            },
+            "jsonData": "[{\"value\":\"Show\",\"label\":\"Show\"},{\"value\":\"Hide\",\"label\":\"Hide\",\"selected\":true}]",
+            "queryType": 8
+          }
+        ],
+        "style": "pills",
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces"
+      },
+      "name": "parameters"
+    },
+    {
+      "type": 11,
+      "content": {
+        "version": "LinkItem/1.0",
+        "style": "tabs",
+        "links": [
+          {
+            "id": "22222222-2222-2222-2222-222222222001",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Executive Summary",
+            "subTarget": "exec",
+            "style": "link"
+          },
+          {
+            "id": "22222222-2222-2222-2222-222222222002",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Adoption & Usage",
+            "subTarget": "adoption",
+            "style": "link"
+          },
+          {
+            "id": "22222222-2222-2222-2222-222222222004",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Threats & Abuse",
+            "subTarget": "threats",
+            "style": "link"
+          },
+          {
+            "id": "22222222-2222-2222-2222-222222222005",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "Data & Sensitivity",
+            "subTarget": "data",
+            "style": "link"
+          },
+          {
+            "id": "22222222-2222-2222-2222-222222222003",
+            "cellValue": "selectedTab",
+            "linkTarget": "parameter",
+            "linkLabel": "User Drilldown",
+            "subTarget": "user",
+            "style": "link"
+          }
+        ]
+      },
+      "name": "tabs"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "## Executive summary\nAre we adopting Copilot, and is usage growing? Headline signals for the selected tenants and period."
+            },
+            "name": "exec-header"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Headline totals for the selected tenants and period: active users (distinct people who ran at least one Copilot action), total interactions, interactions per active user, active business units, and Copilot surfaces in use. Copilot events combine `CloudAppEvents` (`ActionType == \"CopilotInteraction\"`) and `OfficeActivity` (`OfficeWorkload == \"Copilot\"`)."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-exec-kpi"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let Identities = materialize(\n    IdentityInfo\n    | project TimeGenerated, AccountObjectId, AccountUPN, AccountDisplayName, CompanyName, Department\n);\nlet idsByObj = Identities\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, AccountUPN, AccountDisplayName, CompanyName, Department) by AccountObjectId;\nlet idsByUpn = Identities\n| where isnotempty(AccountUPN)\n| summarize arg_max(TimeGenerated, AccountDisplayName, CompanyName, Department) by UPNkey = tolower(tostring(AccountUPN));\nlet cae = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| extend App = tostring(RawEventData.CopilotEventData.AppHost)\n| extend App = iff(isempty(App), \"[Unknown surface]\", App)\n| join kind=leftouter idsByObj on AccountObjectId\n| project TimeGenerated, UPN = tolower(coalesce(tostring(AccountUPN), tostring(AccountId))), DisplayName = coalesce(tostring(AccountDisplayName), tostring(AccountId)), Company = CompanyName, Department, App, Source = \"CloudAppEvents\";\nlet oa = OfficeActivity\n| where OfficeWorkload =~ \"Copilot\" or Operation =~ \"CopilotInteraction\"\n| extend UPNkey = tolower(tostring(UserId))\n| join kind=leftouter idsByUpn on UPNkey\n| project TimeGenerated, UPN = UPNkey, DisplayName = coalesce(tostring(AccountDisplayName), tostring(UserId)), Company = CompanyName, Department, App = \"[Surface unavailable]\", Source = \"OfficeActivity\";\nlet Copilot = union isfuzzy=true cae, oa\n| extend Company = iff(isempty(Company), \"Unknown\", replace_regex(toupper(trim(@\"\\s+\", tostring(Company))), @\"\\s+\", \" \"))\n| extend Department = iff(isempty(Department), \"Unknown\", replace_regex(trim(@\"\\s+\", tostring(Department)), @\"\\s+\", \" \"))\n| where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit});\nlet Base = materialize(Copilot);\nunion\n(Base | summarize v = todouble(dcount(UPN)) | extend Metric = \"Active users\", o = 1),\n(Base | summarize v = todouble(count()) | extend Metric = \"Copilot interactions\", o = 2),\n(Base | summarize u = dcount(UPN), n = count() | extend v = iff(u == 0, 0.0, round(todouble(n) / u, 1)) | project v | extend Metric = \"Interactions per user\", o = 3),\n(Base | summarize v = todouble(dcount(Company)) | extend Metric = \"Active business units\", o = 4),\n(Base | summarize v = todouble(dcountif(App, App !startswith \"[\")) | extend Metric = \"Copilot surfaces in use\", o = 5)\n| order by o asc\n| project Metric, Value = v",
+              "size": 4,
+              "showAnalytics": true,
+              "title": "Key metrics",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "Metric",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  }
+                },
+                "showBorder": false,
+                "size": "auto"
+              }
+            },
+            "name": "exec-kpi"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Distinct active users per time bin. The primary signal for whether adoption is growing over the period."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-exec-users-trend"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let Identities = materialize(\n    IdentityInfo\n    | project TimeGenerated, AccountObjectId, AccountUPN, AccountDisplayName, CompanyName, Department\n);\nlet idsByObj = Identities\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, AccountUPN, AccountDisplayName, CompanyName, Department) by AccountObjectId;\nlet idsByUpn = Identities\n| where isnotempty(AccountUPN)\n| summarize arg_max(TimeGenerated, AccountDisplayName, CompanyName, Department) by UPNkey = tolower(tostring(AccountUPN));\nlet cae = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| extend App = tostring(RawEventData.CopilotEventData.AppHost)\n| extend App = iff(isempty(App), \"[Unknown surface]\", App)\n| join kind=leftouter idsByObj on AccountObjectId\n| project TimeGenerated, UPN = tolower(coalesce(tostring(AccountUPN), tostring(AccountId))), DisplayName = coalesce(tostring(AccountDisplayName), tostring(AccountId)), Company = CompanyName, Department, App, Source = \"CloudAppEvents\";\nlet oa = OfficeActivity\n| where OfficeWorkload =~ \"Copilot\" or Operation =~ \"CopilotInteraction\"\n| extend UPNkey = tolower(tostring(UserId))\n| join kind=leftouter idsByUpn on UPNkey\n| project TimeGenerated, UPN = UPNkey, DisplayName = coalesce(tostring(AccountDisplayName), tostring(UserId)), Company = CompanyName, Department, App = \"[Surface unavailable]\", Source = \"OfficeActivity\";\nlet Copilot = union isfuzzy=true cae, oa\n| extend Company = iff(isempty(Company), \"Unknown\", replace_regex(toupper(trim(@\"\\s+\", tostring(Company))), @\"\\s+\", \" \"))\n| extend Department = iff(isempty(Department), \"Unknown\", replace_regex(trim(@\"\\s+\", tostring(Department)), @\"\\s+\", \" \"))\n| where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit});\nCopilot\n| summarize [\"Active users\"] = dcount(UPN) by bin(TimeGenerated, {TimeRange:grain})\n| order by TimeGenerated asc",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Active Copilot users over time",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "areachart"
+            },
+            "name": "exec-users-trend"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Share of interactions across Copilot apps (Teams, Word, Excel, Outlook, Chat), taken from `CopilotEventData.AppHost`. Shows where Copilot is landing."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-exec-by-app"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let Identities = materialize(\n    IdentityInfo\n    | project TimeGenerated, AccountObjectId, AccountUPN, AccountDisplayName, CompanyName, Department\n);\nlet idsByObj = Identities\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, AccountUPN, AccountDisplayName, CompanyName, Department) by AccountObjectId;\nlet idsByUpn = Identities\n| where isnotempty(AccountUPN)\n| summarize arg_max(TimeGenerated, AccountDisplayName, CompanyName, Department) by UPNkey = tolower(tostring(AccountUPN));\nlet cae = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| extend App = tostring(RawEventData.CopilotEventData.AppHost)\n| extend App = iff(isempty(App), \"[Unknown surface]\", App)\n| join kind=leftouter idsByObj on AccountObjectId\n| project TimeGenerated, UPN = tolower(coalesce(tostring(AccountUPN), tostring(AccountId))), DisplayName = coalesce(tostring(AccountDisplayName), tostring(AccountId)), Company = CompanyName, Department, App, Source = \"CloudAppEvents\";\nlet oa = OfficeActivity\n| where OfficeWorkload =~ \"Copilot\" or Operation =~ \"CopilotInteraction\"\n| extend UPNkey = tolower(tostring(UserId))\n| join kind=leftouter idsByUpn on UPNkey\n| project TimeGenerated, UPN = UPNkey, DisplayName = coalesce(tostring(AccountDisplayName), tostring(UserId)), Company = CompanyName, Department, App = \"[Surface unavailable]\", Source = \"OfficeActivity\";\nlet Copilot = union isfuzzy=true cae, oa\n| extend Company = iff(isempty(Company), \"Unknown\", replace_regex(toupper(trim(@\"\\s+\", tostring(Company))), @\"\\s+\", \" \"))\n| extend Department = iff(isempty(Department), \"Unknown\", replace_regex(trim(@\"\\s+\", tostring(Department)), @\"\\s+\", \" \"))\n| where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit});\nCopilot\n| summarize Interactions = count() by App\n| order by Interactions desc",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Usage by Copilot surface",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "name": "exec-by-app"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Business units with the most active users and interactions. Business unit comes from `IdentityInfo` (`CompanyName`); users that cannot be resolved appear as `Unknown`."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-exec-by-bu"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let Identities = materialize(\n    IdentityInfo\n    | project TimeGenerated, AccountObjectId, AccountUPN, AccountDisplayName, CompanyName, Department\n);\nlet idsByObj = Identities\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, AccountUPN, AccountDisplayName, CompanyName, Department) by AccountObjectId;\nlet idsByUpn = Identities\n| where isnotempty(AccountUPN)\n| summarize arg_max(TimeGenerated, AccountDisplayName, CompanyName, Department) by UPNkey = tolower(tostring(AccountUPN));\nlet cae = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| extend App = tostring(RawEventData.CopilotEventData.AppHost)\n| extend App = iff(isempty(App), \"[Unknown surface]\", App)\n| join kind=leftouter idsByObj on AccountObjectId\n| project TimeGenerated, UPN = tolower(coalesce(tostring(AccountUPN), tostring(AccountId))), DisplayName = coalesce(tostring(AccountDisplayName), tostring(AccountId)), Company = CompanyName, Department, App, Source = \"CloudAppEvents\";\nlet oa = OfficeActivity\n| where OfficeWorkload =~ \"Copilot\" or Operation =~ \"CopilotInteraction\"\n| extend UPNkey = tolower(tostring(UserId))\n| join kind=leftouter idsByUpn on UPNkey\n| project TimeGenerated, UPN = UPNkey, DisplayName = coalesce(tostring(AccountDisplayName), tostring(UserId)), Company = CompanyName, Department, App = \"[Surface unavailable]\", Source = \"OfficeActivity\";\nlet Copilot = union isfuzzy=true cae, oa\n| extend Company = iff(isempty(Company), \"Unknown\", replace_regex(toupper(trim(@\"\\s+\", tostring(Company))), @\"\\s+\", \" \"))\n| extend Department = iff(isempty(Department), \"Unknown\", replace_regex(trim(@\"\\s+\", tostring(Department)), @\"\\s+\", \" \"))\n| where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit});\nCopilot\n| summarize [\"Active users\"] = dcount(UPN), Interactions = count() by Company\n| order by [\"Active users\"] desc\n| take 10",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Adoption by business unit (top 10)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "barchart"
+            },
+            "customWidth": "50",
+            "name": "exec-by-bu"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "### Security signals\nAbuse and grounding indicators for the selected tenants and period. Full detail lives in the **Threats & Abuse** and **Data & Sensitivity** tabs."
+            },
+            "name": "exec-sec-header"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Grounding and abuse indicators for the period: distinct resources Copilot accessed, jailbreak-flagged messages, and XPIA-flagged resource accesses. Full detail lives in the Threats & Abuse and Data & Sensitivity tabs."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-exec-sec-tiles"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let BusinessUnitAccounts = IdentityInfo\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, CompanyName) by AccountObjectId\n| extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n| where Company in ({BusinessUnit})\n| project AccountObjectId;\nlet BusinessUnitEvents = materialize(\n    CloudAppEvents\n    | where ActionType == \"CopilotInteraction\"\n    | where 'value::all' in ({BusinessUnit}) or AccountObjectId in (BusinessUnitAccounts)\n);\nlet JB = BusinessUnitEvents | where RawEventData has 'JailbreakDetected' | mv-apply M = parse_json(RawEventData).CopilotEventData.Messages on (where tostring(M.JailbreakDetected) =~ 'true');\nlet XP = BusinessUnitEvents | where RawEventData has 'XPIADetected' | mv-apply R = parse_json(RawEventData).CopilotEventData.AccessedResources on (where tostring(R.XPIADetected) =~ 'true');\nlet RES = BusinessUnitEvents | where RawEventData has 'CopilotEventData' | mv-expand Res = parse_json(RawEventData).CopilotEventData.AccessedResources | summarize v = todouble(dcount(tostring(Res.Name)));\nunion\n(RES | extend Metric = 'Resources accessed', o = 1),\n(JB | summarize v = todouble(count()) | extend Metric = 'Jailbreak detections', o = 2),\n(XP | summarize v = todouble(count()) | extend Metric = 'XPIA detections', o = 3)\n| order by o asc\n| project Metric, Value = v",
+              "size": 4,
+              "showAnalytics": true,
+              "title": "Security signals",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "Metric",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  }
+                },
+                "showBorder": false,
+                "size": "auto"
+              }
+            },
+            "name": "exec-sec-tiles"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Daily jailbreak attempts versus cross prompt injection (XPIA) detections, so spikes are easy to spot."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-exec-abuse-trend"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let BusinessUnitAccounts = IdentityInfo\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, CompanyName) by AccountObjectId\n| extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n| where Company in ({BusinessUnit})\n| project AccountObjectId;\nlet BusinessUnitEvents = materialize(\n    CloudAppEvents\n    | where ActionType == \"CopilotInteraction\"\n    | where 'value::all' in ({BusinessUnit}) or AccountObjectId in (BusinessUnitAccounts)\n);\nlet JB = BusinessUnitEvents | where RawEventData has 'JailbreakDetected' | mv-apply M = parse_json(RawEventData).CopilotEventData.Messages on (where tostring(M.JailbreakDetected) =~ 'true') | summarize Detections = count() by bin(Timestamp, 1d) | extend ThreatType = 'Jailbreak'; let XP = BusinessUnitEvents | where RawEventData has 'XPIADetected' | mv-apply R = parse_json(RawEventData).CopilotEventData.AccessedResources on (where tostring(R.XPIADetected) =~ 'true') | summarize Detections = count() by bin(Timestamp, 1d) | extend ThreatType = 'XPIA'; union JB, XP | order by Timestamp asc",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Abuse signals over time (Jailbreak vs XPIA)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "timechart"
+            },
+            "name": "exec-abuse-trend"
+          }
+        ]
+      },
+      "conditionalVisibilities": [
+        {
+          "parameterName": "selectedTab",
+          "comparison": "isNotEqualTo",
+          "value": "adoption"
+        },
+        {
+          "parameterName": "selectedTab",
+          "comparison": "isNotEqualTo",
+          "value": "user"
+        },
+        {
+          "parameterName": "selectedTab",
+          "comparison": "isNotEqualTo",
+          "value": "threats"
+        },
+        {
+          "parameterName": "selectedTab",
+          "comparison": "isNotEqualTo",
+          "value": "data"
+        },
+        {
+          "parameterName": "selectedTab",
+          "comparison": "isNotEqualTo",
+          "value": "threatsdev"
+        }
+      ],
+      "name": "group-exec"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "## Adoption & usage\nEngagement quality, onboarding momentum and where Copilot is landing across people and surfaces."
+            },
+            "name": "ad-header"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Engagement-quality KPIs: monthly active users (MAU), average daily active users (DAU), stickiness (DAU/MAU, how many monthly users show up on an average day), power users with 20+ interactions, and returning users active on 2+ days."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-ad-eng-kpi"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let Identities = materialize(\n    IdentityInfo\n    | project TimeGenerated, AccountObjectId, AccountUPN, AccountDisplayName, CompanyName, Department\n);\nlet idsByObj = Identities\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, AccountUPN, AccountDisplayName, CompanyName, Department) by AccountObjectId;\nlet idsByUpn = Identities\n| where isnotempty(AccountUPN)\n| summarize arg_max(TimeGenerated, AccountDisplayName, CompanyName, Department) by UPNkey = tolower(tostring(AccountUPN));\nlet cae = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| extend App = tostring(RawEventData.CopilotEventData.AppHost)\n| extend App = iff(isempty(App), \"[Unknown surface]\", App)\n| join kind=leftouter idsByObj on AccountObjectId\n| project TimeGenerated, UPN = tolower(coalesce(tostring(AccountUPN), tostring(AccountId))), DisplayName = coalesce(tostring(AccountDisplayName), tostring(AccountId)), Company = CompanyName, Department, App, Source = \"CloudAppEvents\";\nlet oa = OfficeActivity\n| where OfficeWorkload =~ \"Copilot\" or Operation =~ \"CopilotInteraction\"\n| extend UPNkey = tolower(tostring(UserId))\n| join kind=leftouter idsByUpn on UPNkey\n| project TimeGenerated, UPN = UPNkey, DisplayName = coalesce(tostring(AccountDisplayName), tostring(UserId)), Company = CompanyName, Department, App = \"[Surface unavailable]\", Source = \"OfficeActivity\";\nlet Copilot = union isfuzzy=true cae, oa\n| extend Company = iff(isempty(Company), \"Unknown\", replace_regex(toupper(trim(@\"\\s+\", tostring(Company))), @\"\\s+\", \" \"))\n| extend Department = iff(isempty(Department), \"Unknown\", replace_regex(trim(@\"\\s+\", tostring(Department)), @\"\\s+\", \" \"))\n| where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit});\nlet Base = materialize(Copilot);\nlet daily = Base | summarize u = dcount(UPN) by d = bin(TimeGenerated, 1d);\nlet mau = toscalar(Base | summarize dcount(UPN));\nlet avgdau = toscalar(daily | summarize avg(u));\nlet power = toscalar(Base | summarize c = count() by UPN | where c >= 20 | count);\nlet returning = toscalar(Base | summarize days = dcount(bin(TimeGenerated, 1d)) by UPN | where days >= 2 | count);\nunion\n(print Metric = \"Active users (MAU)\", Value = todouble(mau), o = 1),\n(print Metric = \"Avg daily active (DAU)\", Value = round(avgdau, 0), o = 2),\n(print Metric = \"Stickiness (DAU/MAU %)\", Value = iff(mau == 0, 0.0, round(100.0 * avgdau / mau, 1)), o = 3),\n(print Metric = \"Power users (20+)\", Value = todouble(power), o = 4),\n(print Metric = \"Returning users (2+ days)\", Value = todouble(returning), o = 5)\n| order by o asc\n| project Metric, Value",
+              "size": 4,
+              "showAnalytics": true,
+              "title": "Engagement summary",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "Metric",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  }
+                },
+                "showBorder": false,
+                "size": "auto"
+              }
+            },
+            "name": "ad-eng-kpi"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "The 100 most active users with interactions, surfaces used, active days, and first and last seen. Use the filter box to search."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-ad-top-users"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let Identities = materialize(\n    IdentityInfo\n    | project TimeGenerated, AccountObjectId, AccountUPN, AccountDisplayName, CompanyName, Department\n);\nlet idsByObj = Identities\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, AccountUPN, AccountDisplayName, CompanyName, Department) by AccountObjectId;\nlet idsByUpn = Identities\n| where isnotempty(AccountUPN)\n| summarize arg_max(TimeGenerated, AccountDisplayName, CompanyName, Department) by UPNkey = tolower(tostring(AccountUPN));\nlet cae = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| extend App = tostring(RawEventData.CopilotEventData.AppHost)\n| extend App = iff(isempty(App), \"[Unknown surface]\", App)\n| join kind=leftouter idsByObj on AccountObjectId\n| project TimeGenerated, UPN = tolower(coalesce(tostring(AccountUPN), tostring(AccountId))), DisplayName = coalesce(tostring(AccountDisplayName), tostring(AccountId)), Company = CompanyName, Department, App, Source = \"CloudAppEvents\";\nlet oa = OfficeActivity\n| where OfficeWorkload =~ \"Copilot\" or Operation =~ \"CopilotInteraction\"\n| extend UPNkey = tolower(tostring(UserId))\n| join kind=leftouter idsByUpn on UPNkey\n| project TimeGenerated, UPN = UPNkey, DisplayName = coalesce(tostring(AccountDisplayName), tostring(UserId)), Company = CompanyName, Department, App = \"[Surface unavailable]\", Source = \"OfficeActivity\";\nlet Copilot = union isfuzzy=true cae, oa\n| extend Company = iff(isempty(Company), \"Unknown\", replace_regex(toupper(trim(@\"\\s+\", tostring(Company))), @\"\\s+\", \" \"))\n| extend Department = iff(isempty(Department), \"Unknown\", replace_regex(trim(@\"\\s+\", tostring(Department)), @\"\\s+\", \" \"))\n| where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit});\nCopilot\n| summarize Interactions = count(), [\"Surfaces used\"] = dcountif(App, App !startswith \"[\"), [\"Active days\"] = dcount(bin(TimeGenerated, 1d)), [\"First seen\"] = min(TimeGenerated), [\"Last seen\"] = max(TimeGenerated), User = take_any(DisplayName), Company = take_any(Company), Department = take_any(Department) by UPN\n| project User, UPN, Company, Department, Interactions, [\"Surfaces used\"], [\"Active days\"], [\"First seen\"], [\"Last seen\"]\n| order by Interactions desc\n| take 500",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Top 500 Copilot users",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Interactions",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "blue"
+                    }
+                  }
+                ],
+                "rowLimit": 500,
+                "filter": true
+              },
+              "sortBy": []
+            },
+            "name": "ad-top-users"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Distinct users per day, showing day-to-day rhythm and momentum."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-ad-dau-trend"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let Identities = materialize(\n    IdentityInfo\n    | project TimeGenerated, AccountObjectId, AccountUPN, AccountDisplayName, CompanyName, Department\n);\nlet idsByObj = Identities\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, AccountUPN, AccountDisplayName, CompanyName, Department) by AccountObjectId;\nlet idsByUpn = Identities\n| where isnotempty(AccountUPN)\n| summarize arg_max(TimeGenerated, AccountDisplayName, CompanyName, Department) by UPNkey = tolower(tostring(AccountUPN));\nlet cae = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| extend App = tostring(RawEventData.CopilotEventData.AppHost)\n| extend App = iff(isempty(App), \"[Unknown surface]\", App)\n| join kind=leftouter idsByObj on AccountObjectId\n| project TimeGenerated, UPN = tolower(coalesce(tostring(AccountUPN), tostring(AccountId))), DisplayName = coalesce(tostring(AccountDisplayName), tostring(AccountId)), Company = CompanyName, Department, App, Source = \"CloudAppEvents\";\nlet oa = OfficeActivity\n| where OfficeWorkload =~ \"Copilot\" or Operation =~ \"CopilotInteraction\"\n| extend UPNkey = tolower(tostring(UserId))\n| join kind=leftouter idsByUpn on UPNkey\n| project TimeGenerated, UPN = UPNkey, DisplayName = coalesce(tostring(AccountDisplayName), tostring(UserId)), Company = CompanyName, Department, App = \"[Surface unavailable]\", Source = \"OfficeActivity\";\nlet Copilot = union isfuzzy=true cae, oa\n| extend Company = iff(isempty(Company), \"Unknown\", replace_regex(toupper(trim(@\"\\s+\", tostring(Company))), @\"\\s+\", \" \"))\n| extend Department = iff(isempty(Department), \"Unknown\", replace_regex(trim(@\"\\s+\", tostring(Department)), @\"\\s+\", \" \"))\n| where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit});\nCopilot\n| summarize [\"Daily active users\"] = dcount(UPN) by bin(TimeGenerated, 1d)\n| order by TimeGenerated asc",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Daily active users",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "areachart"
+            },
+            "name": "ad-dau-trend"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Running total of unique people who have adopted Copilot. First activity is measured within the selected window, so widen the range for a truer onboarding curve."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-ad-adoption-curve"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let Identities = materialize(\n    IdentityInfo\n    | project TimeGenerated, AccountObjectId, AccountUPN, AccountDisplayName, CompanyName, Department\n);\nlet idsByObj = Identities\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, AccountUPN, AccountDisplayName, CompanyName, Department) by AccountObjectId;\nlet idsByUpn = Identities\n| where isnotempty(AccountUPN)\n| summarize arg_max(TimeGenerated, AccountDisplayName, CompanyName, Department) by UPNkey = tolower(tostring(AccountUPN));\nlet cae = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| extend App = tostring(RawEventData.CopilotEventData.AppHost)\n| extend App = iff(isempty(App), \"[Unknown surface]\", App)\n| join kind=leftouter idsByObj on AccountObjectId\n| project TimeGenerated, UPN = tolower(coalesce(tostring(AccountUPN), tostring(AccountId))), DisplayName = coalesce(tostring(AccountDisplayName), tostring(AccountId)), Company = CompanyName, Department, App, Source = \"CloudAppEvents\";\nlet oa = OfficeActivity\n| where OfficeWorkload =~ \"Copilot\" or Operation =~ \"CopilotInteraction\"\n| extend UPNkey = tolower(tostring(UserId))\n| join kind=leftouter idsByUpn on UPNkey\n| project TimeGenerated, UPN = UPNkey, DisplayName = coalesce(tostring(AccountDisplayName), tostring(UserId)), Company = CompanyName, Department, App = \"[Surface unavailable]\", Source = \"OfficeActivity\";\nlet Copilot = union isfuzzy=true cae, oa\n| extend Company = iff(isempty(Company), \"Unknown\", replace_regex(toupper(trim(@\"\\s+\", tostring(Company))), @\"\\s+\", \" \"))\n| extend Department = iff(isempty(Department), \"Unknown\", replace_regex(trim(@\"\\s+\", tostring(Department)), @\"\\s+\", \" \"))\n| where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit});\nCopilot\n| summarize FirstSeen = min(bin(TimeGenerated, 1d)) by UPN\n| summarize NewAdopters = dcount(UPN) by Day = FirstSeen\n| order by Day asc\n| serialize Cumulative = row_cumsum(NewAdopters)\n| project TimeGenerated = Day, [\"Cumulative adopters\"] = Cumulative",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Cumulative Copilot adopters",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "areachart"
+            },
+            "customWidth": "50",
+            "name": "ad-adoption-curve"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Each day split into first-time adopters versus users who came back, separating acquisition from retention."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-ad-new-returning"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let Identities = materialize(\n    IdentityInfo\n    | project TimeGenerated, AccountObjectId, AccountUPN, AccountDisplayName, CompanyName, Department\n);\nlet idsByObj = Identities\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, AccountUPN, AccountDisplayName, CompanyName, Department) by AccountObjectId;\nlet idsByUpn = Identities\n| where isnotempty(AccountUPN)\n| summarize arg_max(TimeGenerated, AccountDisplayName, CompanyName, Department) by UPNkey = tolower(tostring(AccountUPN));\nlet cae = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| extend App = tostring(RawEventData.CopilotEventData.AppHost)\n| extend App = iff(isempty(App), \"[Unknown surface]\", App)\n| join kind=leftouter idsByObj on AccountObjectId\n| project TimeGenerated, UPN = tolower(coalesce(tostring(AccountUPN), tostring(AccountId))), DisplayName = coalesce(tostring(AccountDisplayName), tostring(AccountId)), Company = CompanyName, Department, App, Source = \"CloudAppEvents\";\nlet oa = OfficeActivity\n| where OfficeWorkload =~ \"Copilot\" or Operation =~ \"CopilotInteraction\"\n| extend UPNkey = tolower(tostring(UserId))\n| join kind=leftouter idsByUpn on UPNkey\n| project TimeGenerated, UPN = UPNkey, DisplayName = coalesce(tostring(AccountDisplayName), tostring(UserId)), Company = CompanyName, Department, App = \"[Surface unavailable]\", Source = \"OfficeActivity\";\nlet Copilot = union isfuzzy=true cae, oa\n| extend Company = iff(isempty(Company), \"Unknown\", replace_regex(toupper(trim(@\"\\s+\", tostring(Company))), @\"\\s+\", \" \"))\n| extend Department = iff(isempty(Department), \"Unknown\", replace_regex(trim(@\"\\s+\", tostring(Department)), @\"\\s+\", \" \"))\n| where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit});\nlet firstSeen = Copilot | summarize FirstSeen = min(bin(TimeGenerated, 1d)) by UPN;\nCopilot\n| summarize by UPN, Day = bin(TimeGenerated, 1d)\n| join kind=inner firstSeen on UPN\n| extend Cohort = iff(FirstSeen == Day, \"New adopter\", \"Returning user\")\n| summarize Users = dcount(UPN) by Day, Cohort\n| order by Day asc",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "New vs returning users",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "barchart",
+              "chartSettings": {
+                "showLegend": true
+              }
+            },
+            "customWidth": "50",
+            "name": "ad-new-returning"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Daily interaction volume stacked by Copilot app, showing which surfaces drive usage."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-ad-app-over-time"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let Identities = materialize(\n    IdentityInfo\n    | project TimeGenerated, AccountObjectId, AccountUPN, AccountDisplayName, CompanyName, Department\n);\nlet idsByObj = Identities\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, AccountUPN, AccountDisplayName, CompanyName, Department) by AccountObjectId;\nlet idsByUpn = Identities\n| where isnotempty(AccountUPN)\n| summarize arg_max(TimeGenerated, AccountDisplayName, CompanyName, Department) by UPNkey = tolower(tostring(AccountUPN));\nlet cae = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| extend App = tostring(RawEventData.CopilotEventData.AppHost)\n| extend App = iff(isempty(App), \"[Unknown surface]\", App)\n| join kind=leftouter idsByObj on AccountObjectId\n| project TimeGenerated, UPN = tolower(coalesce(tostring(AccountUPN), tostring(AccountId))), DisplayName = coalesce(tostring(AccountDisplayName), tostring(AccountId)), Company = CompanyName, Department, App, Source = \"CloudAppEvents\";\nlet oa = OfficeActivity\n| where OfficeWorkload =~ \"Copilot\" or Operation =~ \"CopilotInteraction\"\n| extend UPNkey = tolower(tostring(UserId))\n| join kind=leftouter idsByUpn on UPNkey\n| project TimeGenerated, UPN = UPNkey, DisplayName = coalesce(tostring(AccountDisplayName), tostring(UserId)), Company = CompanyName, Department, App = \"[Surface unavailable]\", Source = \"OfficeActivity\";\nlet Copilot = union isfuzzy=true cae, oa\n| extend Company = iff(isempty(Company), \"Unknown\", replace_regex(toupper(trim(@\"\\s+\", tostring(Company))), @\"\\s+\", \" \"))\n| extend Department = iff(isempty(Department), \"Unknown\", replace_regex(trim(@\"\\s+\", tostring(Department)), @\"\\s+\", \" \"))\n| where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit});\nCopilot\n| summarize Interactions = count() by bin(TimeGenerated, 1d), App\n| order by TimeGenerated asc",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Interactions by surface over time",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "barchart",
+              "chartSettings": {
+                "showLegend": true
+              }
+            },
+            "name": "ad-app-over-time"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Users grouped by how many interactions they ran (1, 2-4, up to 50+), separating triers from heavy users."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-ad-engagement-depth"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let Identities = materialize(\n    IdentityInfo\n    | project TimeGenerated, AccountObjectId, AccountUPN, AccountDisplayName, CompanyName, Department\n);\nlet idsByObj = Identities\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, AccountUPN, AccountDisplayName, CompanyName, Department) by AccountObjectId;\nlet idsByUpn = Identities\n| where isnotempty(AccountUPN)\n| summarize arg_max(TimeGenerated, AccountDisplayName, CompanyName, Department) by UPNkey = tolower(tostring(AccountUPN));\nlet cae = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| extend App = tostring(RawEventData.CopilotEventData.AppHost)\n| extend App = iff(isempty(App), \"[Unknown surface]\", App)\n| join kind=leftouter idsByObj on AccountObjectId\n| project TimeGenerated, UPN = tolower(coalesce(tostring(AccountUPN), tostring(AccountId))), DisplayName = coalesce(tostring(AccountDisplayName), tostring(AccountId)), Company = CompanyName, Department, App, Source = \"CloudAppEvents\";\nlet oa = OfficeActivity\n| where OfficeWorkload =~ \"Copilot\" or Operation =~ \"CopilotInteraction\"\n| extend UPNkey = tolower(tostring(UserId))\n| join kind=leftouter idsByUpn on UPNkey\n| project TimeGenerated, UPN = UPNkey, DisplayName = coalesce(tostring(AccountDisplayName), tostring(UserId)), Company = CompanyName, Department, App = \"[Surface unavailable]\", Source = \"OfficeActivity\";\nlet Copilot = union isfuzzy=true cae, oa\n| extend Company = iff(isempty(Company), \"Unknown\", replace_regex(toupper(trim(@\"\\s+\", tostring(Company))), @\"\\s+\", \" \"))\n| extend Department = iff(isempty(Department), \"Unknown\", replace_regex(trim(@\"\\s+\", tostring(Department)), @\"\\s+\", \" \"))\n| where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit});\nCopilot\n| summarize n = count() by UPN\n| extend Bucket = case(n >= 50, \"50+ (heavy)\", n >= 20, \"20-49\", n >= 10, \"10-19\", n >= 5, \"5-9\", n >= 2, \"2-4\", \"1 (tried once)\"), ord = case(n >= 50, 6, n >= 20, 5, n >= 10, 4, n >= 5, 3, n >= 2, 2, 1)\n| summarize Users = dcount(UPN) by Bucket, ord\n| order by ord asc\n| project Bucket, Users",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Engagement depth (interactions per user)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "barchart"
+            },
+            "customWidth": "50",
+            "name": "ad-engagement-depth"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Interactions and active users rolled up to functional teams from `IdentityInfo` (`Department`)."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-ad-by-dept"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let Identities = materialize(\n    IdentityInfo\n    | project TimeGenerated, AccountObjectId, AccountUPN, AccountDisplayName, CompanyName, Department\n);\nlet idsByObj = Identities\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, AccountUPN, AccountDisplayName, CompanyName, Department) by AccountObjectId;\nlet idsByUpn = Identities\n| where isnotempty(AccountUPN)\n| summarize arg_max(TimeGenerated, AccountDisplayName, CompanyName, Department) by UPNkey = tolower(tostring(AccountUPN));\nlet cae = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| extend App = tostring(RawEventData.CopilotEventData.AppHost)\n| extend App = iff(isempty(App), \"[Unknown surface]\", App)\n| join kind=leftouter idsByObj on AccountObjectId\n| project TimeGenerated, UPN = tolower(coalesce(tostring(AccountUPN), tostring(AccountId))), DisplayName = coalesce(tostring(AccountDisplayName), tostring(AccountId)), Company = CompanyName, Department, App, Source = \"CloudAppEvents\";\nlet oa = OfficeActivity\n| where OfficeWorkload =~ \"Copilot\" or Operation =~ \"CopilotInteraction\"\n| extend UPNkey = tolower(tostring(UserId))\n| join kind=leftouter idsByUpn on UPNkey\n| project TimeGenerated, UPN = UPNkey, DisplayName = coalesce(tostring(AccountDisplayName), tostring(UserId)), Company = CompanyName, Department, App = \"[Surface unavailable]\", Source = \"OfficeActivity\";\nlet Copilot = union isfuzzy=true cae, oa\n| extend Company = iff(isempty(Company), \"Unknown\", replace_regex(toupper(trim(@\"\\s+\", tostring(Company))), @\"\\s+\", \" \"))\n| extend Department = iff(isempty(Department), \"Unknown\", replace_regex(trim(@\"\\s+\", tostring(Department)), @\"\\s+\", \" \"))\n| where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit});\nCopilot\n| where Department != \"Unknown\"\n| summarize Interactions = count(), [\"Active users\"] = dcount(UPN) by Department\n| order by Interactions desc\n| take 15",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Usage by department (top 15)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "barchart"
+            },
+            "customWidth": "50",
+            "name": "ad-by-dept"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Per-business-unit table of active users, interactions, surfaces used, interactions per user, and last activity."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-ad-by-company"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let Identities = materialize(\n    IdentityInfo\n    | project TimeGenerated, AccountObjectId, AccountUPN, AccountDisplayName, CompanyName, Department\n);\nlet idsByObj = Identities\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, AccountUPN, AccountDisplayName, CompanyName, Department) by AccountObjectId;\nlet idsByUpn = Identities\n| where isnotempty(AccountUPN)\n| summarize arg_max(TimeGenerated, AccountDisplayName, CompanyName, Department) by UPNkey = tolower(tostring(AccountUPN));\nlet cae = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| extend App = tostring(RawEventData.CopilotEventData.AppHost)\n| extend App = iff(isempty(App), \"[Unknown surface]\", App)\n| join kind=leftouter idsByObj on AccountObjectId\n| project TimeGenerated, UPN = tolower(coalesce(tostring(AccountUPN), tostring(AccountId))), DisplayName = coalesce(tostring(AccountDisplayName), tostring(AccountId)), Company = CompanyName, Department, App, Source = \"CloudAppEvents\";\nlet oa = OfficeActivity\n| where OfficeWorkload =~ \"Copilot\" or Operation =~ \"CopilotInteraction\"\n| extend UPNkey = tolower(tostring(UserId))\n| join kind=leftouter idsByUpn on UPNkey\n| project TimeGenerated, UPN = UPNkey, DisplayName = coalesce(tostring(AccountDisplayName), tostring(UserId)), Company = CompanyName, Department, App = \"[Surface unavailable]\", Source = \"OfficeActivity\";\nlet Copilot = union isfuzzy=true cae, oa\n| extend Company = iff(isempty(Company), \"Unknown\", replace_regex(toupper(trim(@\"\\s+\", tostring(Company))), @\"\\s+\", \" \"))\n| extend Department = iff(isempty(Department), \"Unknown\", replace_regex(trim(@\"\\s+\", tostring(Department)), @\"\\s+\", \" \"))\n| where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit});\nCopilot\n| summarize [\"Active users\"] = dcount(UPN), Interactions = count(), [\"Surfaces used\"] = dcountif(App, App !startswith \"[\"), [\"Last active\"] = max(TimeGenerated) by Company\n| extend [\"Interactions / user\"] = iff([\"Active users\"] == 0, 0.0, round(todouble(Interactions) / todouble([\"Active users\"]), 1))\n| order by [\"Active users\"] desc",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Adoption by business unit",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "formatters": [
+                  {
+                    "columnMatch": "Active users",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "blue"
+                    }
+                  },
+                  {
+                    "columnMatch": "Interactions",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "green"
+                    }
+                  }
+                ],
+                "filter": true
+              },
+              "sortBy": []
+            },
+            "customWidth": "50",
+            "name": "ad-by-company"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "adoption"
+      },
+      "name": "group-adoption"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "Detections of user-initiated jailbreak attempts and cross prompt injection attacks (XPIA). Investigate spikes and repeat offenders using the detail grids below."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-threats"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "How this is built: expands CopilotEventData.Messages, keeps messages where JailbreakDetected is true, and counts them per day."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-threats-jb"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let BusinessUnitAccounts = IdentityInfo\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, CompanyName) by AccountObjectId\n| extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n| where Company in ({BusinessUnit})\n| project AccountObjectId;\nlet BusinessUnitEvents = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| where 'value::all' in ({BusinessUnit}) or AccountObjectId in (BusinessUnitAccounts);\nBusinessUnitEvents | where RawEventData has 'JailbreakDetected' | extend EventData = parse_json(RawEventData) | mv-apply Message = EventData.CopilotEventData.Messages on (where tostring(Message.JailbreakDetected) =~ 'true') | summarize JailbreakAttempts = count() by bin(Timestamp, 1d) | order by Timestamp asc",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Jailbreak Attempts (Daily)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "timechart"
+            },
+            "customWidth": "50",
+            "name": "threats-jb"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "How this is built: expands CopilotEventData.AccessedResources, keeps resources where XPIADetected is true, and counts them per day."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-threats-xpia"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let BusinessUnitAccounts = IdentityInfo\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, CompanyName) by AccountObjectId\n| extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n| where Company in ({BusinessUnit})\n| project AccountObjectId;\nlet BusinessUnitEvents = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| where 'value::all' in ({BusinessUnit}) or AccountObjectId in (BusinessUnitAccounts);\nBusinessUnitEvents | where RawEventData has 'XPIADetected' | extend EventData = parse_json(RawEventData) | mv-apply Resource = EventData.CopilotEventData.AccessedResources on (where tostring(Resource.XPIADetected) =~ 'true') | summarize XPIADetections = count() by bin(Timestamp, 1d) | order by Timestamp asc",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "XPIA Detections (Daily)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "timechart"
+            },
+            "customWidth": "50",
+            "name": "threats-xpia"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "How this is built: counts jailbreak-flagged messages per AccountDisplayName and keeps the top 15 as a bar chart to surface repeat offenders."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-threats-topjbusers"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let BusinessUnitAccounts = IdentityInfo\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, CompanyName) by AccountObjectId\n| extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n| where Company in ({BusinessUnit})\n| project AccountObjectId;\nlet BusinessUnitEvents = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| where 'value::all' in ({BusinessUnit}) or AccountObjectId in (BusinessUnitAccounts);\nBusinessUnitEvents | where RawEventData has 'JailbreakDetected' | extend EventData = parse_json(RawEventData) | mv-apply Message = EventData.CopilotEventData.Messages on (where tostring(Message.JailbreakDetected) =~ 'true') | extend UserId = coalesce(tostring(AccountObjectId), tostring(AccountId), tostring(AccountDisplayName)) | summarize Attempts = count(), User = take_any(AccountDisplayName) by UserId | top 15 by Attempts desc | project User, UserId, Attempts",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Top Users by Jailbreak Attempts",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "barchart"
+            },
+            "name": "threats-topjbusers"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Users whose Copilot-accessed resources were most often flagged for cross prompt injection (XPIA). Mirrors the jailbreak view to surface who is most exposed to injected content."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-threats-topxpiausers"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let BusinessUnitAccounts = IdentityInfo\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, CompanyName) by AccountObjectId\n| extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n| where Company in ({BusinessUnit})\n| project AccountObjectId;\nlet BusinessUnitEvents = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| where 'value::all' in ({BusinessUnit}) or AccountObjectId in (BusinessUnitAccounts);\nBusinessUnitEvents | where RawEventData has 'XPIADetected' | extend EventData = parse_json(RawEventData) | mv-apply Resource = EventData.CopilotEventData.AccessedResources on (where tostring(Resource.XPIADetected) =~ 'true') | extend UserId = coalesce(tostring(AccountObjectId), tostring(AccountId), tostring(AccountDisplayName)) | summarize Detections = count(), User = take_any(AccountDisplayName) by UserId | top 15 by Detections desc | project User, UserId, Detections",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Top Users by XPIA Exposure",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "barchart"
+            },
+            "name": "threats-topxpiausers"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "How this is built: lists each jailbreak-flagged message with user, app, IP address, country, and thread ID for investigation."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-threats-jbdetails"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let BusinessUnitAccounts = IdentityInfo\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, CompanyName) by AccountObjectId\n| extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n| where Company in ({BusinessUnit})\n| project AccountObjectId;\nlet BusinessUnitEvents = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| where 'value::all' in ({BusinessUnit}) or AccountObjectId in (BusinessUnitAccounts);\nBusinessUnitEvents | where RawEventData has 'JailbreakDetected' | extend EventData = parse_json(RawEventData) | extend AppHost = tostring(EventData.CopilotEventData.AppHost), ThreadId = tostring(EventData.CopilotEventData.ThreadId) | mv-apply Message = EventData.CopilotEventData.Messages on (where tostring(Message.JailbreakDetected) =~ 'true') | project Timestamp, AccountDisplayName, AppHost, IPAddress, CountryCode, ThreadId | order by Timestamp desc",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Jailbreak Detection Details",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "AccountDisplayName",
+                    "sortOrder": 1
+                  }
+                ]
+              },
+              "sortBy": [
+                {
+                  "itemKey": "AccountDisplayName",
+                  "sortOrder": 1
+                }
+              ]
+            },
+            "name": "threats-jbdetails"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "How this is built: lists each XPIA-flagged accessed resource with user, app, resource name, type, and action."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-threats-xpiadetails"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let BusinessUnitAccounts = IdentityInfo\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, CompanyName) by AccountObjectId\n| extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n| where Company in ({BusinessUnit})\n| project AccountObjectId;\nlet BusinessUnitEvents = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| where 'value::all' in ({BusinessUnit}) or AccountObjectId in (BusinessUnitAccounts);\nBusinessUnitEvents | where RawEventData has 'XPIADetected' | extend EventData = parse_json(RawEventData) | extend AppHost = tostring(EventData.CopilotEventData.AppHost) | mv-apply Resource = EventData.CopilotEventData.AccessedResources on (where tostring(Resource.XPIADetected) =~ 'true') | project Timestamp, AccountDisplayName, AppHost, ResourceName = tostring(Resource.Name), ResourceType = tostring(Resource.Type), Action = tostring(Resource.Action) | order by Timestamp desc",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "XPIA Detection Details",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "filter": true
+              }
+            },
+            "name": "threats-xpiadetails"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "threats"
+      },
+      "name": "group-threats"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 1,
+            "content": {
+              "json": "What content Copilot is grounding on. Track sensitivity-labeling coverage and the most accessed resources to spot oversharing risk."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-data"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "How this is built: expands accessed resources and classifies each as Labeled or Unlabeled based on whether a SensitivityLabelId is present, shown as a pie chart."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-data-labeled"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Share of Copilot-accessed resources that carry a sensitivity label, as a single coverage percentage. Higher is better; low coverage signals oversharing risk from unlabeled content."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-data-coverage"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let BusinessUnitAccounts = IdentityInfo\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, CompanyName) by AccountObjectId\n| extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n| where Company in ({BusinessUnit})\n| project AccountObjectId;\nlet BusinessUnitEvents = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| where 'value::all' in ({BusinessUnit}) or AccountObjectId in (BusinessUnitAccounts);\nBusinessUnitEvents\n| where RawEventData has 'CopilotEventData'\n| mv-expand Resource = parse_json(RawEventData).CopilotEventData.AccessedResources\n| extend Labeled = iif(isnotempty(tostring(Resource.SensitivityLabelId)), 1, 0)\n| summarize Labeled = sum(Labeled), Total = count()\n| extend Metric = 'Labeled coverage %', Value = iff(Total == 0, 0.0, round(100.0 * todouble(Labeled) / Total, 1))\n| project Metric, Value",
+              "size": 4,
+              "showAnalytics": true,
+              "title": "Sensitivity label coverage",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "Metric",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  }
+                },
+                "showBorder": false,
+                "size": "auto"
+              }
+            },
+            "name": "data-coverage"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let BusinessUnitAccounts = IdentityInfo\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, CompanyName) by AccountObjectId\n| extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n| where Company in ({BusinessUnit})\n| project AccountObjectId;\nlet BusinessUnitEvents = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| where 'value::all' in ({BusinessUnit}) or AccountObjectId in (BusinessUnitAccounts);\nBusinessUnitEvents | where RawEventData has 'CopilotEventData' | mv-expand Resource = parse_json(RawEventData).CopilotEventData.AccessedResources | extend Labeled = iif(isnotempty(tostring(Resource.SensitivityLabelId)), 'Labeled', 'Unlabeled') | summarize Accesses = count() by Labeled",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Grounding Data: Labeled vs Unlabeled",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "piechart"
+            },
+            "customWidth": "50",
+            "name": "data-labeled"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "How this is built: expands accessed resources, keeps those carrying a SensitivityLabelId, and counts accesses per label GUID."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-data-labels"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let BusinessUnitAccounts = IdentityInfo\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, CompanyName) by AccountObjectId\n| extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n| where Company in ({BusinessUnit})\n| project AccountObjectId;\nlet BusinessUnitEvents = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| where 'value::all' in ({BusinessUnit}) or AccountObjectId in (BusinessUnitAccounts);\nBusinessUnitEvents | where RawEventData has 'CopilotEventData' | mv-expand Resource = parse_json(RawEventData).CopilotEventData.AccessedResources | extend SensitivityLabelId = tostring(Resource.SensitivityLabelId) | where isnotempty(SensitivityLabelId) | summarize Accesses = count() by SensitivityLabelId | order by Accesses desc",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Accesses by Sensitivity Label ID",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "barchart"
+            },
+            "customWidth": "50",
+            "name": "data-labels"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "How this is built: expands accessed resources and counts accesses by resource Type (file, message, and so on)."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-data-types"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let BusinessUnitAccounts = IdentityInfo\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, CompanyName) by AccountObjectId\n| extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n| where Company in ({BusinessUnit})\n| project AccountObjectId;\nlet BusinessUnitEvents = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| where 'value::all' in ({BusinessUnit}) or AccountObjectId in (BusinessUnitAccounts);\nBusinessUnitEvents | where RawEventData has 'CopilotEventData' | mv-expand Resource = parse_json(RawEventData).CopilotEventData.AccessedResources | extend ResourceType = tostring(Resource.Type) | where isnotempty(ResourceType) | summarize Accesses = count() by ResourceType | order by Accesses desc",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Accesses by Resource Type",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "barchart"
+            },
+            "name": "data-types"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "How this is built: expands accessed resources and ranks the top 25 by access count, with resource type and action."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-data-topres"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let BusinessUnitAccounts = IdentityInfo\n| where isnotempty(AccountObjectId)\n| summarize arg_max(TimeGenerated, CompanyName) by AccountObjectId\n| extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n| where Company in ({BusinessUnit})\n| project AccountObjectId;\nlet BusinessUnitEvents = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| where 'value::all' in ({BusinessUnit}) or AccountObjectId in (BusinessUnitAccounts);\nBusinessUnitEvents | where RawEventData has 'CopilotEventData' | mv-expand Resource = parse_json(RawEventData).CopilotEventData.AccessedResources | extend ResourceName = tostring(Resource.Name), ResourceType = tostring(Resource.Type), Action = tostring(Resource.Action) | where isnotempty(ResourceName) | summarize Accesses = count() by ResourceName, ResourceType, Action | top 25 by Accesses desc",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Top Accessed Resources",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "filter": true
+              }
+            },
+            "name": "data-topres"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Sensitivity label IDs are GUIDs. Map them to display names using your Purview label taxonomy (for example Get-Label in Security & Compliance PowerShell) if you maintain a lookup table."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "note-labels"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "data"
+      },
+      "name": "group-data"
+    },
+    {
+      "type": 12,
+      "content": {
+        "version": "NotebookGroup/1.0",
+        "groupType": "editable",
+        "items": [
+          {
+            "type": 9,
+            "content": {
+              "version": "KqlParameterItem/1.0",
+              "parameters": [
+                {
+                  "id": "33333333-3333-3333-3333-333333333001",
+                  "version": "KqlParameterItem/1.0",
+                  "name": "User",
+                  "label": "User (UPN)",
+                  "type": 1,
+                  "description": "Enter User's Email (i.e. jane.doe.ctr@mail.mil)",
+                  "isRequired": true,
+                  "timeContext": {
+                    "durationMs": 7776000000
+                  },
+                  "value": "luke.v.swetland.ctr@socom.mil"
+                }
+              ],
+              "style": "pills",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces"
+            },
+            "name": "ud-params"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "## User drill-down\nPick a **user** above to review their Copilot activity - who they are, what surfaces they use, when they are active, and what content Copilot accessed on their behalf. Accessed-resource detail comes from `CloudAppEvents` (`CopilotEventData.AccessedResources`) and may be sparse for chat-only interactions."
+            },
+            "name": "ud-header"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Latest identity snapshot for the selected user: display name, UPN, business unit, and department."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-ud-identity"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let SelectedUpn = tolower('{User}');\nIdentityInfo\n| where isnotempty(SelectedUpn)\n| extend UPN = tolower(AccountUPN)\n| where UPN == SelectedUpn\n| summarize arg_max(TimeGenerated, AccountUPN, AccountDisplayName, CompanyName, Department) by UPN\n| extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n| where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit})\n| project [\"Display name\"] = AccountDisplayName, [\"Account UPN\"] = AccountUPN, [\"Company\"] = Company, [\"Department\"] = Department, [\"Identity snapshot\"] = TimeGenerated",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "User",
+              "timeContext": {
+                "durationMs": 7776000000
+              },
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "filter": true
+              }
+            },
+            "name": "ud-identity"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Headline totals for the selected user: total interactions, active days, surfaces used, and interactions per active day."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-ud-kpi"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let SelectedUpn = tolower('{User}');\nlet SelectedUser = materialize(\n    IdentityInfo\n    | where isnotempty(SelectedUpn)\n    | extend UPN = tolower(tostring(AccountUPN))\n    | where UPN == SelectedUpn\n    | summarize arg_max(TimeGenerated, AccountObjectId, CompanyName) by UPN\n    | extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n    | where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit})\n    | project AccountObjectId, UPN\n);\nlet SelectedObjectIds = SelectedUser\n| where isnotempty(AccountObjectId)\n| project AccountObjectId;\nlet cae = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| where AccountObjectId in (SelectedObjectIds)\n    or tolower(tostring(AccountId)) == SelectedUpn\n    or tolower(tostring(RawEventData.UserId)) == SelectedUpn\n| extend App = tostring(RawEventData.CopilotEventData.AppHost)\n| extend App = iff(isempty(App), \"[Unknown surface]\", App)\n| project TimeGenerated, App, Source = \"CloudAppEvents\";\nlet oa = OfficeActivity\n| where OfficeWorkload =~ \"Copilot\" or Operation =~ \"CopilotInteraction\"\n| where tolower(tostring(UserId)) == SelectedUpn\n| project TimeGenerated, App = \"[Surface unavailable]\", Source = \"OfficeActivity\";\nlet Copilot = union isfuzzy=true cae, oa;\nlet Base = materialize(Copilot);\nunion\n(Base | summarize v = todouble(count()) | extend Metric = \"Total interactions\", o = 1),\n(Base | summarize v = todouble(dcount(bin(TimeGenerated, 1d))) | extend Metric = \"Active days\", o = 2),\n(Base | summarize v = todouble(dcountif(App, App !startswith \"[\")) | extend Metric = \"Surfaces used\", o = 3),\n(Base | summarize n = count(), d = dcount(bin(TimeGenerated, 1d)) | extend v = iff(d == 0, 0.0, round(todouble(n) / d, 1)) | project v | extend Metric = \"Interactions per active day\", o = 4)\n| order by o asc\n| project Metric, Value = v",
+              "size": 4,
+              "showAnalytics": true,
+              "title": "Activity summary",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "tiles",
+              "tileSettings": {
+                "titleContent": {
+                  "columnMatch": "Metric",
+                  "formatter": 1
+                },
+                "leftContent": {
+                  "columnMatch": "Value",
+                  "formatter": 12,
+                  "formatOptions": {
+                    "palette": "auto"
+                  }
+                },
+                "showBorder": false,
+                "size": "auto"
+              }
+            },
+            "name": "ud-kpi"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Interactions per time bin for the selected user across the period."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-ud-timeline"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let SelectedUpn = tolower('{User}');\nlet SelectedUser = materialize(\n    IdentityInfo\n    | where isnotempty(SelectedUpn)\n    | extend UPN = tolower(tostring(AccountUPN))\n    | where UPN == SelectedUpn\n    | summarize arg_max(TimeGenerated, AccountObjectId, CompanyName) by UPN\n    | extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n    | where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit})\n    | project AccountObjectId, UPN\n);\nlet IsInScope = isnotempty(SelectedUpn)\n    and ('value::all' in ({BusinessUnit}) or toscalar(SelectedUser | count) > 0);\nlet SelectedObjectIds = SelectedUser\n| where isnotempty(AccountObjectId)\n| project AccountObjectId;\nlet cae = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| where IsInScope\n| where AccountObjectId in (SelectedObjectIds)\n    or tolower(tostring(AccountId)) == SelectedUpn\n    or tolower(tostring(RawEventData.UserId)) == SelectedUpn\n| extend App = tostring(RawEventData.CopilotEventData.AppHost)\n| extend App = iff(isempty(App), \"[Unknown surface]\", App)\n| project TimeGenerated, App, Source = \"CloudAppEvents\";\nlet oa = OfficeActivity\n| where OfficeWorkload =~ \"Copilot\" or Operation =~ \"CopilotInteraction\"\n| where IsInScope and tolower(tostring(UserId)) == SelectedUpn\n| project TimeGenerated, App = \"[Surface unavailable]\", Source = \"OfficeActivity\";\nlet Copilot = union isfuzzy=true cae, oa;\nCopilot\n| summarize [\"Interactions\"] = count() by bin(TimeGenerated, {TimeRange:grain})\n| order by TimeGenerated asc",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Copilot activity over time",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "areachart"
+            },
+            "name": "ud-timeline"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "When in the day the user is active, bucketed by hour (UTC)."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-ud-hour"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let SelectedUpn = tolower('{User}');\nlet SelectedUser = materialize(\n    IdentityInfo\n    | where isnotempty(SelectedUpn)\n    | extend UPN = tolower(tostring(AccountUPN))\n    | where UPN == SelectedUpn\n    | summarize arg_max(TimeGenerated, AccountObjectId, CompanyName) by UPN\n    | extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n    | where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit})\n    | project AccountObjectId, UPN\n);\nlet IsInScope = isnotempty(SelectedUpn)\n    and ('value::all' in ({BusinessUnit}) or toscalar(SelectedUser | count) > 0);\nlet SelectedObjectIds = SelectedUser\n| where isnotempty(AccountObjectId)\n| project AccountObjectId;\nlet cae = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| where IsInScope\n| where AccountObjectId in (SelectedObjectIds)\n    or tolower(tostring(AccountId)) == SelectedUpn\n    or tolower(tostring(RawEventData.UserId)) == SelectedUpn\n| extend App = tostring(RawEventData.CopilotEventData.AppHost)\n| extend App = iff(isempty(App), \"[Unknown surface]\", App)\n| project TimeGenerated, App, Source = \"CloudAppEvents\";\nlet oa = OfficeActivity\n| where OfficeWorkload =~ \"Copilot\" or Operation =~ \"CopilotInteraction\"\n| where IsInScope and tolower(tostring(UserId)) == SelectedUpn\n| project TimeGenerated, App = \"[Surface unavailable]\", Source = \"OfficeActivity\";\nlet Copilot = union isfuzzy=true cae, oa;\nCopilot\n| extend Hour = hourofday(TimeGenerated)\n| summarize [\"Interactions\"] = count() by Hour\n| order by Hour asc",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Interactions by hour of day (UTC)",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "barchart"
+            },
+            "customWidth": "50",
+            "name": "ud-hour"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Which weekdays the user is most active."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-ud-dow"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let SelectedUpn = tolower('{User}');\nlet SelectedUser = materialize(\n    IdentityInfo\n    | where isnotempty(SelectedUpn)\n    | extend UPN = tolower(tostring(AccountUPN))\n    | where UPN == SelectedUpn\n    | summarize arg_max(TimeGenerated, AccountObjectId, CompanyName) by UPN\n    | extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n    | where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit})\n    | project AccountObjectId, UPN\n);\nlet IsInScope = isnotempty(SelectedUpn)\n    and ('value::all' in ({BusinessUnit}) or toscalar(SelectedUser | count) > 0);\nlet SelectedObjectIds = SelectedUser\n| where isnotempty(AccountObjectId)\n| project AccountObjectId;\nlet cae = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| where IsInScope\n| where AccountObjectId in (SelectedObjectIds)\n    or tolower(tostring(AccountId)) == SelectedUpn\n    or tolower(tostring(RawEventData.UserId)) == SelectedUpn\n| extend App = tostring(RawEventData.CopilotEventData.AppHost)\n| extend App = iff(isempty(App), \"[Unknown surface]\", App)\n| project TimeGenerated, App, Source = \"CloudAppEvents\";\nlet oa = OfficeActivity\n| where OfficeWorkload =~ \"Copilot\" or Operation =~ \"CopilotInteraction\"\n| where IsInScope and tolower(tostring(UserId)) == SelectedUpn\n| project TimeGenerated, App = \"[Surface unavailable]\", Source = \"OfficeActivity\";\nlet Copilot = union isfuzzy=true cae, oa;\nCopilot\n| extend DayNumber = toint(dayofweek(TimeGenerated) / 1d)\n| extend [\"Day\"] = case(DayNumber == 0, \"Sun\", DayNumber == 1, \"Mon\", DayNumber == 2, \"Tue\", DayNumber == 3, \"Wed\", DayNumber == 4, \"Thu\", DayNumber == 5, \"Fri\", \"Sat\")\n| summarize [\"Interactions\"] = count() by [\"Day\"], DayNumber\n| order by DayNumber asc\n| project [\"Day\"], [\"Interactions\"]",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Interactions by day of week",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "barchart"
+            },
+            "customWidth": "50",
+            "name": "ud-dow"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Which Copilot apps the user works in, by interaction count."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-ud-by-surface"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let SelectedUpn = tolower('{User}');\nlet SelectedUser = materialize(\n    IdentityInfo\n    | where isnotempty(SelectedUpn)\n    | extend UPN = tolower(tostring(AccountUPN))\n    | where UPN == SelectedUpn\n    | summarize arg_max(TimeGenerated, AccountObjectId, CompanyName) by UPN\n    | extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n    | where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit})\n    | project AccountObjectId, UPN\n);\nlet IsInScope = isnotempty(SelectedUpn)\n    and ('value::all' in ({BusinessUnit}) or toscalar(SelectedUser | count) > 0);\nlet SelectedObjectIds = SelectedUser\n| where isnotempty(AccountObjectId)\n| project AccountObjectId;\nlet cae = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| where IsInScope\n| where AccountObjectId in (SelectedObjectIds)\n    or tolower(tostring(AccountId)) == SelectedUpn\n    or tolower(tostring(RawEventData.UserId)) == SelectedUpn\n| extend App = tostring(RawEventData.CopilotEventData.AppHost)\n| extend App = iff(isempty(App), \"[Unknown surface]\", App)\n| project TimeGenerated, App, Source = \"CloudAppEvents\";\nlet oa = OfficeActivity\n| where OfficeWorkload =~ \"Copilot\" or Operation =~ \"CopilotInteraction\"\n| where IsInScope and tolower(tostring(UserId)) == SelectedUpn\n| project TimeGenerated, App = \"[Surface unavailable]\", Source = \"OfficeActivity\";\nlet Copilot = union isfuzzy=true cae, oa;\nCopilot\n| summarize [\"Interactions\"] = count() by App\n| order by [\"Interactions\"] desc",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Usage by Copilot surface",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "piechart"
+            },
+            "name": "ud-by-surface"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "The most recent interactions for the user with surface and source (up to 200 rows)."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-ud-recent"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let SelectedUpn = tolower('{User}');\nlet SelectedUser = materialize(\n    IdentityInfo\n    | where isnotempty(SelectedUpn)\n    | extend UPN = tolower(tostring(AccountUPN))\n    | where UPN == SelectedUpn\n    | summarize arg_max(TimeGenerated, AccountObjectId, CompanyName) by UPN\n    | extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n    | where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit})\n    | project AccountObjectId, UPN\n);\nlet IsInScope = isnotempty(SelectedUpn)\n    and ('value::all' in ({BusinessUnit}) or toscalar(SelectedUser | count) > 0);\nlet SelectedObjectIds = SelectedUser\n| where isnotempty(AccountObjectId)\n| project AccountObjectId;\nlet cae = CloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| where IsInScope\n| where AccountObjectId in (SelectedObjectIds)\n    or tolower(tostring(AccountId)) == SelectedUpn\n    or tolower(tostring(RawEventData.UserId)) == SelectedUpn\n| extend App = tostring(RawEventData.CopilotEventData.AppHost)\n| extend App = iff(isempty(App), \"[Unknown surface]\", App)\n| project TimeGenerated, App, Source = \"CloudAppEvents\";\nlet oa = OfficeActivity\n| where OfficeWorkload =~ \"Copilot\" or Operation =~ \"CopilotInteraction\"\n| where IsInScope and tolower(tostring(UserId)) == SelectedUpn\n| project TimeGenerated, App = \"[Surface unavailable]\", Source = \"OfficeActivity\";\nlet Copilot = union isfuzzy=true cae, oa;\nCopilot\n| project TimeGenerated, [\"Surface\"] = App, [\"Source\"] = Source\n| order by TimeGenerated desc\n| take 200",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Recent Copilot activity",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "TimeGenerated",
+                    "sortOrder": 2
+                  }
+                ]
+              },
+              "sortBy": [
+                {
+                  "itemKey": "TimeGenerated",
+                  "sortOrder": 2
+                }
+              ]
+            },
+            "name": "ud-recent"
+          },
+          {
+            "type": 1,
+            "content": {
+              "json": "Content Copilot referenced for the user, from `CopilotEventData.AccessedResources`. May be sparse for chat-only interactions."
+            },
+            "conditionalVisibility": {
+              "parameterName": "Help",
+              "comparison": "isEqualTo",
+              "value": "Show"
+            },
+            "name": "help-ud-resources"
+          },
+          {
+            "type": 3,
+            "content": {
+              "version": "KqlItem/1.0",
+              "query": "let SelectedUpn = tolower('{User}');\nlet SelectedUser = materialize(\n    IdentityInfo\n    | where isnotempty(SelectedUpn)\n    | extend UPN = tolower(tostring(AccountUPN))\n    | where UPN == SelectedUpn\n    | summarize arg_max(TimeGenerated, AccountObjectId, CompanyName) by UPN\n    | extend Company = replace_regex(toupper(trim(@\"\\s+\", tostring(CompanyName))), @\"\\s+\", \" \")\n    | where 'value::all' in ({BusinessUnit}) or Company in ({BusinessUnit})\n    | project AccountObjectId, UPN\n);\nlet IsInScope = isnotempty(SelectedUpn)\n    and ('value::all' in ({BusinessUnit}) or toscalar(SelectedUser | count) > 0);\nlet SelectedObjectIds = SelectedUser\n| where isnotempty(AccountObjectId)\n| project AccountObjectId;\nCloudAppEvents\n| where ActionType == \"CopilotInteraction\"\n| where IsInScope\n| where AccountObjectId in (SelectedObjectIds)\n    or tolower(tostring(AccountId)) == SelectedUpn\n    or tolower(tostring(RawEventData.UserId)) == SelectedUpn\n| extend Resource = todynamic(RawEventData.CopilotEventData.AccessedResources)\n| mv-expand Resource\n| extend [\"Resource\"] = tostring(Resource.Name), [\"Type\"] = tostring(Resource.Type), [\"Action\"] = tostring(Resource.Action), [\"Sensitivity label ID\"] = tostring(Resource.SensitivityLabelId), [\"Site/URL\"] = iff(isempty(tostring(Resource.SiteUrl)), tostring(Resource.FileUrl), tostring(Resource.SiteUrl))\n| where isnotempty([\"Resource\"]) or isnotempty([\"Type\"]) or isnotempty([\"Site/URL\"])\n| project TimeGenerated, [\"Resource\"], [\"Type\"], [\"Action\"], [\"Sensitivity label ID\"], [\"Site/URL\"]\n| order by TimeGenerated desc",
+              "size": 0,
+              "showAnalytics": true,
+              "title": "Resources accessed by Copilot",
+              "timeContextFromParameter": "TimeRange",
+              "queryType": 0,
+              "resourceType": "microsoft.operationalinsights/workspaces",
+              "crossComponentResources": [
+                "{Workspace}"
+              ],
+              "visualization": "table",
+              "gridSettings": {
+                "filter": true,
+                "sortBy": [
+                  {
+                    "itemKey": "TimeGenerated",
+                    "sortOrder": 2
+                  }
+                ]
+              },
+              "sortBy": [
+                {
+                  "itemKey": "TimeGenerated",
+                  "sortOrder": 2
+                }
+              ]
+            },
+            "name": "ud-resources"
+          }
+        ]
+      },
+      "conditionalVisibility": {
+        "parameterName": "selectedTab",
+        "comparison": "isEqualTo",
+        "value": "user"
+      },
+      "name": "group-user"
+    }
+  ],
+  "fallbackResourceIds": [
+    "/subscriptions/c698221d-1ed4-410a-8e74-b91ad6669850/resourcegroups/dodin_sentinel_rg/providers/microsoft.operationalinsights/workspaces/dodin-sentinel-law"
+  ],
+  "fromTemplateId": "sentinel-UserWorkbook",
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

@@ -1,6 +1,6 @@
 # AI Activity and Exposure Investigation Workbook
 
-A Microsoft Sentinel workbook for investigating artificial intelligence activity across MDE onboarded Windows, macOS, and Linux devices. The workbook includes approved Microsoft 365 Copilot activity and nonapproved artificial intelligence activity in the same investigation surface.
+AI activity moves through browsers, scripts, APIs, local tools, and agents, often without a single investigation path. This Microsoft Sentinel workbook shows who used which AI service, from what device, how it was accessed, and when and where the activity occurred across MDE onboarded Windows, macOS, and Linux devices. It separates approved Microsoft 365 Copilot from nonapproved activity and connects users, devices, domains, processes, files, MCP evidence, and Defender alerts so analysts can quickly determine why an event needs review.
 
 ## What This Package Contains
 

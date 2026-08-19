@@ -138,6 +138,8 @@ The device and account filters are text filters. They are not identity pickers. 
 | Top 5 Accounts Creating or Running Local AI | Accounts associated with local AI artifacts or execution | Assign ownership |
 | Local AI Tool, Model, Installer, Owner, and Response Evidence | Detailed tool, model, installer, owner, and response fields | Document the local AI investigation |
 
+![Local AI tab](screenshots/05-local-ai.png)
+
 **Important interpretation:** File presence alone does not prove execution. Use process events, execution timestamps, hashes, and user context to distinguish an installer download from a running local model.
 
 ### 6. Agents and MCP

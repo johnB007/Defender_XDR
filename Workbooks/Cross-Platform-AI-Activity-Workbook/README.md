@@ -205,7 +205,7 @@ Use one of the deployment buttons below.
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FCross-Platform-AI-Activity-Workbook%2Fazuredeploy.json)
 
-[![Deploy to Azure Gov](https://img.shields.io/badge/Deploy%20to%20Azure%20Gov-0078D4?logo=microsoftazure&logoColor=white)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FCross-Platform-AI-Activity-Workbook%2Fazuredeploy.json)
+<a href="https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FCross-Platform-AI-Activity-Workbook%2Fazuredeploy.json"><img src="https://img.shields.io/badge/Deploy%20to%20Azure%20Gov-0078D4?logo=microsoftazure&logoColor=white" alt="Deploy to Azure Gov" width="209" height="42"></a>
 
 ## License And Attribution
 

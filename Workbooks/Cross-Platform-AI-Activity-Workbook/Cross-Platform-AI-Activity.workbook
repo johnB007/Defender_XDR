@@ -5,7 +5,7 @@
       "type": 1,
       "content": {
         "version": "NotebookText/1.0",
-        "json": "# AI Exposure Investigator\n\nPrioritized evidence and response actions across MDE onboarded Windows, macOS, and Linux devices. AI apps ranked by users, with devices, endpoint events, and remote IPs. M365 Copilot approved. Domains from the MIT licensed v2fly community list: https://github.com/v2fly/domain-list-community",
+        "json": "# AI Activity and Exposure Investigation Workbook\n\nPrioritized evidence and response actions across MDE onboarded Windows, macOS, and Linux devices. AI apps ranked by users, with devices, endpoint events, and remote IPs. M365 Copilot approved. Domains from the MIT licensed v2fly community list: https://github.com/v2fly/domain-list-community",
         "style": "info"
       },
       "name": "workbook-header"

@@ -86,6 +86,8 @@ The device and account filters are text filters. They are not identity pickers. 
 | Unauthorized AI Access Records by Account, Device, Service, and Process | Detailed access records joining user, device, service, process, and URL context | Build an investigation timeline |
 | Nonapproved Provider and Domain Governance Inventory | Provider, domain, approval state, activity, users, devices, and response context | Review domain classification and governance coverage |
 
+![Unauthorized AI tab](screenshots/02-unauthorized-ai.png)
+
 **Important interpretation:** A network event can represent a browser request, application request, background request, or service dependency. Review the initiating process and user fields before assigning intent.
 
 ### 3. Sensitive File and AI Correlation

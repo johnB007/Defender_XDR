@@ -1254,7 +1254,7 @@ $Groups = @(
 $Workbook = [ordered]@{
     version = 'Notebook/1.0'
     items = @(
-        (New-TextItem -Name 'workbook-header' -Text "# Unauthorized AI Investigation`n`nPrioritized evidence and response actions across MDE onboarded Windows, macOS, and Linux devices. AI apps ranked by users, with devices, endpoint events, and remote IPs. M365 Copilot approved. Domains from the MIT licensed v2fly community list: https://github.com/v2fly/domain-list-community" -Style 'info'),
+        (New-TextItem -Name 'workbook-header' -Text "# AI Exposure Investigator`n`nPrioritized evidence and response actions across MDE onboarded Windows, macOS, and Linux devices. AI apps ranked by users, with devices, endpoint events, and remote IPs. M365 Copilot approved. Domains from the MIT licensed v2fly community list: https://github.com/v2fly/domain-list-community" -Style 'info'),
         $Parameters,
         $TabNavigation
     ) + $Groups

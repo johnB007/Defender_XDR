@@ -1,4 +1,4 @@
-# Cross Platform AI Activity Workbook
+# AI Exposure Investigator
 
 A Microsoft Sentinel workbook for investigating artificial intelligence activity across MDE onboarded Windows, macOS, and Linux devices. The workbook includes approved Microsoft 365 Copilot activity and nonapproved artificial intelligence activity in the same investigation surface.
 

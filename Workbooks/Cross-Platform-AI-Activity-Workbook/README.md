@@ -47,7 +47,7 @@ The device and account filters are text filters. They are not identity pickers. 
 
 ### 1. AI Activity Overview
 
-**Purpose:** Start with the broadest view of artificial intelligence activity across the selected time range.
+**Purpose:** Establish the broadest view of AI activity across the selected period, showing the providers, users, devices, IP addresses, and access methods that drive exposure. Use it to identify spikes, prioritize the services with the widest reach, and pivot into the focused investigation tabs.
 
 **Panels:**
 
@@ -64,7 +64,7 @@ The device and account filters are text filters. They are not identity pickers. 
 
 ### 2. Unauthorized AI
 
-**Purpose:** Focus on services that are not in the approved Microsoft 365 Copilot set.
+**Purpose:** Focus on nonapproved AI services by connecting network activity to accounts, devices, processes, and destination domains. Use it to validate business purpose, identify repeated or scripted use, and prioritize governance review or containment.
 
 **Panels:**
 
@@ -82,7 +82,7 @@ The device and account filters are text filters. They are not identity pickers. 
 
 ### 3. Sensitive File and AI Correlation
 
-**Purpose:** Identify cases where sensitive file activity is followed by artificial intelligence access.
+**Purpose:** Identify time bounded cases where sensitive file activity is followed by AI access, giving analysts a focused lead across the user, device, process, file, and destination service. Use these correlations to prioritize evidence preservation, validate business need and data handling, and determine whether containment or DLP review is warranted; correlation alone does not prove file upload.
 
 **Panels:**
 
@@ -100,7 +100,7 @@ The device and account filters are text filters. They are not identity pickers. 
 
 ### 4. Automation and API
 
-**Purpose:** Find artificial intelligence access initiated by scripts, command shells, automation, or API clients.
+**Purpose:** Identify AI access initiated by scripts, command shells, automation, and API clients, with the command context needed to understand how the connection was made. Use it to investigate ownership, credentials, data handling, and whether the automation should be approved, remediated, or contained.
 
 **Panels:**
 
@@ -117,7 +117,7 @@ The device and account filters are text filters. They are not identity pickers. 
 
 ### 5. Local AI
 
-**Purpose:** Identify local artificial intelligence tools, installers, model files, and local web interfaces that may not create obvious cloud service activity.
+**Purpose:** Identify local AI executables, installers, model files, and local web interfaces that may not create obvious cloud service activity. Use it to distinguish file artifacts from actual execution, confirm ownership, and determine whether local AI use is permitted or requires review.
 
 **Panels:**
 
@@ -134,7 +134,7 @@ The device and account filters are text filters. They are not identity pickers. 
 
 ### 6. Agents and MCP
 
-**Purpose:** Identify agent frameworks, agent tools, MCP clients, MCP server commands, instruction files, and configuration evidence.
+**Purpose:** Identify agent frameworks, agent tools, MCP clients, MCP server commands, instruction files, and configuration evidence that shows how AI tools are connected and invoked. Use it to review ownership, configured servers, permissions, credentials, and the scope of agent activity before allowing or escalating its use.
 
 **Panels:**
 
@@ -153,7 +153,7 @@ The device and account filters are text filters. They are not identity pickers. 
 
 ### 7. Investigation
 
-**Purpose:** Consolidate findings that need analyst attention and correlate them with existing Defender alerts.
+**Purpose:** Consolidate AI evidence that needs analyst attention and correlate it with existing Defender alerts on the same devices. Use it to rank the investigation queue, compare timelines, and decide whether the signals are related before escalating or containing a device.
 
 **Panels:**
 
@@ -170,7 +170,7 @@ The device and account filters are text filters. They are not identity pickers. 
 
 ### 8. Web Tracking
 
-**Purpose:** Provide the broadest approved versus nonapproved application inventory and corroborate browser paste audit records.
+**Purpose:** Provide the broadest approved versus nonapproved AI application inventory and corroborate browser paste audit records with user, device, process, domain, and policy context. Use it to compare approved Microsoft 365 Copilot activity with nonapproved services, assess governance gaps, and prioritize follow up without treating a paste event as proof of upload.
 
 **Panels:**
 

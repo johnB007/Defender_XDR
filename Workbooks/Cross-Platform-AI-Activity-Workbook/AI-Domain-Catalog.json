@@ -1,0 +1,1185 @@
+{
+  "Source": "https://github.com/v2fly/domain-list-community",
+  "License": "MIT",
+  "RetrievedUtc": "2026-08-19T13:54:04.4510540Z",
+  "Roots": [
+    "category-ai-!cn",
+    "category-ai-cn"
+  ],
+  "Supplements": [
+    {
+      "Domain": "api.githubcopilot.com",
+      "Provider": "GitHub Copilot MCP"
+    },
+    {
+      "Domain": "api.enterprise.githubcopilot.com",
+      "Provider": "GitHub Copilot Enterprise API"
+    },
+    {
+      "Domain": "mcp.atlassian.com",
+      "Provider": "Atlassian MCP"
+    }
+  ],
+  "Entries": [
+    {
+      "Domain": "agentclientprotocol.com",
+      "Provider": "Agentclientprotocol"
+    },
+    {
+      "Domain": "ai.google.dev",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "ai.studio",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "ai.zhaomi.cn",
+      "Provider": "AI"
+    },
+    {
+      "Domain": "aicode.googleapis.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "aida.googleapis.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "aisandbox-pa.googleapis.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "aispeech.com",
+      "Provider": "Aispeech"
+    },
+    {
+      "Domain": "aistudio.google.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "alkalicore-pa.clients6.google.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "alkalimakersuite-pa.clients6.google.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "antafu.com",
+      "Provider": "Antafu"
+    },
+    {
+      "Domain": "antaq.com",
+      "Provider": "Antaq"
+    },
+    {
+      "Domain": "anthropic.com",
+      "Provider": "Anthropic"
+    },
+    {
+      "Domain": "antigravity-pa.googleapis.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "antigravity-unleash.goog",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "antigravity.google",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "antigravity.googleapis.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "anythingllm.com",
+      "Provider": "Anythingllm"
+    },
+    {
+      "Domain": "aorizon.cn",
+      "Provider": "Aorizon"
+    },
+    {
+      "Domain": "api-building.fun",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "api.enterprise.githubcopilot.com",
+      "Provider": "GitHub Copilot Enterprise API"
+    },
+    {
+      "Domain": "api.githubcopilot.com",
+      "Provider": "GitHub Copilot MCP"
+    },
+    {
+      "Domain": "arena.ai",
+      "Provider": "Arena"
+    },
+    {
+      "Domain": "askdiandian.com",
+      "Provider": "Askdiandian"
+    },
+    {
+      "Domain": "baichuan-ai.com",
+      "Provider": "Baichuan AI"
+    },
+    {
+      "Domain": "bard.google.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "bigmodel.cn",
+      "Provider": "Bigmodel"
+    },
+    {
+      "Domain": "browser-intake-datadoghq.com",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "building.fun",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "butterfly-static.cn",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "butterflyai.cn",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "cerebras.ai",
+      "Provider": "Cerebras"
+    },
+    {
+      "Domain": "chat.com",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "chatglm.cn",
+      "Provider": "Chatglm"
+    },
+    {
+      "Domain": "chatgpt.com",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "chatgpt.livekit.cloud",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "chatgpt.site",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "chutes.ai",
+      "Provider": "Chutes"
+    },
+    {
+      "Domain": "cici.com",
+      "Provider": "Dola"
+    },
+    {
+      "Domain": "ciciai.com",
+      "Provider": "Dola"
+    },
+    {
+      "Domain": "ciciaicdn.com",
+      "Provider": "Dola"
+    },
+    {
+      "Domain": "clau.de",
+      "Provider": "Anthropic"
+    },
+    {
+      "Domain": "claude.ai",
+      "Provider": "Anthropic"
+    },
+    {
+      "Domain": "claude.com",
+      "Provider": "Anthropic"
+    },
+    {
+      "Domain": "claudemcpclient.com",
+      "Provider": "Anthropic"
+    },
+    {
+      "Domain": "claudemcpcontent.com",
+      "Provider": "Anthropic"
+    },
+    {
+      "Domain": "claudeusercontent.com",
+      "Provider": "Anthropic"
+    },
+    {
+      "Domain": "clawhub-mirror.com",
+      "Provider": "Clawhub Mirror"
+    },
+    {
+      "Domain": "clawhub.ai",
+      "Provider": "Clawhub"
+    },
+    {
+      "Domain": "clipdrop.co",
+      "Provider": "Clipdrop"
+    },
+    {
+      "Domain": "cloudaicompanion.googleapis.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "cloudcode-pa.googleapis.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "codebuddy.cn",
+      "Provider": "Codebuddy"
+    },
+    {
+      "Domain": "codeium.com",
+      "Provider": "Windsurf"
+    },
+    {
+      "Domain": "codeiumdata.com",
+      "Provider": "Windsurf"
+    },
+    {
+      "Domain": "coderabbit.ai",
+      "Provider": "Coderabbit"
+    },
+    {
+      "Domain": "coderabbit.gallery.vsassets.io",
+      "Provider": "Coderabbit"
+    },
+    {
+      "Domain": "cohere.ai",
+      "Provider": "Cohere"
+    },
+    {
+      "Domain": "cohere.com",
+      "Provider": "Cohere"
+    },
+    {
+      "Domain": "comfy.org",
+      "Provider": "Comfy"
+    },
+    {
+      "Domain": "comfyci.org",
+      "Provider": "Comfy"
+    },
+    {
+      "Domain": "comfyregistry.org",
+      "Provider": "Comfy"
+    },
+    {
+      "Domain": "copilot-proxy.githubusercontent.com",
+      "Provider": "GitHub Copilot"
+    },
+    {
+      "Domain": "copilot-stg.com",
+      "Provider": "Copilot Stg"
+    },
+    {
+      "Domain": "copilot-telemetry-service.githubusercontent.com",
+      "Provider": "GitHub Copilot"
+    },
+    {
+      "Domain": "copilot-telemetry.githubusercontent.com",
+      "Provider": "GitHub Copilot"
+    },
+    {
+      "Domain": "copilot-workspace.githubnext.com",
+      "Provider": "GitHub Copilot"
+    },
+    {
+      "Domain": "copilot.cloud.microsoft",
+      "Provider": "Copilot"
+    },
+    {
+      "Domain": "copilot.com",
+      "Provider": "Copilot"
+    },
+    {
+      "Domain": "copilot.microsoft.com",
+      "Provider": "Copilot"
+    },
+    {
+      "Domain": "copilotprodattachments.blob.core.windows.net",
+      "Provider": "GitHub Copilot"
+    },
+    {
+      "Domain": "coze-dns-01.com",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "coze.cn",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "coze.com",
+      "Provider": "Bytedance AI"
+    },
+    {
+      "Domain": "coze.email",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "coze.site",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "cozeapp.net",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "cozebaas.cn",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "cozebuild.com",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "cozecdn.com",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "cozedeploy.com",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "cozefn.cn",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "cozeide.cn",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "cozesdk.com",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "cozetest.cn",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "cozetest2.cn",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "cozetest3.cn",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "crewai.com",
+      "Provider": "Crewai"
+    },
+    {
+      "Domain": "crixet.com",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "cueme-api.quark.cn",
+      "Provider": "Cueme Api"
+    },
+    {
+      "Domain": "cueme.cn",
+      "Provider": "Cueme"
+    },
+    {
+      "Domain": "cursor-cdn.com",
+      "Provider": "Cursor"
+    },
+    {
+      "Domain": "cursor.com",
+      "Provider": "Cursor"
+    },
+    {
+      "Domain": "cursor.sh",
+      "Provider": "Cursor"
+    },
+    {
+      "Domain": "cursorapi.com",
+      "Provider": "Cursor"
+    },
+    {
+      "Domain": "daily-cloudcode-pa.googleapis.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "dbbuilding.fun",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "deepmind.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "deepmind.google",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "deepseek.com",
+      "Provider": "Deepseek"
+    },
+    {
+      "Domain": "deepwiki.com",
+      "Provider": "Deepwiki"
+    },
+    {
+      "Domain": "deepwiki.org",
+      "Provider": "Deepwiki"
+    },
+    {
+      "Domain": "devin.ai",
+      "Provider": "Devin"
+    },
+    {
+      "Domain": "diabrowser.com",
+      "Provider": "Diabrowser"
+    },
+    {
+      "Domain": "diabrowser.engineering",
+      "Provider": "Diabrowser"
+    },
+    {
+      "Domain": "diandianlife.top",
+      "Provider": "Askdiandian"
+    },
+    {
+      "Domain": "dify.ai",
+      "Provider": "Dify"
+    },
+    {
+      "Domain": "dola.com",
+      "Provider": "Dola"
+    },
+    {
+      "Domain": "doubao-dev.com",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "doubao.com",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "doubaocdn.com",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "doudou.com",
+      "Provider": "Trae"
+    },
+    {
+      "Domain": "duck.ai",
+      "Provider": "Duck"
+    },
+    {
+      "Domain": "dui.ai",
+      "Provider": "Dui"
+    },
+    {
+      "Domain": "duiopen.com",
+      "Provider": "Duiopen"
+    },
+    {
+      "Domain": "dumate.cn",
+      "Provider": "Dumate"
+    },
+    {
+      "Domain": "elevenlabs.com",
+      "Provider": "Elevenlabs"
+    },
+    {
+      "Domain": "elevenlabs.io",
+      "Provider": "Elevenlabs"
+    },
+    {
+      "Domain": "envato-static.com",
+      "Provider": "Envato"
+    },
+    {
+      "Domain": "envato.com",
+      "Provider": "Envato"
+    },
+    {
+      "Domain": "envatousercontent.com",
+      "Provider": "Envato"
+    },
+    {
+      "Domain": "faxingbao.com",
+      "Provider": "Faxingbao"
+    },
+    {
+      "Domain": "flow.google",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "gateway.ai.cloudflare.com",
+      "Provider": "Gateway"
+    },
+    {
+      "Domain": "geller-pa.googleapis.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "gemini.google",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "gemini.google.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "gemini.gstatic.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "generativeai.google",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "generativelanguage.googleapis.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "githubcopilot.com",
+      "Provider": "GitHub Copilot"
+    },
+    {
+      "Domain": "grazie.ai",
+      "Provider": "Jetbrains AI"
+    },
+    {
+      "Domain": "grazie.aws.intellij.net",
+      "Provider": "Jetbrains AI"
+    },
+    {
+      "Domain": "grok.com",
+      "Provider": "xAI"
+    },
+    {
+      "Domain": "grok.x.com",
+      "Provider": "xAI"
+    },
+    {
+      "Domain": "grokipedia.com",
+      "Provider": "xAI"
+    },
+    {
+      "Domain": "groq.com",
+      "Provider": "Groq"
+    },
+    {
+      "Domain": "h2o.ai",
+      "Provider": "H2o"
+    },
+    {
+      "Domain": "hailuoai.com",
+      "Provider": "Hailuoai"
+    },
+    {
+      "Domain": "happyhorse.cn",
+      "Provider": "Happyhorse"
+    },
+    {
+      "Domain": "happyshrimp.cn",
+      "Provider": "Happyshrimp"
+    },
+    {
+      "Domain": "hf.co",
+      "Provider": "Huggingface"
+    },
+    {
+      "Domain": "hf.space",
+      "Provider": "Huggingface"
+    },
+    {
+      "Domain": "hi-butterfly.cn",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "host.livekit.cloud",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "huggingface.co",
+      "Provider": "Huggingface"
+    },
+    {
+      "Domain": "hunyuan.tencent.com",
+      "Provider": "Hunyuan"
+    },
+    {
+      "Domain": "instreet.com",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "jasper.ai",
+      "Provider": "Jasper"
+    },
+    {
+      "Domain": "jetbrains.ai",
+      "Provider": "Jetbrains AI"
+    },
+    {
+      "Domain": "jules.google",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "jules.google.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "kechuangai.com",
+      "Provider": "Kechuangai"
+    },
+    {
+      "Domain": "kimi.com",
+      "Provider": "Kimi"
+    },
+    {
+      "Domain": "kiro.dev",
+      "Provider": "Kiro"
+    },
+    {
+      "Domain": "kling-ai.com",
+      "Provider": "Kling AI"
+    },
+    {
+      "Domain": "klingai.com",
+      "Provider": "Klingai"
+    },
+    {
+      "Domain": "labs.google",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "labs.google.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "langchain.com",
+      "Provider": "Langchain"
+    },
+    {
+      "Domain": "liblib.art",
+      "Provider": "Liblib"
+    },
+    {
+      "Domain": "liblib.cloud",
+      "Provider": "Liblib"
+    },
+    {
+      "Domain": "liblib.tv",
+      "Provider": "Liblib"
+    },
+    {
+      "Domain": "linka2a.net",
+      "Provider": "Linka2a"
+    },
+    {
+      "Domain": "liveperson.net",
+      "Provider": "Liveperson"
+    },
+    {
+      "Domain": "lmstudio.ai",
+      "Provider": "Lmstudio"
+    },
+    {
+      "Domain": "lovart.ai",
+      "Provider": "Lovart"
+    },
+    {
+      "Domain": "lpsnmedia.net",
+      "Provider": "Liveperson"
+    },
+    {
+      "Domain": "makersuite.google.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "manus.im",
+      "Provider": "Manus"
+    },
+    {
+      "Domain": "manuscdn.com",
+      "Provider": "Manus"
+    },
+    {
+      "Domain": "maoxiangai.com",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "marscode.cn",
+      "Provider": "Trae"
+    },
+    {
+      "Domain": "marscode.com",
+      "Provider": "Bytedance AI"
+    },
+    {
+      "Domain": "marscode.com.cn",
+      "Provider": "Trae"
+    },
+    {
+      "Domain": "mcbaas.work",
+      "Provider": "Trae"
+    },
+    {
+      "Domain": "mcdemo.show",
+      "Provider": "Trae"
+    },
+    {
+      "Domain": "mchost.guru",
+      "Provider": "Trae"
+    },
+    {
+      "Domain": "mcp.atlassian.com",
+      "Provider": "Atlassian MCP"
+    },
+    {
+      "Domain": "mcprev.cn",
+      "Provider": "Trae"
+    },
+    {
+      "Domain": "mcpworld.com",
+      "Provider": "Mcpworld"
+    },
+    {
+      "Domain": "meta.ai",
+      "Provider": "Meta"
+    },
+    {
+      "Domain": "meta.law",
+      "Provider": "Meta"
+    },
+    {
+      "Domain": "metaso.cn",
+      "Provider": "Metaso"
+    },
+    {
+      "Domain": "miaibox.com",
+      "Provider": "Xiaomi AI"
+    },
+    {
+      "Domain": "miaoda.cn",
+      "Provider": "Miaoda"
+    },
+    {
+      "Domain": "miaoyanai.com",
+      "Provider": "Miaoyanai"
+    },
+    {
+      "Domain": "midjourney.com",
+      "Provider": "Midjourney"
+    },
+    {
+      "Domain": "minimax.io",
+      "Provider": "Minimax"
+    },
+    {
+      "Domain": "minimaxi.com",
+      "Provider": "Minimaxi"
+    },
+    {
+      "Domain": "mistral.ai",
+      "Provider": "Mistral"
+    },
+    {
+      "Domain": "moonshot.ai",
+      "Provider": "Moonshot"
+    },
+    {
+      "Domain": "moonshot.cn",
+      "Provider": "Moonshot"
+    },
+    {
+      "Domain": "mozilla.ai",
+      "Provider": "Mozilla"
+    },
+    {
+      "Domain": "myparallelstory.com",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "n.cn",
+      "Provider": "N"
+    },
+    {
+      "Domain": "namiso.com",
+      "Provider": "Namiso"
+    },
+    {
+      "Domain": "notebook.google.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "notebooklm-pa.googleapis.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "notebooklm.google",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "notebooklm.google.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "notebooklm.googleapis.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "o33249.ingest.sentry.io",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "oaistatic.com",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "oaistatsig.com",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "oaiusercontent.com",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "obriccloud.com",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "obricclouddw.com",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "oceancloudapi.com",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "ollama.com",
+      "Provider": "Ollama"
+    },
+    {
+      "Domain": "opal.google",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "opal.google.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "openai.com",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "openai.com.cdn.cloudflare.net",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "openai.qualtrics.com",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "openaiapi-site.azureedge.net",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "openaiassets.blob.core.windows.net",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "openaicom-api-bdcpf8c6d2e9atf6.z01.azurefd.net",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "openaicom.imgix.net",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "openaicomproductionae4b.blob.core.windows.net",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "openart.ai",
+      "Provider": "Openart"
+    },
+    {
+      "Domain": "openclaw.ai",
+      "Provider": "Openclaw"
+    },
+    {
+      "Domain": "openrouter.ai",
+      "Provider": "Openrouter"
+    },
+    {
+      "Domain": "openspec.dev",
+      "Provider": "Openspec"
+    },
+    {
+      "Domain": "oystermercury.top",
+      "Provider": "Comfy Ui Launcher"
+    },
+    {
+      "Domain": "perplexity.ai",
+      "Provider": "Perplexity"
+    },
+    {
+      "Domain": "perplexity.com",
+      "Provider": "Perplexity"
+    },
+    {
+      "Domain": "picpic-ai.cn",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "pixeldance.com",
+      "Provider": "Doubao"
+    },
+    {
+      "Domain": "plannotator.ai",
+      "Provider": "Plannotator"
+    },
+    {
+      "Domain": "poe.com",
+      "Provider": "Poe"
+    },
+    {
+      "Domain": "poecdn.net",
+      "Provider": "Poe"
+    },
+    {
+      "Domain": "ppl-ai-file-upload.s3.amazonaws.com",
+      "Provider": "Perplexity"
+    },
+    {
+      "Domain": "pplx-res.cloudinary.com",
+      "Provider": "Perplexity"
+    },
+    {
+      "Domain": "pplx.ai",
+      "Provider": "Perplexity"
+    },
+    {
+      "Domain": "proactivebackend-pa.googleapis.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "production-openaicom-storage.azureedge.net",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "qianwen.aliyun.com",
+      "Provider": "Qianwen"
+    },
+    {
+      "Domain": "qianwen.com",
+      "Provider": "Qianwen"
+    },
+    {
+      "Domain": "qianwenai.com",
+      "Provider": "Qianwenai"
+    },
+    {
+      "Domain": "qoder.com",
+      "Provider": "Qoder"
+    },
+    {
+      "Domain": "qwen.ai",
+      "Provider": "Qwen"
+    },
+    {
+      "Domain": "qwenlm.ai",
+      "Provider": "Qwenlm"
+    },
+    {
+      "Domain": "robinfrontend-pa.googleapis.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "rwkv.cn",
+      "Provider": "Rwkv"
+    },
+    {
+      "Domain": "rwkv.com",
+      "Provider": "Rwkv"
+    },
+    {
+      "Domain": "safeskill.cn",
+      "Provider": "Safeskill"
+    },
+    {
+      "Domain": "servd-anthropic-website.b-cdn.net",
+      "Provider": "Anthropic"
+    },
+    {
+      "Domain": "shunjing.xin",
+      "Provider": "Shunjing"
+    },
+    {
+      "Domain": "sider.ai",
+      "Provider": "Sider"
+    },
+    {
+      "Domain": "skillhub.cn",
+      "Provider": "Skillhub"
+    },
+    {
+      "Domain": "sleeplesshorizon.cn",
+      "Provider": "Sleeplesshorizon"
+    },
+    {
+      "Domain": "sora.com",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "spicywriter.com",
+      "Provider": "Spicywriter"
+    },
+    {
+      "Domain": "stitch.withgoogle.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "tapnow.ai",
+      "Provider": "Tapnow"
+    },
+    {
+      "Domain": "tapnow.top",
+      "Provider": "Tapnow"
+    },
+    {
+      "Domain": "tcwqqdy.guru",
+      "Provider": "Trae"
+    },
+    {
+      "Domain": "themeforest.net",
+      "Provider": "Envato"
+    },
+    {
+      "Domain": "tiangong.cn",
+      "Provider": "Tiangong"
+    },
+    {
+      "Domain": "tongyi.aliyun.com",
+      "Provider": "Tongyi"
+    },
+    {
+      "Domain": "tongyi.com",
+      "Provider": "Tongyi"
+    },
+    {
+      "Domain": "trae.ai",
+      "Provider": "Bytedance AI"
+    },
+    {
+      "Domain": "trae.cn",
+      "Provider": "Trae"
+    },
+    {
+      "Domain": "trae.com.cn",
+      "Provider": "Trae"
+    },
+    {
+      "Domain": "trae.guru",
+      "Provider": "Trae"
+    },
+    {
+      "Domain": "tripo3d.ai",
+      "Provider": "Tripo3d"
+    },
+    {
+      "Domain": "turn.livekit.cloud",
+      "Provider": "OpenAI"
+    },
+    {
+      "Domain": "webchannel-alkalimakersuite-pa.clients6.google.com",
+      "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "windsurf.build",
+      "Provider": "Windsurf"
+    },
+    {
+      "Domain": "windsurf.com",
+      "Provider": "Windsurf"
+    },
+    {
+      "Domain": "x.ai",
+      "Provider": "xAI"
+    },
+    {
+      "Domain": "xiaoaiassist.com",
+      "Provider": "Xiaomi AI"
+    },
+    {
+      "Domain": "xiaomimimo.com",
+      "Provider": "Xiaomi AI"
+    },
+    {
+      "Domain": "xiezuocat.com",
+      "Provider": "Xiezuocat"
+    },
+    {
+      "Domain": "xinghuo.xfyun.cn",
+      "Provider": "Xinghuo"
+    },
+    {
+      "Domain": "xingyeai.com",
+      "Provider": "Xingyeai"
+    },
+    {
+      "Domain": "yiyan.baidu.com",
+      "Provider": "Yiyan"
+    },
+    {
+      "Domain": "yoma.cn",
+      "Provider": "Trae"
+    },
+    {
+      "Domain": "youmind.ai",
+      "Provider": "Youmind"
+    },
+    {
+      "Domain": "youmind.com",
+      "Provider": "Youmind"
+    },
+    {
+      "Domain": "youmind.site",
+      "Provider": "Youmind"
+    },
+    {
+      "Domain": "yuanbao.tencent.com",
+      "Provider": "Yuanbao"
+    },
+    {
+      "Domain": "yuanqi.tencent.com",
+      "Provider": "Yuanqi"
+    },
+    {
+      "Domain": "yzsgo.com",
+      "Provider": "Yzsgo"
+    },
+    {
+      "Domain": "z.ai",
+      "Provider": "Z"
+    },
+    {
+      "Domain": "zhiexa.com",
+      "Provider": "Zhiexa"
+    },
+    {
+      "Domain": "zhipuai.cn",
+      "Provider": "Zhipuai"
+    },
+    {
+      "Domain": "zhipucn.com",
+      "Provider": "Zhipucn"
+    }
+  ]
+}

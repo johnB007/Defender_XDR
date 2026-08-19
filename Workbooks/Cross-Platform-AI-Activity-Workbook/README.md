@@ -68,6 +68,8 @@ The device and account filters are text filters. They are not identity pickers. 
 | Daily Unauthorized AI Events Compared with Approved M365 Copilot Events | Daily comparison of nonapproved activity and approved Copilot activity | Identify spikes, policy changes, or unusual periods |
 | Unauthorized AI Events by Access Method | Browser, script, process, API, or related access categories | Decide whether the next investigation step belongs in browser, process, or network telemetry |
 
+![AI Activity Overview tab](screenshots/01-ai-activity-overview.png)
+
 **Review sequence:** Start with the top application chart, select the highest volume service, then use the detailed results to identify the accounts and devices. Move to Unauthorized or Web Tracking for identity and domain detail.
 
 ### 2. Unauthorized AI

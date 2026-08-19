@@ -7,7 +7,6 @@ A Microsoft Sentinel workbook for investigating artificial intelligence activity
 | File | Purpose |
 | --- | --- |
 | `Cross-Platform-AI-Activity.workbook` | Importable Microsoft Sentinel workbook definition |
-| `Build-CrossPlatformAIActivity.ps1` | Rebuilds the workbook from the current query and catalog logic |
 | `AI-Domain-Catalog.json` | MIT licensed v2fly catalog snapshot with provider and domain metadata |
 | `Invoke-AIWorkbookTelemetry.ps1` | Generates bounded test telemetry on authorized Windows test devices |
 
@@ -18,15 +17,6 @@ The workbook identifies activity that matches known artificial intelligence doma
 A network match is an investigation signal. It is not proof that a user entered a prompt, received an answer, or transferred a specific document. `CloudAppEvents` paste records show that a paste action was observed, but the Sentinel event does not expose the literal clipboard text. Evidence collection in Microsoft Purview may provide a separate evidence path when it was enabled before the event.
 
 Microsoft 365 Copilot is represented as the approved service in the workbook. Approval is a policy classification in this workbook, not a claim that every event is risk free.
-
-## Before You Import
-
-1. Onboard the device to Microsoft Defender for Endpoint.
-2. Confirm that the required Defender and Sentinel data connectors are enabled.
-3. Confirm that the operator can read the target Log Analytics workspace.
-4. Confirm that the workspace contains the MDE tables used by the selected panels.
-5. Review the domain catalog snapshot and refresh it through the generator before publishing a long lived copy.
-6. Use the telemetry script only on authorized test devices. Do not run it on a personal or production workstation.
 
 ### Main Tables
 

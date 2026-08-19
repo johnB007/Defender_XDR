@@ -172,6 +172,8 @@ The device and account filters are text filters. They are not identity pickers. 
 | Top 5 AI Evidence Devices by Existing Defender Alert Count | Devices ranked by alert count within the AI evidence set | Focus on devices with multiple signals |
 | Existing Defender Alerts on AI Evidence Devices, Correlation Only | Alert details correlated to AI evidence devices | Avoid treating correlation as causation |
 
+![AI Findings and Device Alerts tab](screenshots/07-ai-findings-and-device-alerts.png)
+
 **Review sequence:** Review the highest priority finding, open the related device and account evidence, compare event timing with existing alerts, and record whether the relationship is confirmed, possible, or unrelated.
 
 ### 8. Web Tracking

@@ -155,6 +155,8 @@ The device and account filters are text filters. They are not identity pickers. 
 | Agent Executable and MCP Command Evidence | Executable, command line, process owner, and endpoint evidence | Determine how the tool was launched |
 | Agent Instructions, MCP Configuration, and Command Evidence | Instruction files, configuration files, and command evidence | Review tool permissions and connected services |
 
+![Agents and MCP tab](screenshots/06-agents-and-mcp.png)
+
 **Important interpretation:** A request to an MCP URL is not by itself proof of a successful MCP session. Confirm the initiating process, account, command, authentication result, and server endpoint where available.
 
 ### 7. Investigation

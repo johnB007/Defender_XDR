@@ -10,7 +10,7 @@ AI activity moves through browsers, scripts, APIs, local tools, and agents, ofte
 | `AI-Domain-Catalog.json` | MIT licensed v2fly catalog snapshot with provider and domain metadata |
 | `Invoke-AIWorkbookTelemetry.ps1` | Generates bounded test telemetry on authorized Windows test devices |
 
-The catalog is refreshed from the GitHub hosted v2fly domain list community so AI domain coverage can follow a maintained source instead of a fixed hand curated list.
+The catalog is refreshed from the [v2fly domain list community](https://github.com/v2fly/domain-list-community) so AI domain coverage can follow a maintained source instead of a fixed hand curated list.
 
 ## Scope And Guardrails
 

@@ -104,6 +104,8 @@ The device and account filters are text filters. They are not identity pickers. 
 | Top 5 Devices with File to AI Correlations | Devices connected to both activities | Pivot to device timeline and containment decisions |
 | Sensitive File and Subsequent AI Access Evidence | Detailed file, account, device, service, timing, and response fields | Preserve evidence and document the correlation |
 
+![Sensitive File and AI Correlation tab](screenshots/03-sensitive-file-ai-correlation.png)
+
 **Review sequence:** Confirm the file event first, check the correlation time window, verify the initiating account and process, then review whether the destination was approved. Do not infer that the file content was uploaded unless an upload event or Purview evidence confirms it.
 
 ### 4. Automation and API

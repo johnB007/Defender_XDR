@@ -193,6 +193,10 @@ The device and account filters are text filters. They are not identity pickers. 
 | AI Application Users, Devices, Domains, IP Addresses, Processes, and Approval Status | Detailed user, device, domain, address, process, and approval view | Pivot across the full evidence chain |
 | Corroborating Browser Paste and M365 Copilot Audit Evidence | Paste actions, destination, policy, rule, sensitive information classifications, and evidence references | Corroborate browser paste activity |
 
+![AI Application Discovery tab overview](screenshots/08-ai-application-discovery-overview.png)
+
+![AI Application Discovery paste evidence](screenshots/09-ai-application-discovery-paste-evidence.png)
+
 **Paste evidence boundary:** The current Sentinel event records the paste action and related metadata. It does not expose the literal clipboard text. Purview evidence collection is a separate evidence source and must have been configured before the event.
 
 ## Test Telemetry

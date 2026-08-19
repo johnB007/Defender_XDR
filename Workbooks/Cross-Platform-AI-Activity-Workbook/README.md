@@ -47,7 +47,7 @@ The workbook provides global time, device, account, and tab controls.
 | Control | Enter |
 | --- | --- |
 | Time range | The period to investigate |
-| Device Name | The MDE `DeviceName`, such as `DC007`, `dc007.john.local`, or `PiHole2` |
+| Device Name | The MDE `DeviceName`, such as `workstation-01`, `server-01.example.test`, or `linux-host-01` |
 | Account | The account UPN or account name, such as `user@contoso.com` or `Administrator` |
 | Tab | The investigation view to display |
 
@@ -253,7 +253,7 @@ Commercial portal:
 | --- | --- |
 | Workspace selected | The workbook points to the intended Sentinel workspace |
 | Time filter | Queries return data in the selected period |
-| Device filter | `DC007`, `dc007.john.local`, or another known MDE name returns expected rows |
+| Device filter | A known MDE device name returns expected rows |
 | Account filter | A known UPN or account name narrows results |
 | M365 Copilot | Approved activity appears in approved views |
 | Nonapproved services | Domain matches appear in unauthorized views when telemetry exists |

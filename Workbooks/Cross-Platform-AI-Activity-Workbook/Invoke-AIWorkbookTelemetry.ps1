@@ -8,7 +8,7 @@
 .PARAMETER Generate
     Confirms that telemetry generation is authorized.
 .PARAMETER ExpectedDeviceName
-    Device name guard. The default permits execution only on device 324.
+    Device name guard. Set the expected authorized test device before execution.
 .PARAMETER AllowAnyDevice
     Overrides the device name guard.
 .PARAMETER RequestCount
@@ -23,7 +23,7 @@
 [CmdletBinding()]
 param(
     [switch]$Generate,
-    [string]$ExpectedDeviceName = '324-UM-DEFCON30',
+    [string]$ExpectedDeviceName = 'AUTHORIZED-TEST-DEVICE',
     [switch]$AllowAnyDevice,
     [ValidateRange(1, 10)]
     [int]$RequestCount = 2,

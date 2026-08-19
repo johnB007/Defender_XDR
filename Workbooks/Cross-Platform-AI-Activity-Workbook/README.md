@@ -1,6 +1,6 @@
 # AI Activity and Exposure Investigation Workbook
 
-AI activity moves through browsers, scripts, APIs, local tools, and agents, often without a single investigation path. This Microsoft Sentinel workbook shows who used which AI service, from what device, how it was accessed, and when and where the activity occurred across MDE onboarded Windows, macOS, and Linux devices. It separates approved Microsoft 365 Copilot from nonapproved activity and connects users, devices, domains, processes, files, MCP evidence, and Defender alerts so analysts can quickly determine why an event needs review.
+AI activity moves through browsers, scripts, APIs, local tools, and agents, often without a single investigation path. This Microsoft Sentinel workbook shows who used which AI service, from what device, how it was accessed, and when and where the activity occurred across MDE onboarded Windows, macOS, and Linux devices. It separates approved Microsoft 365 Copilot from nonapproved activity and connects users, devices, domains, processes, files, MCP evidence, and Defender alerts so analysts can quickly determine why an event needs review. A maintained AI domain catalog strengthens coverage by mapping raw network destinations to recognized providers as services and domains evolve.
 
 ## What This Package Contains
 

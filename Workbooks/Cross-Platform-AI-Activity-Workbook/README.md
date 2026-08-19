@@ -205,7 +205,7 @@ Use one of the deployment buttons below.
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FCross-Platform-AI-Activity-Workbook%2Fazuredeploy.json)
 
-<a href="https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FCross-Platform-AI-Activity-Workbook%2Fazuredeploy.json"><img src="deploytoazuregov.svg" alt="Deploy to Azure Gov"></a>
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FCross-Platform-AI-Activity-Workbook%2Fazuredeploy.json) Azure Government
 
 ## License And Attribution
 

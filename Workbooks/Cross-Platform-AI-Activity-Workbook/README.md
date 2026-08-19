@@ -189,24 +189,6 @@ The device and account filters are text filters. They are not identity pickers. 
 
 **Paste evidence boundary:** The current Sentinel event records the paste action and related metadata. It does not expose the literal clipboard text. Purview evidence collection is a separate evidence source and must have been configured before the event.
 
-## Test Telemetry
-
-The test script can create bounded synthetic files, process markers, browser traffic, MCP markers, and network requests on an authorized Windows test device.
-
-Example:
-
-```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\Invoke-AIWorkbookTelemetry.ps1 `
-    -Generate `
-    -BrowserTraffic `
-    -McpTest `
-    -KeepArtifacts
-```
-
-The script opens visible browser tabs and creates synthetic artifacts. It does not paste clipboard content. Use only an authorized test destination for any upload test. Wait up to 15 minutes for MDE ingestion, then filter the workbook to the exact MDE device name.
-
-Linux and macOS note: the Windows telemetry script is not a cross platform agent. On Linux, use the MDE supported sensor and separate controlled network and process tests. Azure Arc inventory alone does not populate MDE process or network tables.
-
 ## How To Deploy
 
 Use one of the deployment buttons below.

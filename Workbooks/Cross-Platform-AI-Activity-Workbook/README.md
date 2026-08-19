@@ -10,8 +10,6 @@ AI activity moves through browsers, scripts, APIs, local tools, and agents, ofte
 | `AI-Domain-Catalog.json` | MIT licensed v2fly catalog snapshot with provider and domain metadata |
 | `Invoke-AIWorkbookTelemetry.ps1` | Generates bounded test telemetry on authorized Windows test devices |
 
-The catalog is refreshed from the [v2fly domain list community](https://github.com/v2fly/domain-list-community) so AI domain coverage can follow a maintained source instead of a fixed hand curated list.
-
 ## Scope And Guardrails
 
 The workbook identifies activity that matches known artificial intelligence domains, browser traffic, process names, script activity, local model artifacts, agent tools, MCP activity, sensitive file indicators, and existing Defender alerts.

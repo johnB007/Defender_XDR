@@ -199,105 +199,13 @@ The script opens visible browser tabs and creates synthetic artifacts. It does n
 
 Linux and macOS note: the Windows telemetry script is not a cross platform agent. On Linux, use the MDE supported sensor and separate controlled network and process tests. Azure Arc inventory alone does not populate MDE process or network tables.
 
-## Publish To Azure Commercial
+## How To Deploy
 
-### Manual import
+Use one of the deployment buttons below.
 
-1. Open the Microsoft Sentinel workspace in the Azure commercial portal.
-2. Open **Workbooks**.
-3. Select **Create** or **Edit** and choose the advanced editor.
-4. Open `Cross-Platform-AI-Activity.workbook` in a text editor.
-5. Paste the workbook JSON into the advanced editor.
-6. Select the target Log Analytics workspace.
-7. Save the workbook with a controlled name and description.
-8. Open the workbook and validate every tab with a known lab device.
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FCross-Platform-AI-Activity-Workbook%2Fazuredeploy.json)
 
-Commercial portal:
-
-[Open Azure commercial portal](https://portal.azure.com/)
-
-### Publication checklist
-
-| Check | Expected result |
-| --- | --- |
-| Workspace selected | The workbook points to the intended Sentinel workspace |
-| Time filter | Queries return data in the selected period |
-| Device filter | A known MDE device name returns expected rows |
-| Account filter | A known UPN or account name narrows results |
-| M365 Copilot | Approved activity appears in approved views |
-| Nonapproved services | Domain matches appear in unauthorized views when telemetry exists |
-| Empty panels | Empty results are explained by missing data or scope, not malformed JSON |
-| Permissions | Analysts can view the workbook and workspace data |
-
-### Commercial publish button placeholder
-
-A direct **Deploy to Azure** button requires a versioned ARM or Bicep deployment template that creates the `microsoft.insights/workbooks` resource and embeds the workbook JSON. This repository currently publishes the importable workbook JSON. Add the final template URL here after the infrastructure template is approved:
-
-`[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](REPLACE_WITH_COMMERCIAL_TEMPLATE_URL)`
-
-## Publish To Azure Government
-
-Azure Government requires a government cloud portal and government cloud resource context. Do not use a commercial portal link for a government tenant.
-
-### Manual import
-
-1. Open the Microsoft Sentinel workspace in the Azure Government portal.
-2. Open **Workbooks**.
-3. Select **Create** or **Edit** and choose the advanced editor.
-4. Paste the contents of `Cross-Platform-AI-Activity.workbook`.
-5. Select the government Log Analytics workspace.
-6. Save the workbook with a government environment name.
-7. Validate the workbook using government tenant data and government cloud endpoints.
-8. Confirm that the domain catalog and any external links meet the organization’s policy.
-
-Government portal:
-
-[Open Azure Government portal](https://portal.azure.us/)
-
-### Government publication checklist
-
-| Check | Expected result |
-| --- | --- |
-| Government workspace | The workbook is saved in the intended Azure Government Sentinel workspace |
-| Cloud boundary | No commercial tenant resource ID or commercial workspace ID is embedded |
-| Data connectors | Required Defender and Sentinel connectors are available in the tenant |
-| External catalog review | The MIT licensed catalog source is approved for the environment |
-| Identity review | Government tenant UPN and device values are used in filters |
-| Evidence handling | Screenshots and exported results follow government data handling rules |
-| Analyst validation | Every tab is tested with controlled government tenant telemetry |
-
-### Government publish button placeholder
-
-A direct **Deploy to Azure Government** button requires a government compatible ARM or Bicep template and an approved government template URL. Add the final URL here after the infrastructure template is approved:
-
-`[![Deploy to Azure Government](https://aka.ms/deploytoazurebutton)](REPLACE_WITH_GOVERNMENT_TEMPLATE_URL)`
-
-## Updating The Catalog
-
-The catalog snapshot records the source repository, MIT license, retrieval time, root lists, supplements, and entries. To refresh it:
-
-```powershell
-pwsh -NoProfile -ExecutionPolicy Bypass -File .\Build-CrossPlatformAIActivity.ps1
-```
-
-Review the generated catalog and workbook diff before publication. Preserve the source and retrieval metadata. Do not treat the catalog as a block list or as a statement that every listed domain is malicious.
-
-## GitHub Publication
-
-From the repository root:
-
-```powershell
-git status
-git add Defender_XDR/Workbooks/Cross-Platform-AI-Activity-Workbook/Cross-Platform-AI-Activity.workbook
-git add Defender_XDR/Workbooks/Cross-Platform-AI-Activity-Workbook/Build-CrossPlatformAIActivity.ps1
-git add Defender_XDR/Workbooks/Cross-Platform-AI-Activity-Workbook/AI-Domain-Catalog.json
-git add Defender_XDR/Workbooks/Cross-Platform-AI-Activity-Workbook/Invoke-AIWorkbookTelemetry.ps1
-git add Defender_XDR/Workbooks/Cross-Platform-AI-Activity-Workbook/README.md
-git commit -m "Document cross platform AI activity workbook"
-git push origin main
-```
-
-Review `git status` before committing. Do not add generated HTML preview files. Do not commit screenshots containing personal data or secrets.
+[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FCross-Platform-AI-Activity-Workbook%2Fazuredeploy.json)
 
 ## License And Attribution
 

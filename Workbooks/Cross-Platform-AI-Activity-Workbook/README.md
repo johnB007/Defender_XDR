@@ -121,6 +121,8 @@ The device and account filters are text filters. They are not identity pickers. 
 | Top 5 Devices Running Scripted AI Access | Devices with scripted AI activity | Scope the host investigation |
 | Script Owner, Process, AI Service, Command Context, and Response | Detailed process owner, command line, service, endpoint, and response guidance | Capture command context and decide remediation |
 
+![Automation and API tab](screenshots/04-automation-and-api.png)
+
 **Command line caution:** Command lines can contain secrets, tokens, file paths, or prompt material. Limit access to authorized investigators and redact sensitive values before sharing screenshots or tickets.
 
 ### 5. Local AI

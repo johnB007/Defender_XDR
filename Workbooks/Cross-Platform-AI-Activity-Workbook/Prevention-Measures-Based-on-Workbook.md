@@ -14,20 +14,20 @@ The workbook is evidence, not a block list. Use its users, devices, domains, pro
 4. Treat agents, local models, extensions, and MCP servers as software and data access surfaces, not only websites.
 5. Maintain an exception process with an owner, business reason, expiration, and review date.
 
-## 1. Network And Destination Controls
+## 1. AI Service Access Governance
 
-**Workbook evidence:** Unauthorized AI, Automation and API, and AI Application Discovery show destination domains, initiating processes, accounts, and affected devices.
+**Workbook evidence:** AI Activity Overview, Automation and API, and AI Application Discovery show AI destinations, initiating processes, accounts, and affected devices.
 
-**Control objective:** Prevent access to services the organization has not approved, while preserving a narrow, documented exception path.
+**Control objective:** Govern which AI services are approved, restricted, or unavailable for each user and device population based on business purpose and data risk. Use a documented exception path for legitimate services that are not part of the default approved set.
 
 | Control | Microsoft control plane | Recommended action | Validation evidence |
 | --- | --- | --- | --- |
-| Web categories | Defender for Endpoint web content filtering | Start in audit mode for selected device groups. Block relevant categories only after reviewing observed impact. | Web protection reports and `DeviceNetworkEvents` |
-| Specific AI destinations | Defender for Endpoint custom URL and domain indicators, SWG, proxy, firewall, or DNS filtering | Block known unsanctioned domains and allow approved destinations. Use the catalog as candidate reference data, not as an automatic enforcement list. | Block events, indicator statistics, and workbook domain results |
+| Web categories | Defender for Endpoint web content filtering | Start in audit mode for selected device groups. Use categories only where they support the organization's AI access policy and observed impact. | Web protection reports and `DeviceNetworkEvents` |
+| Specific AI destinations | Defender for Endpoint custom URL and domain indicators, SWG, proxy, firewall, or DNS filtering | Allow approved destinations, restrict services that have not completed review, and use a documented business exception where needed. Use the catalog as candidate reference data, not as an automatic enforcement list. | Access decisions, indicator statistics, and workbook domain results |
 | Network protection | Defender for Endpoint network protection | Enable and verify browser coverage for supported browsers. | `DeviceNetworkEvents` and web protection reports |
-| Approved service exceptions | Indicators and network policy | Document approved domains, scope, owner, and expiry. | Exception register and policy assignment |
+| Service exceptions | Indicators and network policy | Document the destination, user or device scope, owner, business purpose, expiry, and review date. | Exception register and policy assignment |
 
-Web content filtering is useful for category based control, but it is not a complete AI inventory. New sites can be uncategorized, classification can change, and custom indicators provide tighter destination control where required.
+Web content filtering is useful for category based governance, but it is not a complete AI inventory. New sites can be uncategorized, classification can change, and custom indicators provide tighter destination decisions where required.
 
 ## 2. Sensitive Data Protection
 

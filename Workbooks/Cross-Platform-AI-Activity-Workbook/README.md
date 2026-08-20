@@ -181,6 +181,8 @@ Use one of the deployment buttons below.
 
 [![Deploy to Azure Gov](https://aka.ms/deploytoazuregovernbutton)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FCross-Platform-AI-Activity-Workbook%2Fazuredeploy.json)
 
+## Prevention Measures
+
 [Prevention Measures Based on Workbook](https://github.com/johnB007/Defender_XDR/blob/main/Workbooks/Cross-Platform-AI-Activity-Workbook/Prevention-Measures-Based-on-Workbook.md) provides the companion control review for destination, data, application, browser, API, MCP, and identity controls.
 
 ## License And Attribution

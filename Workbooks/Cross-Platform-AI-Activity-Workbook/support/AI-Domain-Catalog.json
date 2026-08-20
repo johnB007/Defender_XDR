@@ -1,7 +1,7 @@
 {
   "Source": "https://github.com/v2fly/domain-list-community",
   "License": "MIT",
-  "RetrievedUtc": "2026-08-19T13:54:04.4510540Z",
+  "RetrievedUtc": "2026-08-20T15:35:40.1633540Z",
   "Roots": [
     "category-ai-!cn",
     "category-ai-cn"
@@ -474,6 +474,10 @@
       "Provider": "Trae"
     },
     {
+      "Domain": "dreamgen.com",
+      "Provider": "Dreamgen"
+    },
+    {
       "Domain": "duck.ai",
       "Provider": "Duck"
     },
@@ -636,6 +640,10 @@
     {
       "Domain": "kechuangai.com",
       "Provider": "Kechuangai"
+    },
+    {
+      "Domain": "kimi.ai",
+      "Provider": "Kimi"
     },
     {
       "Domain": "kimi.com",
@@ -832,6 +840,14 @@
     {
       "Domain": "notebooklm.googleapis.com",
       "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "notegpt.io",
+      "Provider": "Notegpt"
+    },
+    {
+      "Domain": "novelai.net",
+      "Provider": "Novelai"
     },
     {
       "Domain": "o33249.ingest.sentry.io",
@@ -1044,6 +1060,10 @@
     {
       "Domain": "stitch.withgoogle.com",
       "Provider": "Google Deepmind"
+    },
+    {
+      "Domain": "talkai.info",
+      "Provider": "Talkai"
     },
     {
       "Domain": "tapnow.ai",

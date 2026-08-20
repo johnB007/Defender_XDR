@@ -6,9 +6,9 @@ AI activity moves through browsers, scripts, APIs, local tools, and agents, ofte
 
 | File | Purpose |
 | --- | --- |
-| `Cross-Platform-AI-Activity.workbook` | Importable Microsoft Sentinel workbook definition |
-| `AI-Domain-Catalog.json` | MIT licensed v2fly catalog snapshot with provider and domain metadata |
-| `Invoke-AIWorkbookTelemetry.ps1` | Generates bounded test telemetry on authorized Windows test devices |
+| [`deployment/Cross-Platform-AI-Activity.workbook`](deployment/Cross-Platform-AI-Activity.workbook) | Importable Microsoft Sentinel workbook definition |
+| [`support/AI-Domain-Catalog.json`](support/AI-Domain-Catalog.json) | MIT licensed v2fly catalog snapshot with provider and domain metadata |
+| [`support/Invoke-AIWorkbookTelemetry.ps1`](support/Invoke-AIWorkbookTelemetry.ps1) | Generates bounded test telemetry on authorized Windows test devices |
 
 ## Scope And Guardrails
 
@@ -56,7 +56,7 @@ The device and account filters are text filters. They are not identity pickers. 
 | Daily Unauthorized AI Events Compared with Approved M365 Copilot Events | Daily comparison of nonapproved activity and approved Copilot activity | Identify spikes, policy changes, or unusual periods |
 | Unauthorized AI Events by Access Method | Browser, script, process, API, or related access categories | Decide whether the next investigation step belongs in browser, process, or network telemetry |
 
-![AI Activity Overview tab](screenshots/01-ai-activity-overview.png)
+![AI Activity Overview tab](support/screenshots/01-ai-activity-overview.png)
 
 **Review sequence:** Start with the top application chart, select the highest volume service, then use the detailed results to identify the accounts and devices. Move to Unauthorized or Web Tracking for identity and domain detail.
 
@@ -72,7 +72,7 @@ The device and account filters are text filters. They are not identity pickers. 
 | Unauthorized AI Access Records by Account, Device, Service, and Process | Detailed access records joining user, device, service, process, and URL context | Build an investigation timeline |
 | Nonapproved Provider and Domain Governance Inventory | Provider, domain, approval state, activity, users, devices, and response context | Review domain classification and governance coverage |
 
-![Unauthorized AI tab](screenshots/02-unauthorized-ai.png)
+![Unauthorized AI tab](support/screenshots/02-unauthorized-ai.png)
 
 **Important interpretation:** A network event can represent a browser request, application request, background request, or service dependency. Review the initiating process and user fields before assigning intent.
 
@@ -88,7 +88,7 @@ The device and account filters are text filters. They are not identity pickers. 
 | Top 5 Devices with File to AI Correlations | Devices connected to both activities | Pivot to device timeline and containment decisions |
 | Sensitive File and Subsequent AI Access Evidence | Detailed file, account, device, service, timing, and response fields | Preserve evidence and document the correlation |
 
-![Sensitive File and AI Correlation tab](screenshots/03-sensitive-file-ai-correlation.png)
+![Sensitive File and AI Correlation tab](support/screenshots/03-sensitive-file-ai-correlation.png)
 
 **Review sequence:** Confirm the file event first, check the correlation time window, verify the initiating account and process, then review whether the destination was approved. Do not infer that the file content was uploaded unless an upload event or Purview evidence confirms it.
 
@@ -103,7 +103,7 @@ The device and account filters are text filters. They are not identity pickers. 
 | Top 5 Devices Running Scripted AI Access | Devices with scripted AI activity | Scope the host investigation |
 | Script Owner, Process, AI Service, Command Context, and Response | Detailed process owner, command line, service, endpoint, and response guidance | Capture command context and decide remediation |
 
-![Automation and API tab](screenshots/04-automation-and-api.png)
+![Automation and API tab](support/screenshots/04-automation-and-api.png)
 
 **Command line caution:** Command lines can contain secrets, tokens, file paths, or prompt material. Limit access to authorized investigators and redact sensitive values before sharing screenshots or tickets.
 
@@ -118,7 +118,7 @@ The device and account filters are text filters. They are not identity pickers. 
 | Top 5 Accounts Creating or Running Local AI | Accounts associated with local AI artifacts or execution | Assign ownership |
 | Local AI Tool, Model, Installer, Owner, and Response Evidence | Detailed tool, model, installer, owner, and response fields | Document the local AI investigation |
 
-![Local AI tab](screenshots/05-local-ai.png)
+![Local AI tab](support/screenshots/05-local-ai.png)
 
 **Important interpretation:** File presence alone does not prove execution. Use process events, execution timestamps, hashes, and user context to distinguish an installer download from a running local model.
 
@@ -135,7 +135,7 @@ The device and account filters are text filters. They are not identity pickers. 
 | Agent Executable and MCP Command Evidence | Executable, command line, process owner, and endpoint evidence | Determine how the tool was launched |
 | Agent Instructions, MCP Configuration, and Command Evidence | Instruction files, configuration files, and command evidence | Review tool permissions and connected services |
 
-![Agents and MCP tab](screenshots/06-agents-and-mcp.png)
+![Agents and MCP tab](support/screenshots/06-agents-and-mcp.png)
 
 **Important interpretation:** A request to an MCP URL is not by itself proof of a successful MCP session. Confirm the initiating process, account, command, authentication result, and server endpoint where available.
 
@@ -150,7 +150,7 @@ The device and account filters are text filters. They are not identity pickers. 
 | Top 5 AI Evidence Devices by Existing Defender Alert Count | Devices ranked by alert count within the AI evidence set | Focus on devices with multiple signals |
 | Existing Defender Alerts on AI Evidence Devices, Correlation Only | Alert details correlated to AI evidence devices | Avoid treating correlation as causation |
 
-![AI Findings and Device Alerts tab](screenshots/07-ai-findings-and-device-alerts.png)
+![AI Findings and Device Alerts tab](support/screenshots/07-ai-findings-and-device-alerts.png)
 
 **Review sequence:** Review the highest priority finding, open the related device and account evidence, compare event timing with existing alerts, and record whether the relationship is confirmed, possible, or unrelated.
 
@@ -167,9 +167,9 @@ The device and account filters are text filters. They are not identity pickers. 
 | AI Application Users, Devices, Domains, IP Addresses, Processes, and Approval Status | Detailed user, device, domain, address, process, and approval view | Pivot across the full evidence chain |
 | Corroborating Browser Paste and M365 Copilot Audit Evidence | Paste actions, destination, policy, rule, sensitive information classifications, and evidence references | Corroborate browser paste activity |
 
-![AI Application Discovery tab overview](screenshots/08-ai-application-discovery-overview.png)
+![AI Application Discovery tab overview](support/screenshots/08-ai-application-discovery-overview.png)
 
-![AI Application Discovery paste evidence](screenshots/09-ai-application-discovery-paste-evidence.png)
+![AI Application Discovery paste evidence](support/screenshots/09-ai-application-discovery-paste-evidence.png)
 
 **Paste evidence boundary:** The current Sentinel event records the paste action and related metadata. It does not expose the literal clipboard text. Purview evidence collection is a separate evidence source and must have been configured before the event.
 
@@ -177,13 +177,13 @@ The device and account filters are text filters. They are not identity pickers. 
 
 Use one of the deployment buttons below.
 
-[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FCross-Platform-AI-Activity-Workbook%2Fazuredeploy.json)
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FCross-Platform-AI-Activity-Workbook%2Fdeployment%2Fazuredeploy.json)
 
-[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovernbutton)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FCross-Platform-AI-Activity-Workbook%2Fazuredeploy.json)
+[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovernbutton)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FCross-Platform-AI-Activity-Workbook%2Fdeployment%2Fazuredeploy.json)
 
 ## Prevention Measures
 
-[Prevention Measures Based on Workbook](https://github.com/johnB007/Defender_XDR/blob/main/Workbooks/Cross-Platform-AI-Activity-Workbook/Prevention-Measures-Based-on-Workbook.md) provides the companion control review for destination, data, application, browser, API, MCP, and identity controls.
+[Prevention Measures Based on Workbook](https://github.com/johnB007/Defender_XDR/blob/main/Workbooks/Cross-Platform-AI-Activity-Workbook/support/Prevention-Measures-Based-on-Workbook.md) provides the companion control review for destination, data, application, browser, API, MCP, and identity controls.
 
 ## License And Attribution
 

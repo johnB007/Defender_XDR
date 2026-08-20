@@ -62,19 +62,65 @@ Do not broadly block every executable with an AI related word in its name. Start
 
 ## 4. Script, Package, And API Governance
 
-**Workbook evidence:** Automation and API identifies PowerShell, Python, Node, curl, command shells, process command lines, and AI endpoints.
+**Workbook evidence:** Automation and API identifies PowerShell, Python, Node, curl, command shells, process command lines, and AI endpoints. Use the tab to separate ordinary developer tooling from processes that send data or requests to an AI destination outside the approved service set.
 
-**Control objective:** Reduce unreviewed automation and unmanaged API consumption without disabling legitimate engineering work.
+**Control objective:** Make automated AI use attributable to an owner, an approved workload, an approved destination, and a managed secret. The objective is governed automation, not an assumption that every script, package, or developer is malicious.
 
-| Control | Microsoft control plane | Recommended action | Validation evidence |
-| --- | --- | --- | --- |
-| PowerShell | PowerShell execution policy, Constrained Language Mode, WDAC, Defender for Endpoint | Apply the least disruptive control that matches the device role. Monitor script block and process activity before enforcement. | `DeviceProcessEvents`, PowerShell logs, and Defender alerts |
-| Python and Node packages | Intune, WDAC, proxy controls, developer platform policy | Restrict package installation sources or require approved registries for managed developer groups. Do not block Python or Node globally without a tested exception model. | Package management logs, process evidence, and developer exceptions |
-| API destination access | Custom indicators, proxy, firewall, SWG | Restrict outbound API endpoints to approved services and approved device groups. | Network blocks and API process evidence |
-| API secret handling | Defender for Cloud Apps, GitHub security controls, Defender for DevOps, Key Vault, code scanning | Detect exposed keys, move approved secrets to managed vaults, rotate compromised keys, and document API ownership. | Secret alerts, remediation tickets, and vault access logs |
-| Azure AI resource governance | Azure Policy, Azure RBAC, Azure resource governance | Restrict who can create AI resources, deployments, and credentials. Require approved subscriptions, regions, and owners. | Policy compliance and Azure activity logs |
+### PowerShell And Command Shells
 
-The goal is governed automation, not an assumption that every script or package is malicious. The workbook helps establish a baseline before controls are enforced.
+| Decision | Recommended implementation | What to review in the workbook |
+| --- | --- | --- |
+| Standard user devices | Start with App Control audit mode and PowerShell script block logging. Use the audit events to identify scripts and modules that would be constrained or blocked before enforcing a policy. | `pwsh.exe`, `powershell.exe`, parent process, command line, AI destination, account, and device |
+| Sensitive or privileged devices | Use WDAC or App Control to allow trusted scripts and modules while untrusted PowerShell runs in Constrained Language Mode. Use a stricter policy only after the audit evidence is understood. | Repeated script to AI connections, unsigned script hosts, encoded commands, and devices with no approved owner |
+| Operations exceptions | Maintain signed or publisher based allow rules and supplemental policies for approved automation. Do not rely on execution policy as the primary security boundary. | Exception owner, script publisher, device scope, expiry, and observed endpoint list |
+
+PowerShell 7.4 and later can log App Control audit restrictions without failing the script, which makes audit mode the right first step for business critical automation. Script block logging and AMSI provide additional investigation evidence, but they do not replace App Control enforcement.
+
+### Python, Node, And Package Registries
+
+| Decision | Recommended implementation | What to review in the workbook |
+| --- | --- | --- |
+| Managed developer devices | Define approved package registries, package sources, and developer groups. Use proxy, SWG, firewall, or DNS controls to restrict unapproved registry and AI API egress where the network architecture supports it. | `python`, `node`, `npm`, `pip`, `curl`, package command lines, and destination domains |
+| Non developer devices | Use WDAC, AppLocker, or Intune application control to restrict unapproved runtimes and local tools. Do not deploy a blanket Python or Node block to developer populations without an exception and testing model. | Runtime execution on devices outside the approved developer group |
+| Dependency risk | Require package provenance, code review, and vulnerability or secret scanning for approved automation. Treat packages that introduce AI clients, agent frameworks, or MCP clients as a review event. | New package processes, newly observed destinations, and configuration file creation |
+
+Intune manages device configuration and application deployment, but it does not by itself enforce PyPI or npm registry policy. Pair device management with package source policy, network egress controls, and developer governance.
+
+### AI API Egress And Workload Ownership
+
+| Decision | Recommended implementation | What to review in the workbook |
+| --- | --- | --- |
+| Approved API use | Allow only documented AI API destinations for the approved workload and device group. Record service owner, application, data classification, authentication method, and allowed domains. | Process to destination mapping, account, device, request volume, and first seen time |
+| Unapproved API use | Begin with audit or warn where possible, then block exact domains through custom indicators, SWG, proxy, firewall, or DNS policy after validating business impact. | Domain, subdomain, parent process, command line, and repeated connections |
+| Service exceptions | Scope exceptions to the smallest practical device or user group and set an expiry. Revalidate when the provider adds new endpoints or the application changes. | Exception register compared with workbook destinations and access volume |
+
+Use custom URL and domain indicators for exact AI destinations. Web content filtering is category based and does not provide a dedicated AI category or complete provider coverage.
+
+### API Keys, Tokens, And Secrets
+
+| Decision | Recommended implementation | What to review in the workbook |
+| --- | --- | --- |
+| Secret storage | Move approved API keys from scripts, local configuration, and repositories into Key Vault or another approved secret store. Use managed identity where the workload supports it. | Command lines, configuration files, repository findings, and workload owner |
+| Secret detection | Enable GitHub secret scanning and push protection where available. Use code scanning, Defender for DevOps, and repository review to identify exposed AI credentials. | Secret alerts, repository remediation, key rotation, and endpoint history |
+| Incident response | Revoke and rotate exposed keys, identify the workload that used them, review all destinations reached, and add a prevention rule before closing the incident. | Key rotation record, API destination history, process evidence, and owner confirmation |
+
+Never place a production AI API key in a command line, a configuration file committed to source control, a chat prompt, or an exception ticket. The workbook can identify process and destination context, but it is not a secret vault or a complete code scanning service.
+
+### Azure AI Resource Governance
+
+| Decision | Recommended implementation | What to review in the workbook |
+| --- | --- | --- |
+| Resource creation | Use Azure RBAC and Azure Policy to limit who can create AI resources, model deployments, private endpoints, and credentials. Scope creation to approved subscriptions, regions, and resource groups. | Azure activity logs, policy compliance, resource owner, and approval record |
+| Model deployment | Require an approved model catalog, workload owner, data classification, and network design before deploying a model. Prefer managed identity and private networking where the architecture supports them. | Deployment records, role assignments, network configuration, and Key Vault access |
+| Ongoing review | Review resource inventory, role assignments, quotas, endpoint exposure, and secret rotation on a defined cadence. | Azure Policy results, resource graph inventory, activity logs, and exception register |
+
+### Enforcement Sequence
+
+1. Baseline automation with the workbook and process logging.
+2. Place PowerShell and application control policies into audit mode for a representative pilot group.
+3. Define approved registries, API destinations, workload owners, and secret storage requirements.
+4. Convert validated audit findings into scoped allow rules, blocks, and documented exceptions.
+5. Review blocked events and developer impact before extending enforcement to additional device groups.
 
 ## 5. Browser And Extension Control
 

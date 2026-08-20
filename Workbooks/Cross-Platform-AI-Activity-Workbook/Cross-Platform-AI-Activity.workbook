@@ -176,6 +176,7 @@
               "visualization": "barchart"
             },
             "customWidth": "55",
+            "customHeight": "280",
             "name": "overview-top-applications"
           },
           {
@@ -197,6 +198,7 @@
               "showExportToExcel": true
             },
             "customWidth": "45",
+            "customHeight": "280",
             "name": "overview-application-summary"
           },
           {
@@ -212,6 +214,7 @@
               "visualization": "timechart"
             },
             "customWidth": "65",
+            "customHeight": "60",
             "name": "overview-trend"
           },
           {
@@ -227,6 +230,7 @@
               "visualization": "barchart"
             },
             "customWidth": "35",
+            "customHeight": "60",
             "name": "overview-methods"
           }
         ]
@@ -266,6 +270,7 @@
               "visualization": "barchart"
             },
             "customWidth": "34",
+            "customHeight": "55",
             "name": "unauthorized-top-users"
           },
           {
@@ -281,6 +286,7 @@
               "visualization": "barchart"
             },
             "customWidth": "33",
+            "customHeight": "55",
             "name": "unauthorized-devices"
           },
           {
@@ -296,6 +302,7 @@
               "visualization": "barchart"
             },
             "customWidth": "33",
+            "customHeight": "55",
             "name": "unauthorized-services"
           },
           {
@@ -317,6 +324,7 @@
               "showExportToExcel": true
             },
             "customWidth": "100",
+            "customHeight": "110",
             "name": "unauthorized-detail"
           },
           {
@@ -338,6 +346,7 @@
               "showExportToExcel": true
             },
             "customWidth": "100",
+            "customHeight": "90",
             "name": "provider-domain-inventory"
           }
         ]
@@ -377,6 +386,7 @@
               "visualization": "barchart"
             },
             "customWidth": "25",
+            "customHeight": "55",
             "name": "exposure-risk-summary"
           },
           {
@@ -392,6 +402,7 @@
               "visualization": "barchart"
             },
             "customWidth": "25",
+            "customHeight": "55",
             "name": "exposure-summary"
           },
           {
@@ -407,6 +418,7 @@
               "visualization": "barchart"
             },
             "customWidth": "25",
+            "customHeight": "55",
             "name": "exposure-top-accounts"
           },
           {
@@ -422,6 +434,7 @@
               "visualization": "barchart"
             },
             "customWidth": "25",
+            "customHeight": "55",
             "name": "exposure-top-devices"
           },
           {
@@ -443,6 +456,7 @@
               "showExportToExcel": true
             },
             "customWidth": "100",
+            "customHeight": "115",
             "name": "exposure-detail"
           }
         ]
@@ -482,6 +496,7 @@
               "visualization": "barchart"
             },
             "customWidth": "34",
+            "customHeight": "55",
             "name": "automation-processes"
           },
           {
@@ -497,6 +512,7 @@
               "visualization": "barchart"
             },
             "customWidth": "33",
+            "customHeight": "55",
             "name": "automation-top-accounts"
           },
           {
@@ -512,6 +528,7 @@
               "visualization": "barchart"
             },
             "customWidth": "33",
+            "customHeight": "55",
             "name": "automation-top-devices"
           },
           {
@@ -533,6 +550,7 @@
               "showExportToExcel": true
             },
             "customWidth": "100",
+            "customHeight": "115",
             "name": "automation-detail"
           }
         ]
@@ -563,7 +581,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let LocalAIProcesses = dynamic(['ollama.exe','ollama','lmstudio.exe','lmstudio','jan.exe','jan','gpt4all.exe','gpt4all','msty.exe','msty','anythingllm.exe','anythingllm','open-webui','chatgpt.exe','claude.exe','claude','cursor.exe','cursor','windsurf.exe','windsurf','aider.exe','aider','openclaw.exe','openclaw','opencode.exe','opencode','codex.exe','codex']);\r\nlet DeviceFilter = '{DeviceFilter}';\r\nlet AccountFilter = '{AccountFilter}';\r\nlet Files = DeviceFileEvents\r\n| where ActionType in ('FileCreated','FileModified')\r\n| extend LowerName=tolower(FileName), Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)\r\n| where LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or FileName has_any ('ollama','LM Studio','LMStudio','gpt4all','GPT4All','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM')\r\n| extend EvidenceType=iff(LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors', 'Local model file', 'Installer or package')\r\n| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType;\r\nlet Processes = DeviceProcessEvents\r\n| where FileName in~ (LocalAIProcesses)\r\n| extend Account=coalesce(AccountUpn, AccountName), EvidenceType='Local AI execution'\r\n| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType;\r\nunion Files, Processes\r\n| where DeviceFilter == '' or DeviceName contains DeviceFilter\r\n| where AccountFilter == '' or Account contains AccountFilter\r\n| summarize Events=count() by EvidenceType\r\n| top 5 by Events desc\r\n| project EvidenceType, Events",
+              "query": "let LocalAIProcesses = dynamic(['ollama.exe','ollama','lmstudio.exe','lmstudio','jan.exe','jan','gpt4all.exe','gpt4all','msty.exe','msty','anythingllm.exe','anythingllm','open-webui','chatgpt.exe','claude.exe','claude','cursor.exe','cursor','windsurf.exe','windsurf','aider.exe','aider','openclaw.exe','openclaw','opencode.exe','opencode','codex.exe','codex']);\r\nlet DeviceFilter = '{DeviceFilter}';\r\nlet AccountFilter = '{AccountFilter}';\r\nlet Files = DeviceFileEvents\r\n| where ActionType in ('FileCreated','FileModified')\r\n| extend LowerName=tolower(FileName), Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)\r\n| where LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or LowerName matches regex @'^(chatgpt|claude|ollama|lm[ _-]?studio|gpt4all|perplexity|cursor|windsurf|codeium|tabnine|msty|anythingllm|jan)[^\\\\]*\\.(exe|msi|msix|pkg|dmg|zip|crx|xpi)$'\r\n| extend EvidenceType=iff(LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors', 'Local model file', 'Installer or package')\r\n| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType;\r\nlet Processes = DeviceProcessEvents\r\n| where FileName in~ (LocalAIProcesses)\r\n| extend Account=coalesce(AccountUpn, AccountName), EvidenceType='Local AI execution'\r\n| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType;\r\nunion Files, Processes\r\n| where DeviceFilter == '' or DeviceName contains DeviceFilter\r\n| where AccountFilter == '' or Account contains AccountFilter\r\n| summarize Events=count() by EvidenceType\r\n| top 5 by Events desc\r\n| project EvidenceType, Events",
               "size": 2,
               "title": "Local AI Evidence by Execution, Installer, or Model File",
               "timeContextFromParameter": "TimeRange",
@@ -571,14 +589,15 @@
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "piechart"
             },
-            "customWidth": "34",
+            "customWidth": "100",
+            "customHeight": "35",
             "name": "local-summary"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let LocalAIProcesses = dynamic(['ollama.exe','ollama','lmstudio.exe','lmstudio','jan.exe','jan','gpt4all.exe','gpt4all','msty.exe','msty','anythingllm.exe','anythingllm','open-webui','chatgpt.exe','claude.exe','claude','cursor.exe','cursor','windsurf.exe','windsurf','aider.exe','aider','openclaw.exe','openclaw','opencode.exe','opencode','codex.exe','codex']);\r\nlet DeviceFilter = '{DeviceFilter}';\r\nlet AccountFilter = '{AccountFilter}';\r\nlet Files = DeviceFileEvents\r\n| where ActionType in ('FileCreated','FileModified')\r\n| extend LowerName=tolower(FileName), Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)\r\n| where LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or FileName has_any ('ollama','LM Studio','LMStudio','gpt4all','GPT4All','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM')\r\n| extend EvidenceType=iff(LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors', 'Model file', 'Installer or package')\r\n| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType;\r\nlet Processes = DeviceProcessEvents\r\n| where FileName in~ (LocalAIProcesses)\r\n| extend Account=coalesce(AccountUpn, AccountName), EvidenceType='Execution'\r\n| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType;\r\nunion Files, Processes\r\n| where DeviceFilter == '' or DeviceName contains DeviceFilter\r\n| where AccountFilter == '' or Account contains AccountFilter\r\n| summarize Events=count() by DeviceName\r\n| top 5 by Events desc\r\n| project DeviceName, Events",
+              "query": "let LocalAIProcesses = dynamic(['ollama.exe','ollama','lmstudio.exe','lmstudio','jan.exe','jan','gpt4all.exe','gpt4all','msty.exe','msty','anythingllm.exe','anythingllm','open-webui','chatgpt.exe','claude.exe','claude','cursor.exe','cursor','windsurf.exe','windsurf','aider.exe','aider','openclaw.exe','openclaw','opencode.exe','opencode','codex.exe','codex']);\r\nlet DeviceFilter = '{DeviceFilter}';\r\nlet AccountFilter = '{AccountFilter}';\r\nlet Files = DeviceFileEvents\r\n| where ActionType in ('FileCreated','FileModified')\r\n| extend LowerName=tolower(FileName), Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)\r\n| where LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or LowerName matches regex @'^(chatgpt|claude|ollama|lm[ _-]?studio|gpt4all|perplexity|cursor|windsurf|codeium|tabnine|msty|anythingllm|jan)[^\\\\]*\\.(exe|msi|msix|pkg|dmg|zip|crx|xpi)$'\r\n| extend EvidenceType=iff(LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors', 'Model file', 'Installer or package')\r\n| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType;\r\nlet Processes = DeviceProcessEvents\r\n| where FileName in~ (LocalAIProcesses)\r\n| extend Account=coalesce(AccountUpn, AccountName), EvidenceType='Execution'\r\n| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType;\r\nunion Files, Processes\r\n| where DeviceFilter == '' or DeviceName contains DeviceFilter\r\n| where AccountFilter == '' or Account contains AccountFilter\r\n| summarize Events=count() by DeviceName\r\n| top 5 by Events desc\r\n| project DeviceName, Events",
               "size": 2,
               "title": "Top 5 Devices with Local AI Artifacts or Execution",
               "timeContextFromParameter": "TimeRange",
@@ -587,13 +606,14 @@
               "visualization": "barchart"
             },
             "customWidth": "33",
+            "customHeight": "55",
             "name": "local-devices"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let LocalAIProcesses = dynamic(['ollama.exe','ollama','lmstudio.exe','lmstudio','jan.exe','jan','gpt4all.exe','gpt4all','msty.exe','msty','anythingllm.exe','anythingllm','open-webui','chatgpt.exe','claude.exe','claude','cursor.exe','cursor','windsurf.exe','windsurf','aider.exe','aider','openclaw.exe','openclaw','opencode.exe','opencode','codex.exe','codex']);\r\nlet DeviceFilter = '{DeviceFilter}';\r\nlet AccountFilter = '{AccountFilter}';\r\nlet Files = DeviceFileEvents\r\n| where ActionType in ('FileCreated','FileModified')\r\n| extend LowerName=tolower(FileName), Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)\r\n| where LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or FileName has_any ('ollama','LM Studio','LMStudio','gpt4all','GPT4All','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM')\r\n| project TimeGenerated, DeviceName, Account;\r\nlet Processes = DeviceProcessEvents\r\n| where FileName in~ (LocalAIProcesses)\r\n| extend Account=coalesce(AccountUpn, AccountName)\r\n| project TimeGenerated, DeviceName, Account;\r\nunion Files, Processes\r\n| where DeviceFilter == '' or DeviceName contains DeviceFilter\r\n| where AccountFilter == '' or Account contains AccountFilter\r\n| where isnotempty(Account)\r\n| summarize Events=count() by Account\r\n| top 5 by Events desc\r\n| project Account, Events",
+              "query": "let LocalAIProcesses = dynamic(['ollama.exe','ollama','lmstudio.exe','lmstudio','jan.exe','jan','gpt4all.exe','gpt4all','msty.exe','msty','anythingllm.exe','anythingllm','open-webui','chatgpt.exe','claude.exe','claude','cursor.exe','cursor','windsurf.exe','windsurf','aider.exe','aider','openclaw.exe','openclaw','opencode.exe','opencode','codex.exe','codex']);\r\nlet DeviceFilter = '{DeviceFilter}';\r\nlet AccountFilter = '{AccountFilter}';\r\nlet Files = DeviceFileEvents\r\n| where ActionType in ('FileCreated','FileModified')\r\n| extend LowerName=tolower(FileName), Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)\r\n| where LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or LowerName matches regex @'^(chatgpt|claude|ollama|lm[ _-]?studio|gpt4all|perplexity|cursor|windsurf|codeium|tabnine|msty|anythingllm|jan)[^\\\\]*\\.(exe|msi|msix|pkg|dmg|zip|crx|xpi)$'\r\n| project TimeGenerated, DeviceName, Account;\r\nlet Processes = DeviceProcessEvents\r\n| where FileName in~ (LocalAIProcesses)\r\n| extend Account=coalesce(AccountUpn, AccountName)\r\n| project TimeGenerated, DeviceName, Account;\r\nunion Files, Processes\r\n| where DeviceFilter == '' or DeviceName contains DeviceFilter\r\n| where AccountFilter == '' or Account contains AccountFilter\r\n| where isnotempty(Account)\r\n| summarize Events=count() by Account\r\n| top 5 by Events desc\r\n| project Account, Events",
               "size": 2,
               "title": "Top 5 Accounts Creating or Running Local AI",
               "timeContextFromParameter": "TimeRange",
@@ -602,13 +622,14 @@
               "visualization": "barchart"
             },
             "customWidth": "33",
+            "customHeight": "55",
             "name": "local-top-accounts"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let LocalAIProcesses = dynamic(['ollama.exe','ollama','lmstudio.exe','lmstudio','jan.exe','jan','gpt4all.exe','gpt4all','msty.exe','msty','anythingllm.exe','anythingllm','open-webui','chatgpt.exe','claude.exe','claude','cursor.exe','cursor','windsurf.exe','windsurf','aider.exe','aider','openclaw.exe','openclaw','opencode.exe','opencode','codex.exe','codex']);\r\nlet DeviceFilter = '{DeviceFilter}';\r\nlet AccountFilter = '{AccountFilter}';\r\nlet Downloads = DeviceFileEvents\r\n| where ActionType in ('FileCreated','FileModified')\r\n| where FileName has_any ('ChatGPT','Claude','ollama','LM Studio','LMStudio','gpt4all','GPT4All','Perplexity','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM','Jan')\r\n| where tolower(FileName) endswith '.exe' or tolower(FileName) endswith '.msi' or tolower(FileName) endswith '.msix' or tolower(FileName) endswith '.pkg' or tolower(FileName) endswith '.dmg' or tolower(FileName) endswith '.zip' or tolower(FileName) endswith '.crx' or tolower(FileName) endswith '.xpi'\r\n| extend Account = coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)\r\n| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='AI installer or extension', Artifact=FileName, Detail=FolderPath, FileSize, InitiatingProcessFileName;\r\nlet Models = DeviceFileEvents\r\n| where ActionType in ('FileCreated','FileModified')\r\n| where tolower(FileName) endswith '.gguf' or tolower(FileName) endswith '.ggml' or tolower(FileName) endswith '.safetensors' or (tolower(FileName) endswith '.bin' and FileSize > 500000000)\r\n| extend Account = coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)\r\n| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='Local model file', Artifact=FileName, Detail=FolderPath, FileSize, InitiatingProcessFileName;\r\nlet Executions = DeviceProcessEvents\r\n| where FileName in~ (LocalAIProcesses)\r\n| where not(FileName startswith 'Microsoft.Copilot')\r\n| extend Account = coalesce(AccountUpn, AccountName)\r\n| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='Local AI execution', Artifact=FileName, Detail=ProcessCommandLine, FileSize=long(0), InitiatingProcessFileName;\r\nunion Downloads, Models, Executions\r\n| where DeviceFilter == '' or DeviceName contains DeviceFilter\r\n| where AccountFilter == '' or Account contains AccountFilter\r\n| extend RiskScore = case(EvidenceType == 'Local model file', 85, EvidenceType == 'Local AI execution', 75, 55)\r\n| extend RiskLevel = case(RiskScore >= 85, 'Critical', RiskScore >= 70, 'High', 'Medium')\r\n| extend RecommendedAction = case(EvidenceType == 'Local model file', 'Identify model provenance and owner, inspect nearby data, and remove if unauthorized', EvidenceType == 'Local AI execution', 'Capture process context and validate approved use before containment', 'Verify installer source and remove unauthorized package')\r\n| project TimeGenerated, RiskLevel, RiskScore, RecommendedAction, EvidenceType, Account, DeviceName, Artifact, Detail, FileSize, InitiatingProcessFileName\r\n| top 10000 by RiskScore desc",
+              "query": "let LocalAIProcesses = dynamic(['ollama.exe','ollama','lmstudio.exe','lmstudio','jan.exe','jan','gpt4all.exe','gpt4all','msty.exe','msty','anythingllm.exe','anythingllm','open-webui','chatgpt.exe','claude.exe','claude','cursor.exe','cursor','windsurf.exe','windsurf','aider.exe','aider','openclaw.exe','openclaw','opencode.exe','opencode','codex.exe','codex']);\r\nlet DeviceFilter = '{DeviceFilter}';\r\nlet AccountFilter = '{AccountFilter}';\r\nlet Downloads = DeviceFileEvents\r\n| where ActionType in ('FileCreated','FileModified')\r\n| extend LowerName=tolower(FileName)\r\n| where LowerName matches regex @'^(chatgpt|claude|ollama|lm[ _-]?studio|gpt4all|perplexity|cursor|windsurf|codeium|tabnine|msty|anythingllm|jan)[^\\\\]*\\.(exe|msi|msix|pkg|dmg|zip|crx|xpi)$'\r\n| extend Account = coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)\r\n| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='AI installer or extension', Artifact=FileName, Detail=FolderPath, FileSize, InitiatingProcessFileName;\r\nlet Models = DeviceFileEvents\r\n| where ActionType in ('FileCreated','FileModified')\r\n| where tolower(FileName) endswith '.gguf' or tolower(FileName) endswith '.ggml' or tolower(FileName) endswith '.safetensors' or (tolower(FileName) endswith '.bin' and FileSize > 500000000)\r\n| extend Account = coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)\r\n| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='Local model file', Artifact=FileName, Detail=FolderPath, FileSize, InitiatingProcessFileName;\r\nlet Executions = DeviceProcessEvents\r\n| where FileName in~ (LocalAIProcesses)\r\n| where not(FileName startswith 'Microsoft.Copilot')\r\n| extend Account = coalesce(AccountUpn, AccountName)\r\n| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='Local AI execution', Artifact=FileName, Detail=ProcessCommandLine, FileSize=long(0), InitiatingProcessFileName;\r\nunion Downloads, Models, Executions\r\n| where DeviceFilter == '' or DeviceName contains DeviceFilter\r\n| where AccountFilter == '' or Account contains AccountFilter\r\n| extend RiskScore = case(EvidenceType == 'Local model file', 85, EvidenceType == 'Local AI execution', 75, 55)\r\n| extend RiskLevel = case(RiskScore >= 85, 'Critical', RiskScore >= 70, 'High', 'Medium')\r\n| extend RecommendedAction = case(EvidenceType == 'Local model file', 'Identify model provenance and owner, inspect nearby data, and remove if unauthorized', EvidenceType == 'Local AI execution', 'Capture process context and validate approved use before containment', 'Verify installer source and remove unauthorized package')\r\n| project TimeGenerated, RiskLevel, RiskScore, RecommendedAction, EvidenceType, Account, DeviceName, Artifact, Detail, FileSize, InitiatingProcessFileName\r\n| top 10000 by RiskScore desc",
               "size": 0,
               "title": "Local AI Tool, Model, Installer, Owner, and Response Evidence",
               "timeContextFromParameter": "TimeRange",
@@ -623,6 +644,7 @@
               "showExportToExcel": true
             },
             "customWidth": "100",
+            "customHeight": "115",
             "name": "local-detail"
           }
         ]
@@ -662,6 +684,7 @@
               "visualization": "barchart"
             },
             "customWidth": "34",
+            "customHeight": "55",
             "name": "agent-top-tools"
           },
           {
@@ -677,6 +700,7 @@
               "visualization": "barchart"
             },
             "customWidth": "33",
+            "customHeight": "55",
             "name": "agent-top-accounts"
           },
           {
@@ -692,6 +716,7 @@
               "visualization": "barchart"
             },
             "customWidth": "33",
+            "customHeight": "55",
             "name": "agent-top-devices"
           },
           {
@@ -713,6 +738,7 @@
               "showExportToExcel": true
             },
             "customWidth": "100",
+            "customHeight": "90",
             "name": "agent-tool-inventory"
           },
           {
@@ -734,6 +760,7 @@
               "showExportToExcel": true
             },
             "customWidth": "50",
+            "customHeight": "105",
             "name": "agent-processes"
           },
           {
@@ -755,6 +782,7 @@
               "showExportToExcel": true
             },
             "customWidth": "50",
+            "customHeight": "105",
             "name": "agent-context-files"
           }
         ]
@@ -800,6 +828,7 @@
               "showExportToExcel": true
             },
             "customWidth": "100",
+            "customHeight": "110",
             "name": "priority-queue"
           },
           {
@@ -815,6 +844,7 @@
               "visualization": "barchart"
             },
             "customWidth": "50",
+            "customHeight": "55",
             "name": "related-alert-summary"
           },
           {
@@ -830,6 +860,7 @@
               "visualization": "barchart"
             },
             "customWidth": "50",
+            "customHeight": "55",
             "name": "related-alert-devices"
           },
           {
@@ -851,6 +882,7 @@
               "showExportToExcel": true
             },
             "customWidth": "100",
+            "customHeight": "105",
             "name": "related-alerts"
           }
         ]
@@ -896,6 +928,7 @@
               "showExportToExcel": true
             },
             "customWidth": "100",
+            "customHeight": "280",
             "name": "web-application-inventory"
           },
           {
@@ -911,6 +944,7 @@
               "visualization": "barchart"
             },
             "customWidth": "34",
+            "customHeight": "55",
             "name": "web-top-accounts"
           },
           {
@@ -926,6 +960,7 @@
               "visualization": "barchart"
             },
             "customWidth": "33",
+            "customHeight": "55",
             "name": "web-top-devices"
           },
           {
@@ -941,6 +976,7 @@
               "visualization": "barchart"
             },
             "customWidth": "33",
+            "customHeight": "55",
             "name": "web-top-processes"
           },
           {
@@ -962,6 +998,7 @@
               "showExportToExcel": true
             },
             "customWidth": "100",
+            "customHeight": "110",
             "name": "web-access-detail"
           },
           {
@@ -983,6 +1020,7 @@
               "showExportToExcel": true
             },
             "customWidth": "100",
+            "customHeight": "90",
             "name": "web-cloud-interactions"
           }
         ]

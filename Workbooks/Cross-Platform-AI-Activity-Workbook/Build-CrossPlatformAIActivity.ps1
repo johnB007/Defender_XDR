@@ -165,7 +165,7 @@ function New-QueryItem {
             subtitleContent = [ordered]@{ columnMatch = 'subtitle'; formatter = 1 }
         }
     }
-    [ordered]@{ type = 3; content = $content; customWidth = $Width; customHeight = $Height; name = $Name }
+    [ordered]@{ type = 3; content = $content; customWidth = $Width; name = $Name }
 }
 
 function New-Group {
@@ -416,8 +416,8 @@ let DeviceFilter = '{DeviceFilter}';
 let AccountFilter = '{AccountFilter}';
 let Downloads = DeviceFileEvents
 | where ActionType in ('FileCreated','FileModified')
-| extend LowerName=tolower(FileName)
-| where LowerName matches regex @'^(chatgpt|claude|ollama|lm[ _-]?studio|gpt4all|perplexity|cursor|windsurf|codeium|tabnine|msty|anythingllm|jan)[^\\]*\.(exe|msi|msix|pkg|dmg|zip|crx|xpi)$'
+| where FileName has_any ('ChatGPT','Claude','ollama','LM Studio','LMStudio','gpt4all','GPT4All','Perplexity','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM','Jan')
+| where tolower(FileName) endswith '.exe' or tolower(FileName) endswith '.msi' or tolower(FileName) endswith '.msix' or tolower(FileName) endswith '.pkg' or tolower(FileName) endswith '.dmg' or tolower(FileName) endswith '.zip' or tolower(FileName) endswith '.crx' or tolower(FileName) endswith '.xpi'
 | extend Account = coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
 | project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='AI installer or extension', Artifact=FileName, Detail=FolderPath, FileSize, InitiatingProcessFileName;
 let Models = DeviceFileEvents
@@ -447,7 +447,7 @@ let AccountFilter = '{AccountFilter}';
 let Files = DeviceFileEvents
 | where ActionType in ('FileCreated','FileModified')
 | extend LowerName=tolower(FileName), Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-| where LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or LowerName matches regex @'^(chatgpt|claude|ollama|lm[ _-]?studio|gpt4all|perplexity|cursor|windsurf|codeium|tabnine|msty|anythingllm|jan)[^\\]*\.(exe|msi|msix|pkg|dmg|zip|crx|xpi)$'
+| where LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or FileName has_any ('ollama','LM Studio','LMStudio','gpt4all','GPT4All','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM')
 | extend EvidenceType=iff(LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors', 'Local model file', 'Installer or package')
 | project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType;
 let Processes = DeviceProcessEvents
@@ -643,7 +643,7 @@ let AccountFilter = '{AccountFilter}';
 let Files = DeviceFileEvents
 | where ActionType in ('FileCreated','FileModified')
 | extend LowerName=tolower(FileName), Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-| where LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or LowerName matches regex @'^(chatgpt|claude|ollama|lm[ _-]?studio|gpt4all|perplexity|cursor|windsurf|codeium|tabnine|msty|anythingllm|jan)[^\\]*\.(exe|msi|msix|pkg|dmg|zip|crx|xpi)$'
+| where LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or FileName has_any ('ollama','LM Studio','LMStudio','gpt4all','GPT4All','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM')
 | extend EvidenceType=iff(LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors', 'Model file', 'Installer or package')
 | project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType;
 let Processes = DeviceProcessEvents
@@ -665,7 +665,7 @@ let AccountFilter = '{AccountFilter}';
 let Files = DeviceFileEvents
 | where ActionType in ('FileCreated','FileModified')
 | extend LowerName=tolower(FileName), Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-| where LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or LowerName matches regex @'^(chatgpt|claude|ollama|lm[ _-]?studio|gpt4all|perplexity|cursor|windsurf|codeium|tabnine|msty|anythingllm|jan)[^\\]*\.(exe|msi|msix|pkg|dmg|zip|crx|xpi)$'
+| where LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or FileName has_any ('ollama','LM Studio','LMStudio','gpt4all','GPT4All','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM')
 | extend EvidenceType=iff(LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors', 'Model file', 'Installer or package')
 | project TimeGenerated, DeviceName, Account, EvidenceType;
 let Processes = DeviceProcessEvents
@@ -893,7 +893,7 @@ let AccountFilter = '{AccountFilter}';
 let Files = DeviceFileEvents
 | where ActionType in ('FileCreated','FileModified')
 | extend LowerName=tolower(FileName), Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-| where LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or LowerName matches regex @'^(chatgpt|claude|ollama|lm[ _-]?studio|gpt4all|perplexity|cursor|windsurf|codeium|tabnine|msty|anythingllm|jan)[^\\]*\.(exe|msi|msix|pkg|dmg|zip|crx|xpi)$'
+| where LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or FileName has_any ('ollama','LM Studio','LMStudio','gpt4all','GPT4All','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM')
 | project TimeGenerated, DeviceName, Account;
 let Processes = DeviceProcessEvents
 | where FileName in~ (LocalAIProcesses)
@@ -1219,7 +1219,7 @@ $Groups = @(
     )),
     (New-Group -Name 'group-local-ai' -TabValue 'LocalAI' -Items @(
         (New-TextItem -Name 'local-header' -Text "## Local AI Software and Models | Endpoint evidence for local AI executables, installers, packages, and model files. This tab does not count browser access to hosted AI services." -Style 'info'),
-        (New-QueryItem -Name 'local-summary' -Title 'Local AI Evidence by Execution, Installer, or Model File' -Query $LocalSummary -Visualization 'piechart' -Width '100' -Height '35' -Size 2),
+        (New-QueryItem -Name 'local-summary' -Title 'Local AI Evidence by Execution, Installer, or Model File' -Query $LocalSummary -Visualization 'piechart' -Width '34' -Height '55' -Size 2),
         (New-QueryItem -Name 'local-devices' -Title 'Top 5 Devices with Local AI Artifacts or Execution' -Query $LocalDevices -Visualization 'barchart' -Width '33' -Height '55' -Size 2),
         (New-QueryItem -Name 'local-top-accounts' -Title 'Top 5 Accounts Creating or Running Local AI' -Query $LocalTopAccounts -Visualization 'barchart' -Width '33' -Height '55' -Size 2),
         (New-QueryItem -Name 'local-detail' -Title 'Local AI Tool, Model, Installer, Owner, and Response Evidence' -Query $LocalEvidence -Grid -Width '100' -Height '115')

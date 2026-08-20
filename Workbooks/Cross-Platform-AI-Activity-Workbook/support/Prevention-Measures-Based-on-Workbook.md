@@ -66,15 +66,20 @@ Do not broadly block every executable with an AI related word in its name. Start
 
 **Control objective:** Make automated AI use attributable to an owner, an approved workload, an approved destination, and a managed secret. The objective is governed automation, not an assumption that every script, package, or developer is malicious.
 
-### PowerShell And Command Shells
+### Command Line, Scripting, And Developer Runtimes
 
-| Decision | Recommended implementation | What to review in the workbook |
+The workbook's Automation and API tab covers command shells, scripting engines, download clients, and developer runtimes when they reach an AI destination. The monitored process set includes `cmd`, `powershell`, `pwsh`, `wscript`, `cscript`, `python`, `node`, `curl`, `wget`, `bash`, `sh`, `zsh`, Jupyter, R, and Go tooling; it is not limited to PowerShell.
+
+| Runtime or client | Recommended control model | What to review in the workbook |
 | --- | --- | --- |
-| Standard user devices | Start with App Control audit mode and PowerShell script block logging. Use the audit events to identify scripts and modules that would be constrained or blocked before enforcing a policy. | `pwsh.exe`, `powershell.exe`, parent process, command line, AI destination, account, and device |
-| Sensitive or privileged devices | Use WDAC or App Control to allow trusted scripts and modules while untrusted PowerShell runs in Constrained Language Mode. Use a stricter policy only after the audit evidence is understood. | Repeated script to AI connections, unsigned script hosts, encoded commands, and devices with no approved owner |
-| Operations exceptions | Maintain signed or publisher based allow rules and supplemental policies for approved automation. Do not rely on execution policy as the primary security boundary. | Exception owner, script publisher, device scope, expiry, and observed endpoint list |
+| `powershell.exe` and `pwsh.exe` | Start with App Control audit mode and PowerShell script block logging. Use trusted signer or publisher rules for approved scripts and modules, then use WDAC or App Control enforcement for sensitive populations. | Parent process, command line, AI destination, account, device, encoded commands, and repeated execution |
+| `cmd.exe`, `wscript.exe`, and `cscript.exe` | Use WDAC or AppLocker audit mode to identify business dependencies, then restrict unapproved script hosts and unsigned scripts by device role. | Script host, child process, script path, AI destination, account, and device |
+| `python.exe`, `python3.exe`, Jupyter, R, and Go | Define an approved developer device group, approved package sources, and approved project or workload owners. Use application control and egress policy to restrict use outside that model. | Runtime, package command line, virtual environment or project path, destination, account, and device |
+| `node.exe`, `npm`, and `npx` | Define approved Node versions, registries, package sources, and VS Code extension policy for managed developer devices. Restrict unapproved AI clients and MCP packages through application control and destination policy. | Node command line, package install command, MCP configuration files, destination, account, and device |
+| `curl` and `wget` | Permit only on approved administrative or developer devices where possible. Use custom indicators, SWG, proxy, firewall, or DNS controls to govern the API destinations they can contact. | Exact URL or domain, parent process, command parameters, device role, and request volume |
+| `bash`, `sh`, and `zsh` | Apply equivalent Linux and macOS endpoint, package source, and network egress controls. Require a managed device and documented owner for AI automation. | Shell process, child process, command line, destination, account, and device |
 
-PowerShell 7.4 and later can log App Control audit restrictions without failing the script, which makes audit mode the right first step for business critical automation. Script block logging and AMSI provide additional investigation evidence, but they do not replace App Control enforcement.
+PowerShell 7.4 and later can log App Control audit restrictions without failing the script, which makes audit mode the right first step for business critical automation. Script block logging and AMSI provide additional investigation evidence, but they do not replace App Control enforcement. Do not rely on PowerShell execution policy as the primary security boundary, and do not globally block Python, Node, or command line clients without a tested developer exception model.
 
 ### Python, Node, And Package Registries
 

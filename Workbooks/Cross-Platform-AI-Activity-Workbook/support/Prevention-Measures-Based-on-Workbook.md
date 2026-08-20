@@ -120,28 +120,6 @@ MCP is not automatically remote code execution, but an MCP server can expose too
 | Privileged administration | Privileged Identity Management and RBAC | Limit who can change DLP, web filtering, indicators, extension policies, and AI resource controls. | Role assignments and privileged access reviews |
 | Exception governance | Service management and security governance | Require an owner, business purpose, expiry, and periodic recertification for every exception. | Exception register and review evidence |
 
-## Recommended Rollout Sequence
-
-1. Use the workbook to baseline current AI access, automation, local AI, browser, and MCP activity.
-2. Classify services as approved, restricted, or prohibited with business and legal stakeholders.
-3. Apply destination controls in audit mode to a pilot group and use workbook evidence to tune false positives.
-4. Deploy sensitivity labels, Endpoint DLP simulation, and Edge prompt protections for sensitive data scenarios.
-5. Move validated DLP and destination rules to block or block with override, with a documented exception path.
-6. Deploy application control and extension allow lists to sensitive devices, then broaden scope in phases.
-7. Establish agent and MCP approval governance before allowing broad developer use.
-8. Review workbook trends, DLP incidents, block events, and exceptions at least monthly.
-
-## Office Meeting Agenda
-
-| Topic | Outcome |
-| --- | --- |
-| Approved AI service definition | Confirm Microsoft 365 Copilot and any approved alternatives |
-| Data classes | Select sensitive information types and labels requiring protection |
-| Pilot population | Select a representative user and device cohort |
-| Control priority | Decide the first destination, DLP, application, extension, or MCP control to test |
-| Exception path | Agree on owner, request process, expiry, and review cadence |
-| Success measures | Define expected reduction in unapproved activity, DLP events, and policy exceptions |
-
 ## Control Boundaries
 
 No single E5 control blocks every AI path. Use layered controls: destination enforcement limits where users can connect, data protection limits what can leave the device, application control limits what can execute, and identity controls limit which devices and users can use protected services. Keep the workbook in the loop as the measurement and investigation surface for each control change.

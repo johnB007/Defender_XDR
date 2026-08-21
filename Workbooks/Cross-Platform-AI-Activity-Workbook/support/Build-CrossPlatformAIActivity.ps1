@@ -957,6 +957,39 @@ $AgentRankingBase
 | project DeviceName, Executions
 "@
 
+$AgentMcpTrend = @"
+let AgentProcesses = dynamic(['claude.exe','claude','cursor.exe','cursor','windsurf.exe','windsurf','aider.exe','aider','openclaw.exe','openclaw','opencode.exe','opencode','codex.exe','codex','cline.exe','continue.exe']);
+let DeviceFilter = '{DeviceFilter}';
+let AccountFilter = '{AccountFilter}';
+DeviceProcessEvents
+| where FileName in~ (AgentProcesses) or ProcessCommandLine has_any (' mcp ','--mcp','mcp.json','modelcontextprotocol','openclaw','opencode','aider','claude-code')
+| extend Account=coalesce(AccountUpn, AccountName)
+| where DeviceFilter == '' or DeviceName contains DeviceFilter
+| where AccountFilter == '' or Account contains AccountFilter
+| extend IsMcp = ProcessCommandLine has_any (' mcp ','--mcp','mcp.json','modelcontextprotocol')
+| summarize ['MCP invocations']=countif(IsMcp), ['Agent executions']=countif(not(IsMcp)) by bin(TimeGenerated, 1d)
+| order by TimeGenerated asc
+"@
+
+$AgentDestinations = @"
+let RogueDomains = $RogueDomains;
+let ApprovedDomains = $ApprovedDomains;
+let AgentProcesses = dynamic(['claude.exe','claude','cursor.exe','cursor','windsurf.exe','windsurf','aider.exe','aider','openclaw.exe','openclaw','opencode.exe','opencode','codex.exe','codex','cline.exe','continue.exe']);
+let DeviceFilter = '{DeviceFilter}';
+let AccountFilter = '{AccountFilter}';
+DeviceNetworkEvents
+| where isnotempty(RemoteUrl) and RemoteUrl has_any (RogueDomains)
+| where not(RemoteUrl has_any (ApprovedDomains))
+| where InitiatingProcessFileName in~ (AgentProcesses) or InitiatingProcessCommandLine has_any (' mcp ','--mcp','mcp.json','modelcontextprotocol','openclaw','opencode','aider','claude-code')
+| extend Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
+| where DeviceFilter == '' or DeviceName contains DeviceFilter
+| where AccountFilter == '' or Account contains AccountFilter
+| extend AIService=$AIServiceExpression
+| summarize Connections=count() by AIService
+| top 5 by Connections desc
+| project AIService, Connections
+"@
+
 $RelatedAlertDevices = @"
 let RogueDomains = $RogueDomains;
 let ApprovedDomains = $ApprovedDomains;
@@ -1242,12 +1275,14 @@ $Groups = @(
     )),
     (New-Group -Name 'group-agents-mcp' -TabValue 'AgentsMCP' -Items @(
         (New-TextItem -Name 'agents-header' -Text "## Agent and MCP Execution | Process commands and configuration evidence for coding agents, autonomous tools, and Model Context Protocol use. Review ownership, tool permissions, credentials, instructions, and configured servers." -Style 'info'),
-        (New-QueryItem -Name 'agent-top-tools' -Title 'Top 5 Detected Agent Tools and MCP Invocations' -Query $AgentTopTools -Visualization 'barchart' -Width '34' -Height '55'),
-        (New-QueryItem -Name 'agent-top-accounts' -Title 'Top 5 Accounts Running Agents or MCP Commands' -Query $AgentTopAccounts -Visualization 'barchart' -Width '33' -Height '55'),
-        (New-QueryItem -Name 'agent-top-devices' -Title 'Top 5 Devices Running Agents or MCP Commands' -Query $AgentTopDevices -Visualization 'barchart' -Width '33' -Height '55'),
-        (New-QueryItem -Name 'agent-tool-inventory' -Title 'Agent Tool Ownership, First Seen, Last Seen, and Commands' -Query $AgentToolInventory -Grid -Width '100' -Height '90'),
-        (New-QueryItem -Name 'agent-processes' -Title 'Agent Executable and MCP Command Evidence' -Query $AgentProcesses -Grid -Width '50' -Height '105'),
-        (New-QueryItem -Name 'agent-context-files' -Title 'Agent Instructions, MCP Configuration, and Command Evidence' -Query $ContextFiles -Grid -Width '50' -Height '105')
+        (New-QueryItem -Name 'agent-mcp-trend' -Title 'Daily Agent Executions and MCP Invocations' -Query $AgentMcpTrend -Visualization 'areachart' -Width '60' -Height '50' -ChartSettings ([ordered]@{ seriesLabelSettings = @([ordered]@{ seriesName = 'Agent executions'; color = 'blueBright' }, [ordered]@{ seriesName = 'MCP invocations'; color = 'purpleBright' }) })),
+        (New-QueryItem -Name 'agent-destinations' -Title 'Top 5 Unauthorized AI Destinations from Agents and MCP' -Query $AgentDestinations -Visualization 'barchart' -Width '40' -Height '50'),
+        (New-QueryItem -Name 'agent-top-tools' -Title 'Top 5 Detected Agent Tools and MCP Invocations' -Query $AgentTopTools -Visualization 'barchart' -Width '34' -Height '50'),
+        (New-QueryItem -Name 'agent-top-accounts' -Title 'Top 5 Accounts Running Agents or MCP Commands' -Query $AgentTopAccounts -Visualization 'barchart' -Width '33' -Height '50'),
+        (New-QueryItem -Name 'agent-top-devices' -Title 'Top 5 Devices Running Agents or MCP Commands' -Query $AgentTopDevices -Visualization 'barchart' -Width '33' -Height '50'),
+        (New-QueryItem -Name 'agent-tool-inventory' -Title 'Agent Tool Ownership, First Seen, Last Seen, and Commands' -Query $AgentToolInventory -Grid -Width '100' -Height '70'),
+        (New-QueryItem -Name 'agent-processes' -Title 'Agent Executable and MCP Command Evidence' -Query $AgentProcesses -Grid -Width '50' -Height '90'),
+        (New-QueryItem -Name 'agent-context-files' -Title 'Agent Instructions, MCP Configuration, and Command Evidence' -Query $ContextFiles -Grid -Width '50' -Height '90')
     )),
     (New-Group -Name 'group-investigation' -TabValue 'Investigation' -Items @(
         (New-TextItem -Name 'investigation-header' -Text "## AI Findings and Existing Device Alerts | The alerts here are existing Microsoft Defender alerts on devices that also have AI evidence. They are not AI alerts, and this workbook does not claim AI caused them. Use the timeline and association statement to decide whether they are related." -Style 'info'),

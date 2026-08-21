@@ -587,6 +587,7 @@ let RogueDomains = $RogueDomains;
 let ApprovedDomains = $ApprovedDomains;
 let BrowserProcesses = $BrowserProcesses;
 let ScriptProcesses = $ScriptProcesses;
+let AgentProcesses = dynamic(['claude.exe','claude','cursor.exe','cursor','windsurf.exe','windsurf','aider.exe','aider','openclaw.exe','openclaw','opencode.exe','opencode','codex.exe','codex','cline.exe','continue.exe']);
 let DeviceFilter = '{DeviceFilter}';
 let AccountFilter = '{AccountFilter}';
 DeviceNetworkEvents
@@ -595,7 +596,7 @@ DeviceNetworkEvents
 | extend Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
 | where DeviceFilter == '' or DeviceName contains DeviceFilter
 | where AccountFilter == '' or Account contains AccountFilter
-| extend AccessMethod=case(InitiatingProcessFileName in~ (ScriptProcesses), 'Script or API', InitiatingProcessFileName in~ (BrowserProcesses), 'Browser', 'Desktop or other')
+| extend AccessMethod=case(InitiatingProcessFileName in~ (AgentProcesses) or InitiatingProcessCommandLine has_any (' mcp ','--mcp','mcp.json','modelcontextprotocol','openclaw','opencode','aider','claude-code'), 'Agent or MCP', InitiatingProcessFileName in~ (ScriptProcesses), 'Script or API', InitiatingProcessFileName in~ (BrowserProcesses), 'Browser', 'Desktop or other')
 | summarize Events=count() by AccessMethod
 | top 5 by Events desc
 | project AccessMethod, Events

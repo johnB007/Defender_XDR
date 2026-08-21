@@ -218,7 +218,19 @@
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "visualization": "timechart"
+              "visualization": "areachart",
+              "chartSettings": {
+                "seriesLabelSettings": [
+                  {
+                    "seriesName": "Unauthorized AI",
+                    "color": "redBright"
+                  },
+                  {
+                    "seriesName": "Approved M365 Copilot",
+                    "color": "greenBright"
+                  }
+                ]
+              }
             },
             "customWidth": "65",
             "name": "overview-trend"

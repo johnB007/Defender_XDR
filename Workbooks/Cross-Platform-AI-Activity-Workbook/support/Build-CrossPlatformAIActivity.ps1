@@ -136,7 +136,8 @@ function New-QueryItem {
         [string]$Height = '280',
         [int]$Size = 0,
         [switch]$Grid,
-        [switch]$Tiles
+        [switch]$Tiles,
+        [object]$ChartSettings
     )
     # Host scoped matching. Keep the indexed RemoteUrl prefilter for speed, then verify the parsed host so a domain string sitting in a URL path or query does not create a false match.
     $AIHostExpression = "tolower(tostring(parse_url(iff(RemoteUrl has '://', RemoteUrl, strcat('https://', RemoteUrl))).Host))"
@@ -152,6 +153,9 @@ function New-QueryItem {
         queryType = 0
         resourceType = 'microsoft.operationalinsights/workspaces'
         visualization = $Visualization
+    }
+    if ($ChartSettings) {
+        $content.chartSettings = $ChartSettings
     }
     if ($Grid) {
         $content.maxItemsCount = 10000
@@ -1198,7 +1202,7 @@ $Groups = @(
         (New-TextItem -Name 'overview-header' -Text "## AI Activity Overview | Broadest view of AI activity for the period. The results grid is a service level rollup, one row per AI service. For approval posture use the Primary AI Application Governance Inventory on AI Application Discovery, and for row level user, device, host, and process detail use AI Application Users, Devices, Domains on the same tab." -Style 'info'),
         (New-QueryItem -Name 'overview-top-applications' -Title 'Top 5 AI Applications by Distinct Users' -Query $AIWebTopServices -Visualization 'barchart' -Width '55' -Size 2),
         (New-QueryItem -Name 'overview-application-summary' -Title 'Top 100 AI Application Results: Users, Devices, Events, and IP Addresses' -Query $OverviewApplicationSummary -Grid -Width '45' -Size 2),
-        (New-QueryItem -Name 'overview-trend' -Title 'Daily Unauthorized AI Events Compared with Approved M365 Copilot Events' -Query $OverviewTrend -Visualization 'timechart' -Width '65' -Height '60'),
+        (New-QueryItem -Name 'overview-trend' -Title 'Daily Unauthorized AI Events Compared with Approved M365 Copilot Events' -Query $OverviewTrend -Visualization 'areachart' -Width '65' -Height '60' -ChartSettings ([ordered]@{ seriesLabelSettings = @([ordered]@{ seriesName = 'Unauthorized AI'; color = 'redBright' }, [ordered]@{ seriesName = 'Approved M365 Copilot'; color = 'greenBright' }) })),
         (New-QueryItem -Name 'overview-methods' -Title 'Unauthorized AI Events by Access Method' -Query $UnauthorizedMethods -Visualization 'barchart' -Width '35' -Height '60')
     )),
     (New-Group -Name 'group-unauthorized' -TabValue 'Unauthorized' -Items @(

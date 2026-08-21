@@ -4,6 +4,7 @@ param(
 
 $RogueDomains = "dynamic(['chatgpt.com','openai.com','openai.azure.com','oaiusercontent.com','oaistatic.com','claude.ai','claude.com','anthropic.com','gemini.google.com','aistudio.google.com','notebooklm.google.com','generativelanguage.googleapis.com','aiplatform.googleapis.com','ai.google.dev','deepmind.google','labs.google','perplexity.ai','deepseek.com','mistral.ai','huggingface.co','api.cohere.com','cohere.com','groq.com','together.xyz','openrouter.ai','replicate.com','api.ai21.com','router.requesty.ai','ark.cn-beijing.volces.com','api.sambanova.ai','api.fireworks.ai','api.asksage.ai','poe.com','character.ai','meta.ai','grok.com','x.ai','you.com','jasper.ai','copy.ai','runwayml.com','cursor.com','cursor.sh','codeium.com','windsurf.com','tabnine.com','replit.com','v0.dev','lovable.dev','bolt.new','grammarly.com','otter.ai','fireflies.ai','read.ai','githubcopilot.com','api.githubcopilot.com','api.enterprise.githubcopilot.com','copilot-proxy.githubusercontent.com','copilotstudio.microsoft.com','securitycopilot.microsoft.com','designer.microsoft.com','lex-runtime','polly.','deepgram.com','elevenlabs.io','gamma.app','meshy.ai','venice.ai','cline.bot','freeconvert.com','kiro.dev'])"
 $ApprovedDomains = "dynamic(['copilot.microsoft.com','m365.cloud.microsoft','m365copilot.com','copilot.cloud.microsoft'])"
+# Process classification lists are baked into every generated query at build time. The AgentProcesses list inside individual queries below is a separate copy. Tune all copies together, then rebuild, or the tabs will disagree.
 $BrowserProcesses = "dynamic(['chrome.exe','msedge.exe','firefox.exe','brave.exe','opera.exe','vivaldi.exe','chrome','firefox','brave','opera','vivaldi','safari','Google Chrome','Microsoft Edge'])"
 $ScriptProcesses = "dynamic(['python.exe','python3.exe','python','python3','powershell.exe','pwsh.exe','pwsh','curl.exe','curl','wget.exe','wget','node.exe','node','cmd.exe','wscript.exe','cscript.exe','bash','sh','zsh','jupyter.exe','jupyter-notebook.exe','rscript.exe','go.exe'])"
 $LocalAIProcesses = "dynamic(['ollama.exe','ollama','lmstudio.exe','lmstudio','jan.exe','jan','gpt4all.exe','gpt4all','msty.exe','msty','anythingllm.exe','anythingllm','open-webui','chatgpt.exe','claude.exe','claude','cursor.exe','cursor','windsurf.exe','windsurf','aider.exe','aider','openclaw.exe','openclaw','opencode.exe','opencode','codex.exe','codex'])"
@@ -137,6 +138,11 @@ function New-QueryItem {
         [switch]$Grid,
         [switch]$Tiles
     )
+    # Host scoped matching. Keep the indexed RemoteUrl prefilter for speed, then verify the parsed host so a domain string sitting in a URL path or query does not create a false match.
+    $AIHostExpression = "tolower(tostring(parse_url(iff(RemoteUrl has '://', RemoteUrl, strcat('https://', RemoteUrl))).Host))"
+    $Query = $Query -replace [regex]::Escape("| where isnotempty(RemoteUrl) and (RemoteUrl has_any (RogueDomains) or RemoteUrl has_any (ApprovedDomains))"), "| where isnotempty(RemoteUrl) and (RemoteUrl has_any (RogueDomains) or RemoteUrl has_any (ApprovedDomains))`n| extend AIHost=$AIHostExpression`n| where AIHost has_any (RogueDomains) or AIHost has_any (ApprovedDomains)"
+    $Query = $Query -replace [regex]::Escape("| where isnotempty(RemoteUrl) and RemoteUrl has_any (RogueDomains)"), "| where isnotempty(RemoteUrl) and RemoteUrl has_any (RogueDomains)`n| extend AIHost=$AIHostExpression`n| where AIHost has_any (RogueDomains)"
+    $Query = $Query -replace [regex]::Escape("| where isnotempty(RemoteUrl) and RemoteUrl has_any (ApprovedDomains)"), "| where isnotempty(RemoteUrl) and RemoteUrl has_any (ApprovedDomains)`n| extend AIHost=$AIHostExpression`n| where AIHost has_any (ApprovedDomains)"
     $content = [ordered]@{
         version = 'KqlItem/1.0'
         query = $Query.Trim()
@@ -780,18 +786,18 @@ let ApprovedDomains = $ApprovedDomains;
 let DeviceFilter = '{DeviceFilter}';
 let AccountFilter = '{AccountFilter}';
 DeviceNetworkEvents
-| where isnotempty(RemoteUrl) and (RemoteUrl has_any (RogueDomains) or RemoteUrl has_any (ApprovedDomains))
+| where isnotempty(RemoteUrl) and RemoteUrl has_any (RogueDomains)
+| where not(RemoteUrl has_any (ApprovedDomains))
 | extend Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
 | where DeviceFilter == '' or DeviceName contains DeviceFilter
 | where AccountFilter == '' or Account contains AccountFilter
 | extend NormalizedHost=iff(RemoteUrl has '://', tostring(parse_url(RemoteUrl).Host), RemoteUrl)
 | extend NormalizedHost=iff(NormalizedHost contains '/', tostring(split(NormalizedHost, '/')[0]), NormalizedHost)
 | extend NormalizedHost=iff(NormalizedHost contains ':', tostring(split(NormalizedHost, ':')[0]), NormalizedHost)
-| extend GovernanceStatus=iff(RemoteUrl has_any (ApprovedDomains), 'Approved M365 Copilot', 'Unauthorized AI')
 | extend AIService=$AIServiceExpression
-| summarize Events=count(), Users=dcountif(Account, isnotempty(Account)), Devices=dcount(DeviceId), FirstSeen=min(TimeGenerated), LastSeen=max(TimeGenerated), Processes=make_set(InitiatingProcessFileName, 10) by GovernanceStatus, AIService, NormalizedHost
-| extend RecommendedAction=iff(GovernanceStatus == 'Unauthorized AI', 'Validate the provider, users, devices, and business purpose, then restrict unapproved access', 'Retain as the approved usage baseline')
-| project LastSeen, GovernanceStatus, RecommendedAction, AIService, NormalizedHost, Users, Devices, Events, FirstSeen, Processes
+| summarize Events=count(), Users=dcountif(Account, isnotempty(Account)), Devices=dcount(DeviceId), FirstSeen=min(TimeGenerated), LastSeen=max(TimeGenerated), Processes=make_set(InitiatingProcessFileName, 10) by AIService, NormalizedHost
+| extend RecommendedAction='Validate the provider, users, devices, and business purpose, then restrict unapproved access'
+| project LastSeen, RecommendedAction, AIService, NormalizedHost, Users, Devices, Events, FirstSeen, Processes
 | top 10000 by LastSeen desc
 "@
 
@@ -1189,13 +1195,14 @@ $TabNavigation = [ordered]@{
 
 $Groups = @(
     (New-Group -Name 'group-overview' -TabValue 'Overview' -Items @(
+        (New-TextItem -Name 'overview-header' -Text "## AI Activity Overview | Broadest view of AI activity for the period. The results grid is a service level rollup, one row per AI service. For approval posture use the Primary AI Application Governance Inventory on AI Application Discovery, and for row level user, device, host, and process detail use AI Application Users, Devices, Domains on the same tab." -Style 'info'),
         (New-QueryItem -Name 'overview-top-applications' -Title 'Top 5 AI Applications by Distinct Users' -Query $AIWebTopServices -Visualization 'barchart' -Width '55' -Size 2),
         (New-QueryItem -Name 'overview-application-summary' -Title 'Top 100 AI Application Results: Users, Devices, Events, and IP Addresses' -Query $OverviewApplicationSummary -Grid -Width '45' -Size 2),
         (New-QueryItem -Name 'overview-trend' -Title 'Daily Unauthorized AI Events Compared with Approved M365 Copilot Events' -Query $OverviewTrend -Visualization 'timechart' -Width '65' -Height '60'),
         (New-QueryItem -Name 'overview-methods' -Title 'Unauthorized AI Events by Access Method' -Query $UnauthorizedMethods -Visualization 'barchart' -Width '35' -Height '60')
     )),
     (New-Group -Name 'group-unauthorized' -TabValue 'Unauthorized' -Items @(
-        (New-TextItem -Name 'unauthorized-header' -Text "## Unauthorized AI Access | Direct endpoint connections to nonapproved AI services. Rankings count network events. The records below identify the account, device, service, domain, process, and response action." -Style 'info'),
+        (New-TextItem -Name 'unauthorized-header' -Text "## Unauthorized AI Access | Direct endpoint connections to nonapproved AI services. Rankings count network events. The records below identify the account, device, service, domain, process, and response action. The governance inventory on this tab lists nonapproved providers only. Approved M365 Copilot posture lives on AI Application Discovery." -Style 'info'),
         (New-QueryItem -Name 'unauthorized-top-users' -Title 'Top 5 Accounts by Unauthorized AI Network Events' -Query $TopUsers -Visualization 'barchart' -Width '34' -Height '55'),
         (New-QueryItem -Name 'unauthorized-devices' -Title 'Top 5 Devices by Unauthorized AI Network Events' -Query $UnauthorizedDevices -Visualization 'barchart' -Width '33' -Height '55'),
         (New-QueryItem -Name 'unauthorized-services' -Title 'Top 5 Nonapproved AI Services by Network Events' -Query $OverviewServices -Visualization 'barchart' -Width '33' -Height '55'),
@@ -1241,7 +1248,7 @@ $Groups = @(
         (New-QueryItem -Name 'related-alerts' -Title 'Existing Defender Alerts on AI Evidence Devices, Correlation Only' -Query $RelatedAlerts -Grid -Width '100' -Height '105')
     )),
     (New-Group -Name 'group-web-tracking' -TabValue 'WebTracking' -Items @(
-        (New-TextItem -Name 'web-tracking-header' -Text "## AI Application Discovery | Application inventory modeled on the tenant discovery views. M365 Copilot is the only approved AI service. This KQL view uses native endpoint events, users, devices, and IP addresses. Cloud Discovery traffic, upload, transaction, and catalog metrics exist in the Defender portal but are not exposed by the current Log Analytics tables. Browser paste evidence does not prove upload." -Style 'info'),
+        (New-TextItem -Name 'web-tracking-header' -Text "## AI Application Discovery | Application inventory modeled on the tenant discovery views. M365 Copilot is the only approved AI service. The Primary AI Application Governance Inventory is the approval and posture view, one row per service and governance status with a policy priority. AI Application Users, Devices, Domains is the row level view, one row per user, device, host, and process. Cloud Discovery traffic, upload, transaction, and catalog metrics exist in the Defender portal but are not exposed by the current Log Analytics tables. Browser paste evidence does not prove upload." -Style 'info'),
         (New-QueryItem -Name 'web-application-inventory' -Title 'Primary AI Application Governance Inventory: Approval, Activity, Users, IP Addresses, Devices, and Action' -Query $AIWebApplicationInventory -Grid -Width '100'),
         (New-QueryItem -Name 'web-top-accounts' -Title 'Top 5 Accounts across Approved and Nonapproved AI Events' -Query $AIWebTopAccounts -Visualization 'barchart' -Width '34' -Height '55'),
         (New-QueryItem -Name 'web-top-devices' -Title 'Top 5 Devices across Approved and Nonapproved AI Events' -Query $AIWebTopDevices -Visualization 'barchart' -Width '33' -Height '55'),
@@ -1265,3 +1272,37 @@ $Workbook = [ordered]@{
 $Json = $Workbook | ConvertTo-Json -Depth 100
 [System.IO.File]::WriteAllText($OutputPath, $Json, [System.Text.UTF8Encoding]::new($false))
 Write-Output $OutputPath
+
+# Regenerate the ARM deployment template so azuredeploy.json always embeds the current workbook.
+$ArmTemplate = [ordered]@{
+    '$schema' = 'https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#'
+    contentVersion = '1.0.0.0'
+    parameters = [ordered]@{
+        workspaceName = [ordered]@{ type = 'string'; defaultValue = 'SOC-Central'; metadata = [ordered]@{ description = 'Log Analytics workspace name' } }
+        workbookDisplayName = [ordered]@{ type = 'string'; defaultValue = 'AI Activity and Exposure Investigation Workbook'; metadata = [ordered]@{ description = 'Workbook display name' } }
+        workbookId = [ordered]@{ type = 'string'; defaultValue = '[newGuid()]'; metadata = [ordered]@{ description = 'Workbook resource ID. Must be a GUID. Leave the default to create a new workbook instance.' } }
+    }
+    variables = [ordered]@{}
+    resources = @(
+        [ordered]@{
+            type = 'Microsoft.Insights/workbooks'
+            apiVersion = '2023-06-01'
+            name = "[parameters('workbookId')]"
+            location = '[resourceGroup().location]'
+            kind = 'shared'
+            properties = [ordered]@{
+                displayName = "[parameters('workbookDisplayName')]"
+                sourceId = "[concat('/subscriptions/', subscription().subscriptionId, '/resourceGroups/', resourceGroup().name, '/providers/Microsoft.OperationalInsights/workspaces/', parameters('workspaceName'))]"
+                category = 'sentinel'
+                serializedData = $Json
+            }
+        }
+    )
+    outputs = [ordered]@{
+        workbookResourceId = [ordered]@{ type = 'string'; value = "[resourceId('Microsoft.Insights/workbooks', parameters('workbookId'))]" }
+    }
+}
+$ArmPath = Join-Path (Split-Path $OutputPath -Parent) 'azuredeploy.json'
+$ArmJson = $ArmTemplate | ConvertTo-Json -Depth 100
+[System.IO.File]::WriteAllText($ArmPath, $ArmJson, [System.Text.UTF8Encoding]::new($false))
+Write-Output $ArmPath

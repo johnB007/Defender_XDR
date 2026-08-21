@@ -18,6 +18,14 @@ A network match is an investigation signal. It is not proof that a user entered 
 
 Microsoft 365 Copilot is represented as the approved service in the workbook. Approval is a policy classification in this workbook, not a claim that every event is risk free.
 
+### Domain Catalog Refresh
+
+The AI domain catalog is baked into the queries at build time, not read at runtime. [`support/Build-CrossPlatformAIActivity.ps1`](support/Build-CrossPlatformAIActivity.ps1) fetches the current provider and domain mappings, writes them as inline lists inside each query, and produces the `.workbook` file and `azuredeploy.json`. Editing [`support/AI-Domain-Catalog.json`](support/AI-Domain-Catalog.json) or the live source does nothing to a deployed workbook until you rebuild and redeploy. There is no runtime lookup and no automatic refresh. When the build runs, it pulls the catalog live from the v2fly source and falls back to the cached JSON if the network is unavailable, so the domain set can shift between builds independent of any structural change.
+
+### Coverage Caveats
+
+The endpoint views depend on `DeviceNetworkEvents.RemoteUrl` being populated by MDE. The workbook does not see AI activity when the destination host is hidden, for example encrypted SNI or ECH, connections made by IP address only, or traffic sent through a forwarding proxy that rewrites the destination. It also matches on host, so a provider that serves from an unlisted domain is missed until the catalog is refreshed. Coverage is limited to MDE onboarded Windows, macOS, and Linux devices, so unmanaged, BYOD, and mobile devices are not represented. Treat gaps in the tabs as unknown, not as an absence of activity.
+
 ### Main Tables
 
 | Table | Used for |
@@ -58,7 +66,7 @@ The device and account filters are text filters. They are not identity pickers. 
 
 ![AI Activity Overview tab](support/screenshots/01-ai-activity-overview.png)
 
-**Review sequence:** Start with the top application chart, select the highest volume service, then use the detailed results to identify the accounts and devices. Move to Unauthorized or Web Tracking for identity and domain detail.
+**Review sequence:** Start with the top application chart, select the highest volume service, then use the detailed results to identify the accounts and devices. Move to Unauthorized AI or AI Application Discovery for identity and domain detail.
 
 ### 2. Unauthorized AI
 
@@ -139,7 +147,7 @@ The device and account filters are text filters. They are not identity pickers. 
 
 **Important interpretation:** A request to an MCP URL is not by itself proof of a successful MCP session. Confirm the initiating process, account, command, authentication result, and server endpoint where available.
 
-### 7. Investigation
+### 7. AI Findings and Device Alerts
 
 **Purpose:** Consolidate AI evidence that needs analyst attention and correlate it with existing Defender alerts on the same devices. Use it to rank the investigation queue, compare timelines, and decide whether the signals are related before escalating or containing a device.
 
@@ -154,7 +162,7 @@ The device and account filters are text filters. They are not identity pickers. 
 
 **Review sequence:** Review the highest priority finding, open the related device and account evidence, compare event timing with existing alerts, and record whether the relationship is confirmed, possible, or unrelated.
 
-### 8. Web Tracking
+### 8. AI Application Discovery
 
 **Purpose:** Provide the broadest approved versus nonapproved AI application inventory and corroborate browser paste audit records with user, device, process, domain, and policy context. Use it to compare approved Microsoft 365 Copilot activity with nonapproved services, assess governance gaps, and prioritize follow up without treating a paste event as proof of upload.
 

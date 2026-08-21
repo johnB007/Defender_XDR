@@ -223,11 +223,11 @@
                 "seriesLabelSettings": [
                   {
                     "seriesName": "Unauthorized AI",
-                    "color": "redBright"
+                    "color": "red"
                   },
                   {
                     "seriesName": "Approved M365 Copilot",
-                    "color": "greenBright"
+                    "color": "green"
                   }
                 ]
               }
@@ -685,11 +685,11 @@
                 "seriesLabelSettings": [
                   {
                     "seriesName": "Agent executions",
-                    "color": "blueBright"
+                    "color": "blue"
                   },
                   {
                     "seriesName": "MCP invocations",
-                    "color": "purpleBright"
+                    "color": "orange"
                   }
                 ]
               }

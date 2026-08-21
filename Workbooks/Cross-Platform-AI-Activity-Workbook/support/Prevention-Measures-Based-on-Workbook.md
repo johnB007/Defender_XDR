@@ -14,9 +14,9 @@ The workbook is evidence, not a block list. Use its users, devices, domains, pro
 4. Treat agents, local models, extensions, and MCP servers as software and data access surfaces, not only websites.
 5. Maintain an exception process with an owner, business reason, expiration, and review date.
 
-## Maximum Enforcement Map (CISO Decision View)
+## Maximum Enforcement Map (Decision View)
 
-This is the one page block map for the CISO discussion. Each row names the single E5 or Windows control that fully blocks that workbook surface if the decision is to shut it down. Every control listed has an audit or simulation mode, so pilot first, confirm business impact, then enforce.
+This is the one page block map for the leadership discussion. Each row names the single E5 or Windows control that fully blocks that workbook surface if the decision is to shut it down. Every control listed has an audit or simulation mode, so pilot first, confirm business impact, then enforce.
 
 | Workbook surface | Full block control (E5 or Windows OS) | Net effect when enforced |
 | --- | --- | --- |

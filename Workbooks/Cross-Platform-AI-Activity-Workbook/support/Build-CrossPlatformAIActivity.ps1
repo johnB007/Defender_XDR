@@ -233,14 +233,18 @@ union
 $OverviewTrend = @"
 let RogueDomains = $RogueDomains;
 let ApprovedDomains = $ApprovedDomains;
+let AIDomains = array_concat(RogueDomains, ApprovedDomains);
 let DeviceFilter = '{DeviceFilter}';
 let AccountFilter = '{AccountFilter}';
 DeviceNetworkEvents
-| where isnotempty(RemoteUrl) and (RemoteUrl has_any (RogueDomains) or RemoteUrl has_any (ApprovedDomains))
+| where isnotempty(RemoteUrl) and RemoteUrl has_any (AIDomains)
+| extend AIHost = tolower(tostring(parse_url(iff(RemoteUrl has '://', RemoteUrl, strcat('https://', RemoteUrl))).Host))
+| where AIHost has_any (AIDomains)
 | extend Account = coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
 | where DeviceFilter == '' or DeviceName contains DeviceFilter
 | where AccountFilter == '' or Account contains AccountFilter
-| summarize UnauthorizedAIConnections=countif(RemoteUrl has_any (RogueDomains) and not(RemoteUrl has_any (ApprovedDomains))), ApprovedM365CopilotConnections=countif(RemoteUrl has_any (ApprovedDomains)) by bin(TimeGenerated, 1d)
+| extend IsApproved = AIHost has_any (ApprovedDomains)
+| summarize UnauthorizedAIConnections=countif(not(IsApproved)), ApprovedM365CopilotConnections=countif(IsApproved) by bin(TimeGenerated, 1d)
 | project TimeGenerated, ['Unauthorized AI']=UnauthorizedAIConnections, ['Approved M365 Copilot']=ApprovedM365CopilotConnections
 | order by TimeGenerated asc
 "@

@@ -16,7 +16,7 @@ The workbook is evidence, not a block list. Use its users, devices, domains, pro
 
 ## 1. AI Service Access Governance
 
-**Workbook evidence:** AI Activity Overview, Automation and API, and AI Application Discovery show AI destinations, initiating processes, accounts, and affected devices.
+**Workbook evidence:** AI Activity Overview, Automation and API, and AI Application Discovery show AI destinations, initiating processes, accounts, and affected devices. The Overview also classifies unauthorized events by access method, including a dedicated Agent or MCP category alongside Browser and Script or API, so agent and MCP traffic is no longer hidden inside the scripting bucket.
 
 **Control objective:** Govern which AI services are approved, restricted, or unavailable for each user and device population based on business purpose and data risk. Use a documented exception path for legitimate services that are not part of the default approved set.
 
@@ -144,7 +144,7 @@ Conditional Access does not independently inspect or block every AI website. Use
 
 ## 6. MCP And Agent Controls
 
-**Workbook evidence:** Agents and MCP identifies MCP commands, configuration files, agent instructions, executable launches, configured servers, and ownership.
+**Workbook evidence:** Agents and MCP identifies MCP commands, configuration files, agent instructions, executable launches, configured servers, and ownership. The tab also charts daily agent executions against MCP invocations and the top unauthorized AI destinations reached by agent and MCP processes, which gives leadership a clear volume and destination view for this surface.
 
 **Control objective:** Treat MCP servers and agent tools as controlled integrations that can access data, invoke tools, and expand a developer or user workflow beyond a normal browser session.
 
@@ -155,6 +155,7 @@ Conditional Access does not independently inspect or block every AI website. Use
 | Configuration file monitoring | Defender for Endpoint and file integrity processes | Monitor agent instruction and MCP configuration files for creation or change, then review server definitions and tool permissions. | `DeviceFileEvents` and workbook Agents and MCP results |
 | VS Code governance | Intune, extension policies, WDAC, developer platform controls | Restrict extension installation to approved marketplaces or publisher allow lists for managed developer devices. | Extension inventory and policy compliance |
 | Outbound server access | Custom indicators, proxy, firewall, SWG | Limit connections to approved MCP server destinations and require a documented exception for others. | Network events, indicator statistics, and exceptions |
+| New agent or MCP baseline | Security operations and developer governance | Compare first seen agents and MCP servers in the window against the approved register, and investigate a new tool or destination before it becomes routine. | Daily agent and MCP trend, destination breakdown, first seen values, and approved server register |
 
 MCP is not automatically remote code execution, but an MCP server can expose tools and data access to a client. Review the server's tool set, permissions, authentication, data scope, and network destination before approving it.
 

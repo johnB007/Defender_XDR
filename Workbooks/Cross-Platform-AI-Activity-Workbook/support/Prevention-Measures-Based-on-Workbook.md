@@ -14,11 +14,27 @@ The workbook is evidence, not a block list. Use its users, devices, domains, pro
 4. Treat agents, local models, extensions, and MCP servers as software and data access surfaces, not only websites.
 5. Maintain an exception process with an owner, business reason, expiration, and review date.
 
+## Maximum Enforcement Map (CISO Decision View)
+
+This is the one page block map for the CISO discussion. Each row names the single E5 or Windows control that fully blocks that workbook surface if the decision is to shut it down. Every control listed has an audit or simulation mode, so pilot first, confirm business impact, then enforce.
+
+| Workbook surface | Full block control (E5 or Windows OS) | Net effect when enforced |
+| --- | --- | --- |
+| AI destinations (Overview, Automation, Discovery) | Defender for Endpoint network protection in block mode plus custom URL and domain indicators that allow only approved Copilot domains and block all other AI destinations; Defender for Cloud Apps to block unsanctioned AI apps | No unapproved AI site or app is reachable from a managed device |
+| Sensitive data to AI | Purview Endpoint DLP and Edge Browser Data Security in block mode for paste, upload, copy, and print to AI destinations; sensitivity label encryption | Sensitive content cannot be submitted to any AI service, approved or not |
+| Local AI clients and model runners | Windows Defender Application Control in enforced allow list mode, deny by default | No unapproved local AI executable or model runner can launch |
+| Scripts, runtimes, API clients | WDAC enforcement plus PowerShell Constrained Language Mode plus Attack Surface Reduction rules; network block on AI API domains | Unapproved script hosts, runtimes, and API egress are blocked |
+| Browsers and extensions | Intune or Group Policy extension allow list that blocks all others, forced managed Edge, WDAC or AppLocker block for non approved browsers | Only the approved browser and approved extensions run, shadow AI extensions cannot load |
+| MCP and agents | WDAC deny for agent and MCP executables, block MCP configuration change, block VS Code extension install, block outbound to non approved MCP servers | Agent and MCP tooling cannot run or reach a server outside the register |
+| Identity and device | Conditional Access block to AI cloud apps from non compliant devices or all users; Privileged Identity Management for control owners | AI access is possible only from compliant, governed devices and identities |
+
 ## 1. AI Service Access Governance
 
 **Workbook evidence:** AI Activity Overview, Automation and API, and AI Application Discovery show AI destinations, initiating processes, accounts, and affected devices. The Overview also classifies unauthorized events by access method, including a dedicated Agent or MCP category alongside Browser and Script or API, so agent and MCP traffic is no longer hidden inside the scripting bucket.
 
 **Control objective:** Govern which AI services are approved, restricted, or unavailable for each user and device population based on business purpose and data risk. Use a documented exception path for legitimate services that are not part of the default approved set.
+
+**Full block option:** For a complete lockdown, set Defender for Endpoint network protection to block, publish custom URL and domain indicators that allow only the approved Microsoft 365 Copilot domains and block all other AI destinations, and use Defender for Cloud Apps to mark every unsanctioned AI app as blocked. This leaves no unapproved AI site or app reachable from a managed device.
 
 | Control | Microsoft control plane | Recommended action | Validation evidence |
 | --- | --- | --- | --- |
@@ -34,6 +50,8 @@ Web content filtering is useful for category based governance, but it is not a c
 **Workbook evidence:** Sensitive File and AI Correlation and AI Application Discovery identify file activity, browser paste events, sensitive information classifications, policy metadata, and AI destinations.
 
 **Control objective:** Stop sensitive content from being pasted, uploaded, copied, or typed into AI prompts before it leaves a managed device.
+
+**Full block option:** For a complete lockdown, run Purview Endpoint DLP and Edge Browser Data Security in block mode, not audit, for paste, upload, copy, and print of labeled or sensitive content to any AI destination, and apply sensitivity label encryption so external AI cannot open the content. Sensitive data then cannot be submitted to any AI service, approved or not.
 
 | Control | Microsoft control plane | Recommended action | Validation evidence |
 | --- | --- | --- | --- |
@@ -51,6 +69,8 @@ A browser paste event proves that a paste action was observed. It does not prove
 
 **Control objective:** Prevent unapproved local AI software and high risk developer tooling while preserving approved engineering workflows.
 
+**Full block option:** For a complete lockdown, run Windows Defender Application Control in enforced allow list mode with deny by default, so only signed and approved publishers execute. No unapproved local AI client, model runner, or unsigned tool can launch.
+
 | Control | Microsoft control plane | Recommended action | Validation evidence |
 | --- | --- | --- | --- |
 | Application allow list | Windows Defender Application Control or AppLocker | Begin in audit mode. Allow approved publishers and signed binaries; block or restrict unapproved local AI clients, model runners, and unsigned tools. | Code Integrity events and workbook Local AI results |
@@ -65,6 +85,8 @@ Do not broadly block every executable with an AI related word in its name. Start
 **Workbook evidence:** Automation and API identifies PowerShell, Python, Node, curl, command shells, process command lines, and AI endpoints. Use the tab to separate ordinary developer tooling from processes that send data or requests to an AI destination outside the approved service set.
 
 **Control objective:** Make automated AI use attributable to an owner, an approved workload, an approved destination, and a managed secret. The objective is governed automation, not an assumption that every script, package, or developer is malicious.
+
+**Full block option:** For a complete lockdown, enforce WDAC to deny script hosts and unapproved runtimes on non developer devices, place PowerShell in Constrained Language Mode, enable the Attack Surface Reduction rules that block executable content and script abuse, and block the AI API domains at the network layer. Unapproved automation, runtimes, and API egress then cannot run.
 
 ### Command Line, Scripting, And Developer Runtimes
 
@@ -133,6 +155,8 @@ Never place a production AI API key in a command line, a configuration file comm
 
 **Control objective:** Reduce shadow AI access and extension based data exposure from unmanaged browsers.
 
+**Full block option:** For a complete lockdown, set the Edge and Chrome extension policy to allow only approved extensions and block all others, force managed Edge, and use WDAC or AppLocker to block non approved browsers. Only the approved browser and its approved extensions run, so shadow AI extensions cannot load.
+
 | Control | Microsoft control plane | Recommended action | Validation evidence |
 | --- | --- | --- | --- |
 | Managed browser | Microsoft Edge management service and Intune | Require managed Edge for protected workflows and configure browser security settings. | Intune policy status and browser telemetry |
@@ -147,6 +171,8 @@ Conditional Access does not independently inspect or block every AI website. Use
 **Workbook evidence:** Agents and MCP identifies MCP commands, configuration files, agent instructions, executable launches, configured servers, and ownership. The tab also charts daily agent executions against MCP invocations and the top unauthorized AI destinations reached by agent and MCP processes, which gives leadership a clear volume and destination view for this surface.
 
 **Control objective:** Treat MCP servers and agent tools as controlled integrations that can access data, invoke tools, and expand a developer or user workflow beyond a normal browser session.
+
+**Full block option:** For a complete lockdown, use WDAC to deny agent and MCP client executables outside the approved register, block creation or change of MCP configuration files, block VS Code extension installation outside the publisher allow list, and block outbound connections to any MCP server that is not approved. Agent and MCP tooling then cannot run or reach an unapproved server.
 
 | Control | Microsoft control plane | Recommended action | Validation evidence |
 | --- | --- | --- | --- |
@@ -165,6 +191,8 @@ MCP is not automatically remote code execution, but an MCP server can expose too
 
 **Control objective:** Ensure AI access and data sharing occur only from managed, compliant, and appropriately governed devices and identities.
 
+**Full block option:** For a complete lockdown, use Conditional Access to block access to AI cloud apps from any device that is not compliant, or from all users where the policy requires it, and lock control ownership behind Privileged Identity Management. AI access is then possible only from compliant, governed devices and identities.
+
 | Control | Microsoft control plane | Recommended action | Validation evidence |
 | --- | --- | --- | --- |
 | Device compliance | Intune and Conditional Access | Require compliant, managed devices for corporate AI services and sensitive data workflows. | Entra sign in logs and Intune compliance |
@@ -182,3 +210,6 @@ No single E5 control blocks every AI path. Use layered controls: destination enf
 * [Web content filtering in Microsoft Defender for Endpoint](https://learn.microsoft.com/defender-endpoint/web-content-filtering)
 * [Web protection in Microsoft Defender for Endpoint](https://learn.microsoft.com/defender-endpoint/web-protection-overview)
 * [Diagnose Paste to supported browsers in Endpoint DLP](https://learn.microsoft.com/troubleshoot/microsoft-365/purview/data-loss-prevention/diagnose-paste-to-supported-browser-issues)
+* [Attack surface reduction rules reference](https://learn.microsoft.com/defender-endpoint/attack-surface-reduction-rules-reference)
+* [Application Control for Windows](https://learn.microsoft.com/windows/security/application-security/application-control/app-control-for-business/appcontrol)
+* [Govern discovered apps in Microsoft Defender for Cloud Apps](https://learn.microsoft.com/defender-cloud-apps/governance-discovery)

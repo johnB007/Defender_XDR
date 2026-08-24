@@ -62,7 +62,7 @@ The device and account filters are text filters. They are not identity pickers. 
 | Top 5 AI Applications by Distinct Users | Applications ranked by distinct observed users | Identify the services with the widest user reach |
 | Top 100 AI Application Results: Users, Devices, Events, and IP Addresses | Detailed application results with affected identities and infrastructure | Pivot from a service to users, devices, events, and addresses |
 | Daily Unauthorized AI Events Compared with Approved M365 Copilot Events | Daily comparison of nonapproved activity and approved Copilot activity | Identify spikes, policy changes, or unusual periods |
-| Unauthorized AI Events by Access Method | Browser, script, process, API, or related access categories | Decide whether the next investigation step belongs in browser, process, or network telemetry |
+| Unauthorized AI Events by Access Method | Browser, Script or API, Desktop or other, and a dedicated Agent or MCP category | Decide whether the next investigation step belongs in browser, script, agent, or network telemetry |
 
 ![AI Activity Overview tab](support/screenshots/01-ai-activity-overview.png)
 
@@ -136,6 +136,8 @@ The device and account filters are text filters. They are not identity pickers. 
 
 | Panel | What it shows | Analyst use |
 | --- | --- | --- |
+| Daily Agent Executions and MCP Invocations | Daily agent process executions compared with MCP invocations | Spot volume trends and unusual spikes in agent and MCP activity |
+| Top 5 Unauthorized AI Destinations from Agents and MCP | Nonapproved AI destinations reached by agent and MCP processes | Identify where agents and MCP are sending traffic |
 | Top 5 Detected Agent Tools and MCP Invocations | Tools and MCP related activity ranked by event volume | Identify the most common agent paths |
 | Top 5 Accounts Running Agents or MCP Commands | Accounts associated with agent or MCP activity | Assign ownership and authorization review |
 | Top 5 Devices Running Agents or MCP Commands | Devices associated with agent or MCP activity | Scope device investigation |
@@ -144,6 +146,8 @@ The device and account filters are text filters. They are not identity pickers. 
 | Agent Instructions, MCP Configuration, and Command Evidence | Instruction files, configuration files, and command evidence | Review tool permissions and connected services |
 
 ![Agents and MCP tab](support/screenshots/06-agents-and-mcp.png)
+
+![Agents and MCP evidence grids](support/screenshots/06b-agents-and-mcp-evidence.png)
 
 **Important interpretation:** A request to an MCP URL is not by itself proof of a successful MCP session. Confirm the initiating process, account, command, authentication result, and server endpoint where available.
 

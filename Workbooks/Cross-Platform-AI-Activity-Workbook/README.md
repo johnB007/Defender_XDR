@@ -64,7 +64,7 @@ The device and account filters are text filters. They are not identity pickers. 
 | Daily Unauthorized AI Events Compared with Approved M365 Copilot Events | Daily comparison of nonapproved activity and approved Copilot activity | Identify spikes, policy changes, or unusual periods |
 | Unauthorized AI Events by Access Method | Browser, Script or API, Desktop or other, and a dedicated Agent or MCP category | Decide whether the next investigation step belongs in browser, script, agent, or network telemetry |
 
-![AI Activity Overview tab](support/screenshots/01-ai-activity-overview.png)
+![AI Activity Overview tab](support/screenshots/01-ai-activity-overview-v2.png)
 
 **Review sequence:** Start with the top application chart, select the highest volume service, then use the detailed results to identify the accounts and devices. Move to Unauthorized AI or AI Application Discovery for identity and domain detail.
 
@@ -145,7 +145,7 @@ The device and account filters are text filters. They are not identity pickers. 
 | Agent Executable and MCP Command Evidence | Executable, command line, process owner, and endpoint evidence | Determine how the tool was launched |
 | Agent Instructions, MCP Configuration, and Command Evidence | Instruction files, configuration files, and command evidence | Review tool permissions and connected services |
 
-![Agents and MCP tab](support/screenshots/06-agents-and-mcp.png)
+![Agents and MCP tab](support/screenshots/06-agents-and-mcp-v2.png)
 
 ![Agents and MCP evidence grids](support/screenshots/06b-agents-and-mcp-evidence.png)
 

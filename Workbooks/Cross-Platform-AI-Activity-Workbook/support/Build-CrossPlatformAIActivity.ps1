@@ -8,6 +8,8 @@ $ApprovedDomains = "dynamic(['copilot.microsoft.com','m365.cloud.microsoft','m36
 $BrowserProcesses = "dynamic(['chrome.exe','msedge.exe','firefox.exe','brave.exe','opera.exe','vivaldi.exe','chrome','firefox','brave','opera','vivaldi','safari','Google Chrome','Microsoft Edge'])"
 $ScriptProcesses = "dynamic(['python.exe','python3.exe','python','python3','powershell.exe','pwsh.exe','pwsh','curl.exe','curl','wget.exe','wget','node.exe','node','cmd.exe','wscript.exe','cscript.exe','bash','sh','zsh','jupyter.exe','jupyter-notebook.exe','rscript.exe','go.exe'])"
 $LocalAIProcesses = "dynamic(['ollama.exe','ollama','lmstudio.exe','lmstudio','jan.exe','jan','gpt4all.exe','gpt4all','msty.exe','msty','anythingllm.exe','anythingllm','open-webui','chatgpt.exe','claude.exe','claude','cursor.exe','cursor','windsurf.exe','windsurf','aider.exe','aider','openclaw.exe','openclaw','opencode.exe','opencode','codex.exe','codex'])"
+$LocalModelPredicate = "LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or LowerName endswith '.onnx' or LowerName endswith '.pt' or LowerName endswith '.pth' or LowerName endswith '.ckpt' or LowerName endswith '.tflite' or LowerName endswith '.mlmodel' or LowerName endswith '.mlpackage' or LowerName endswith '.keras' or LowerName endswith '.h5' or LowerName endswith '.engine' or LowerName endswith '.plan' or LowerName endswith '.weights' or LowerName endswith '.params' or (LowerName endswith '.bin' and FileSize > 500000000)"
+$LocalModelArtifactType = "case(LowerName endswith '.gguf', 'GGUF model', LowerName endswith '.ggml', 'GGML model', LowerName endswith '.safetensors', 'SafeTensors model', LowerName endswith '.onnx', 'ONNX model', LowerName endswith '.pt' or LowerName endswith '.pth', 'PyTorch model', LowerName endswith '.ckpt', 'Model checkpoint', LowerName endswith '.tflite', 'TensorFlow Lite model', LowerName endswith '.mlmodel' or LowerName endswith '.mlpackage', 'Apple Core ML model', LowerName endswith '.keras' or LowerName endswith '.h5', 'Keras model', LowerName endswith '.engine' or LowerName endswith '.plan', 'TensorRT engine', LowerName endswith '.weights' or LowerName endswith '.params', 'AI model weights', LowerName endswith '.bin' and FileSize > 500000000, 'Large binary model candidate', 'Local model file')"
 $AIServiceExpression = "case(RemoteUrl contains 'chatgpt' or RemoteUrl contains 'openai' or RemoteUrl contains 'oaistatic' or RemoteUrl contains 'oaiusercontent', 'OpenAI and ChatGPT', RemoteUrl contains 'claude' or RemoteUrl contains 'anthropic', 'Claude', RemoteUrl contains 'gemini' or RemoteUrl contains 'aistudio' or RemoteUrl contains 'notebooklm' or RemoteUrl contains 'ai.google.dev' or RemoteUrl contains 'deepmind.google' or RemoteUrl contains 'labs.google', 'Google AI', RemoteUrl contains 'perplexity', 'Perplexity', RemoteUrl contains 'deepseek', 'DeepSeek', RemoteUrl contains 'mistral', 'Mistral', RemoteUrl contains 'huggingface', 'Hugging Face', RemoteUrl contains 'cohere', 'Cohere', RemoteUrl contains 'groq', 'Groq', RemoteUrl contains 'openrouter', 'OpenRouter', RemoteUrl contains 'replicate', 'Replicate', RemoteUrl contains 'githubcopilot' or RemoteUrl contains 'copilot-proxy', 'GitHub Copilot', RemoteUrl contains 'cursor', 'Cursor', RemoteUrl contains 'windsurf' or RemoteUrl contains 'codeium', 'Windsurf and Codeium', RemoteUrl contains 'tabnine', 'Tabnine', RemoteUrl contains 'copilot.microsoft' or RemoteUrl contains 'm365.cloud.microsoft' or RemoteUrl contains 'm365copilot' or RemoteUrl contains 'copilot.cloud.microsoft', 'M365 Copilot', RemoteUrl contains 'copilotstudio.microsoft', 'Microsoft Copilot Studio', RemoteUrl contains 'securitycopilot.microsoft', 'Microsoft Security Copilot', RemoteUrl contains 'designer.microsoft', 'Microsoft Designer', RemoteUrl contains 'lex-runtime', 'Amazon Lex', RemoteUrl contains 'polly.', 'Amazon Polly', RemoteUrl contains 'deepgram', 'Deepgram', RemoteUrl contains 'elevenlabs', 'ElevenLabs', RemoteUrl contains 'gamma.app', 'Gamma', RemoteUrl contains 'meshy.ai', 'Meshy', RemoteUrl contains 'venice.ai', 'Venice AI', RemoteUrl contains 'cline.bot', 'Cline', RemoteUrl contains 'freeconvert', 'FreeConvert', RemoteUrl contains 'kiro.dev', 'Kiro', RemoteUrl contains 'meta.ai', 'Meta AI', RemoteUrl contains 'grok' or RemoteUrl contains 'x.ai', 'Grok', RemoteUrl contains 'poe.com', 'Poe', RemoteUrl contains 'character.ai', 'Character AI', RemoteUrl contains 'replit', 'Replit', RemoteUrl contains 'v0.dev', 'Vercel v0', RemoteUrl contains 'lovable', 'Lovable', RemoteUrl contains 'bolt.new', 'Bolt', RemoteUrl)"
 
 $AICatalogRepository = 'https://github.com/v2fly/domain-list-community'
@@ -215,7 +217,8 @@ let LocalEvidence = union
     | where AccountFilter == '' or Account contains AccountFilter
     | project DeviceId),
     (DeviceFileEvents
-    | where tolower(FileName) endswith '.gguf' or tolower(FileName) endswith '.ggml' or tolower(FileName) endswith '.safetensors'
+    | extend LowerName=tolower(FileName)
+    | where $LocalModelPredicate
     | extend Account = coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
     | where DeviceFilter == '' or DeviceName contains DeviceFilter
     | where AccountFilter == '' or Account contains AccountFilter
@@ -432,18 +435,20 @@ let Downloads = DeviceFileEvents
 | where ActionType in ('FileCreated','FileModified')
 | where FileName has_any ('ChatGPT','Claude','ollama','LM Studio','LMStudio','gpt4all','GPT4All','Perplexity','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM','Jan')
 | where tolower(FileName) endswith '.exe' or tolower(FileName) endswith '.msi' or tolower(FileName) endswith '.msix' or tolower(FileName) endswith '.pkg' or tolower(FileName) endswith '.dmg' or tolower(FileName) endswith '.zip' or tolower(FileName) endswith '.crx' or tolower(FileName) endswith '.xpi'
-| extend Account = coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='AI installer or extension', Artifact=FileName, Detail=FolderPath, FileSize, SHA1, SHA256, InitiatingProcessFileName;
+| extend LowerName=tolower(FileName), Account = coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
+| extend ArtifactType=iff(LowerName endswith '.crx' or LowerName endswith '.xpi', 'Browser extension package', 'Installer package')
+| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='AI installer or extension', ArtifactType, Artifact=FileName, Detail=FolderPath, FileSize, SHA1, SHA256, InitiatingProcessFileName;
 let Models = DeviceFileEvents
 | where ActionType in ('FileCreated','FileModified')
-| where tolower(FileName) endswith '.gguf' or tolower(FileName) endswith '.ggml' or tolower(FileName) endswith '.safetensors' or (tolower(FileName) endswith '.bin' and FileSize > 500000000)
-| extend Account = coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='Local model file', Artifact=FileName, Detail=FolderPath, FileSize, SHA1, SHA256, InitiatingProcessFileName;
+| extend LowerName=tolower(FileName), Account = coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
+| where $LocalModelPredicate
+| extend ArtifactType=$LocalModelArtifactType
+| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='Local model file', ArtifactType, Artifact=FileName, Detail=FolderPath, FileSize, SHA1, SHA256, InitiatingProcessFileName;
 let Executions = DeviceProcessEvents
 | where FileName in~ (LocalAIProcesses)
 | where not(FileName startswith 'Microsoft.Copilot')
 | extend Account = coalesce(AccountUpn, AccountName)
-| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='Local AI execution', Artifact=FileName, Detail=ProcessCommandLine, FileSize, SHA1, SHA256, InitiatingProcessFileName;
+| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='Local AI execution', ArtifactType='AI tool execution', Artifact=FileName, Detail=ProcessCommandLine, FileSize, SHA1, SHA256, InitiatingProcessFileName;
 union Downloads, Models, Executions
 | where DeviceFilter == '' or DeviceName contains DeviceFilter
 | where AccountFilter == '' or Account contains AccountFilter
@@ -451,8 +456,8 @@ union Downloads, Models, Executions
 | extend RiskLevel = case(RiskScore >= 85, 'Critical', RiskScore >= 70, 'High', 'Medium')
 | extend RecommendedAction = case(EvidenceType == 'Local model file', 'Identify model provenance and owner, inspect nearby data, and remove if unauthorized', EvidenceType == 'Local AI execution', 'Capture process context and validate approved use before containment', 'Verify installer source and remove unauthorized package')
 | extend HashKey=case(isnotempty(SHA256), strcat('SHA256:', SHA256), isnotempty(SHA1), strcat('SHA1:', SHA1), strcat('NoHash:', tolower(Artifact), '|', tolower(Detail)))
-| summarize arg_max(TimeGenerated, RiskLevel, RiskScore, RecommendedAction, EvidenceType, Artifact, Detail, FileSize, InitiatingProcessFileName), FirstSeen=min(TimeGenerated), Occurrences=count(), DeviceCount=dcount(DeviceId), AccountCount=dcountif(Account, isnotempty(Account)), Devices=make_set(DeviceName, 100), Accounts=make_set(Account, 100) by HashKey, SHA1, SHA256
-| project LastSeen=TimeGenerated, FirstSeen, RiskLevel, RiskScore, RecommendedAction, EvidenceType, Artifact, Detail, FileSize, SHA1, SHA256, Occurrences, DeviceCount, AccountCount, Devices, Accounts, InitiatingProcessFileName
+| summarize arg_max(TimeGenerated, RiskLevel, RiskScore, RecommendedAction, EvidenceType, ArtifactType, Artifact, Detail, FileSize, InitiatingProcessFileName), FirstSeen=min(TimeGenerated), Occurrences=count(), DeviceCount=dcount(DeviceId), AccountCount=dcountif(Account, isnotempty(Account)), Devices=make_set(DeviceName, 100), Accounts=make_set(Account, 100) by HashKey, SHA1, SHA256
+| project LastSeen=TimeGenerated, FirstSeen, RiskLevel, RiskScore, RecommendedAction, EvidenceType, ArtifactType, Artifact, Detail, FileSize, SHA1, SHA256, Occurrences, DeviceCount, AccountCount, Devices, Accounts, InitiatingProcessFileName
 | top 10000 by RiskScore desc
 "@
 
@@ -463,8 +468,8 @@ let AccountFilter = '{AccountFilter}';
 let Files = DeviceFileEvents
 | where ActionType in ('FileCreated','FileModified')
 | extend LowerName=tolower(FileName), Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-| where LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or FileName has_any ('ollama','LM Studio','LMStudio','gpt4all','GPT4All','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM')
-| extend EvidenceType=iff(LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors', 'Local model file', 'Installer or package')
+| where $LocalModelPredicate or FileName has_any ('ollama','LM Studio','LMStudio','gpt4all','GPT4All','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM')
+| extend EvidenceType=iff($LocalModelPredicate, 'Local model file', 'Installer or package')
 | project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType;
 let Processes = DeviceProcessEvents
 | where FileName in~ (LocalAIProcesses)
@@ -528,8 +533,8 @@ let NetworkFindings = DeviceNetworkEvents
 | project LastSeen, FirstSeen, DeviceName, DeviceId, Account, FindingType, RiskScore, Subject=AIService, Process, Events, Evidence;
 let ModelFindings = DeviceFileEvents
 | where ActionType in ('FileCreated','FileModified')
-| where tolower(FileName) endswith '.gguf' or tolower(FileName) endswith '.ggml' or tolower(FileName) endswith '.safetensors'
-| extend Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
+| extend LowerName=tolower(FileName), Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
+| where $LocalModelPredicate
 | where DeviceFilter == '' or DeviceName contains DeviceFilter
 | where AccountFilter == '' or Account contains AccountFilter
 | project LastSeen=TimeGenerated, FirstSeen=TimeGenerated, DeviceName, DeviceId, Account, FindingType='Local AI model file', RiskScore=85, Subject=FileName, Process=InitiatingProcessFileName, Events=1, Evidence=pack_array(FolderPath);
@@ -660,8 +665,8 @@ let AccountFilter = '{AccountFilter}';
 let Files = DeviceFileEvents
 | where ActionType in ('FileCreated','FileModified')
 | extend LowerName=tolower(FileName), Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-| where LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or FileName has_any ('ollama','LM Studio','LMStudio','gpt4all','GPT4All','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM')
-| extend EvidenceType=iff(LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors', 'Model file', 'Installer or package')
+| where $LocalModelPredicate or FileName has_any ('ollama','LM Studio','LMStudio','gpt4all','GPT4All','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM')
+| extend EvidenceType=iff($LocalModelPredicate, 'Model file', 'Installer or package')
 | project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType;
 let Processes = DeviceProcessEvents
 | where FileName in~ (LocalAIProcesses)
@@ -682,8 +687,8 @@ let AccountFilter = '{AccountFilter}';
 let Files = DeviceFileEvents
 | where ActionType in ('FileCreated','FileModified')
 | extend LowerName=tolower(FileName), Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-| where LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or FileName has_any ('ollama','LM Studio','LMStudio','gpt4all','GPT4All','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM')
-| extend EvidenceType=iff(LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors', 'Model file', 'Installer or package')
+| where $LocalModelPredicate or FileName has_any ('ollama','LM Studio','LMStudio','gpt4all','GPT4All','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM')
+| extend EvidenceType=iff($LocalModelPredicate, 'Model file', 'Installer or package')
 | project TimeGenerated, DeviceName, Account, EvidenceType;
 let Processes = DeviceProcessEvents
 | where FileName in~ (LocalAIProcesses)
@@ -768,7 +773,7 @@ union
     | extend label='Local agent executions', subtitle='Native process evidence'),
     (DeviceFileEvents
     | extend LowerName=tolower(FileName), Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-    | where LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or FileName in~ ('AGENTS.md','CLAUDE.md','mcp.json','mcp.yaml','mcp.yml','SKILL.md')
+    | where $LocalModelPredicate or FileName in~ ('AGENTS.md','CLAUDE.md','mcp.json','mcp.yaml','mcp.yml','SKILL.md')
     | where DeviceFilter == '' or DeviceName contains DeviceFilter
     | where AccountFilter == '' or Account contains AccountFilter
     | summarize value=count()
@@ -910,7 +915,7 @@ let AccountFilter = '{AccountFilter}';
 let Files = DeviceFileEvents
 | where ActionType in ('FileCreated','FileModified')
 | extend LowerName=tolower(FileName), Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-| where LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or FileName has_any ('ollama','LM Studio','LMStudio','gpt4all','GPT4All','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM')
+| where $LocalModelPredicate or FileName has_any ('ollama','LM Studio','LMStudio','gpt4all','GPT4All','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM')
 | project TimeGenerated, DeviceName, Account;
 let Processes = DeviceProcessEvents
 | where FileName in~ (LocalAIProcesses)

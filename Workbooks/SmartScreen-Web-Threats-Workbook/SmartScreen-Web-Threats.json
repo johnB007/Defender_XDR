@@ -509,16 +509,15 @@
                         {
                           "operator": "==",
                           "thresholdValue": "Blocked",
-                          "representation": "redBright",
+                          "representation": "red",
                           "text": "{0}"
                         },
                         {
                           "operator": "==",
                           "thresholdValue": "Audited",
-                          "representation": "orange",
+                          "representation": "blue",
                           "text": "{0}"
                         },
-                        
                         {
                           "operator": "Default",
                           "representation": "gray",

@@ -450,8 +450,10 @@ union Downloads, Models, Executions
 | extend RiskScore = case(EvidenceType == 'Local model file', 85, EvidenceType == 'Local AI execution', 75, 55)
 | extend RiskLevel = case(RiskScore >= 85, 'Critical', RiskScore >= 70, 'High', 'Medium')
 | extend RecommendedAction = case(EvidenceType == 'Local model file', 'Identify model provenance and owner, inspect nearby data, and remove if unauthorized', EvidenceType == 'Local AI execution', 'Capture process context and validate approved use before containment', 'Verify installer source and remove unauthorized package')
-| project TimeGenerated, RiskLevel, RiskScore, RecommendedAction, EvidenceType, Account, DeviceName, DeviceId, Artifact, Detail, FileSize, SHA1, SHA256, InitiatingProcessFileName
-| top 10000 by RiskScore desc
+| extend HashKey=case(isnotempty(SHA256), strcat('SHA256:', SHA256), isnotempty(SHA1), strcat('SHA1:', SHA1), strcat('NoHash:', tolower(Artifact), '|', tolower(Detail)))
+| summarize arg_max(TimeGenerated, RiskLevel, RiskScore, RecommendedAction, EvidenceType, Artifact, Detail, FileSize, InitiatingProcessFileName), FirstSeen=min(TimeGenerated), Occurrences=count(), DeviceCount=dcount(DeviceId), AccountCount=dcountif(Account, isnotempty(Account)), Devices=make_set(DeviceName, 100), Accounts=make_set(Account, 100) by HashKey, SHA1, SHA256
+| project LastSeen=TimeGenerated, FirstSeen, RiskLevel, RiskScore, RecommendedAction, EvidenceType, Artifact, Detail, FileSize, SHA1, SHA256, Occurrences, DeviceCount, AccountCount, Devices, Accounts, InitiatingProcessFileName
+| top 10000 by RiskScore desc, LastSeen desc
 "@
 
 $LocalSummary = @"

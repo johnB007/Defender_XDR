@@ -22,22 +22,48 @@
             "isRequired": true,
             "typeSettings": {
               "selectableValues": [
-                { "durationMs": 1800000 },
-                { "durationMs": 3600000 },
-                { "durationMs": 14400000 },
-                { "durationMs": 43200000 },
-                { "durationMs": 86400000 },
-                { "durationMs": 259200000 },
-                { "durationMs": 604800000 },
-                { "durationMs": 1209600000 },
-                { "durationMs": 2592000000 },
-                { "durationMs": 5184000000 },
-                { "durationMs": 7776000000 }
+                {
+                  "durationMs": 1800000
+                },
+                {
+                  "durationMs": 3600000
+                },
+                {
+                  "durationMs": 14400000
+                },
+                {
+                  "durationMs": 43200000
+                },
+                {
+                  "durationMs": 86400000
+                },
+                {
+                  "durationMs": 259200000
+                },
+                {
+                  "durationMs": 604800000
+                },
+                {
+                  "durationMs": 1209600000
+                },
+                {
+                  "durationMs": 2592000000
+                },
+                {
+                  "durationMs": 5184000000
+                },
+                {
+                  "durationMs": 7776000000
+                }
               ],
               "allowCustom": true
             },
-            "timeContext": { "durationMs": 86400000 },
-            "value": { "durationMs": 2592000000 }
+            "timeContext": {
+              "durationMs": 86400000
+            },
+            "value": {
+              "durationMs": 2592000000
+            }
           },
           {
             "id": "f1a1b8e1-1111-4111-aaaa-111111111111",
@@ -77,18 +103,66 @@
         "version": "LinkItem/1.0",
         "style": "tabs",
         "links": [
-          { "id": "tab-overview",    "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "Top Users / Domains",       "subTarget": "Overview",  "style": "link" },
-          { "id": "tab-correlate",   "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "Risky User Correlation",    "subTarget": "Correlate", "style": "link" },
-          { "id": "tab-all",         "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "All Categories (URL+Files)","subTarget": "First",     "style": "link" },
-          { "id": "tab-webcat",      "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "Web Content Filter (Category)", "subTarget": "WebCat", "style": "link" },
-          { "id": "tab-files",       "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "Files (SmartScreenApp)",    "subTarget": "Eighth",    "style": "link" },
-          { "id": "tab-smartscreen", "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "SmartScreen URL Categories", "subTarget": "URL",       "style": "link" },
-          { "id": "tab-overrides",   "cellValue": "Tab", "linkTarget": "parameter", "linkLabel": "User Overrides & Bypasses",  "subTarget": "Override",  "style": "link" }
+          {
+            "id": "tab-overview",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "Top Users / Domains",
+            "subTarget": "Overview",
+            "style": "link"
+          },
+          {
+            "id": "tab-correlate",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "Risky User Correlation",
+            "subTarget": "Correlate",
+            "style": "link"
+          },
+          {
+            "id": "tab-all",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "All Categories (URL+Files)",
+            "subTarget": "First",
+            "style": "link"
+          },
+          {
+            "id": "tab-webcat",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "Web Content Filter (Category)",
+            "subTarget": "WebCat",
+            "style": "link"
+          },
+          {
+            "id": "tab-files",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "Files (SmartScreenApp)",
+            "subTarget": "Eighth",
+            "style": "link"
+          },
+          {
+            "id": "tab-smartscreen",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "SmartScreen URL Categories",
+            "subTarget": "URL",
+            "style": "link"
+          },
+          {
+            "id": "tab-overrides",
+            "cellValue": "Tab",
+            "linkTarget": "parameter",
+            "linkLabel": "User Overrides & Bypasses",
+            "subTarget": "Override",
+            "style": "link"
+          }
         ]
       },
       "name": "links - 2"
     },
-
     {
       "type": 12,
       "content": {
@@ -98,7 +172,9 @@
         "items": [
           {
             "type": 1,
-            "content": { "json": "Top 25 users, devices, domains, and SmartScreen/Web-Content categories across the selected scope. Click a row to view the **same scope** filtered in the category tabs." },
+            "content": {
+              "json": "Top 25 users, devices, domains, and SmartScreen/Web-Content categories across the selected scope. Click a row to view the **same scope** filtered in the category tabs."
+            },
             "name": "ovw-text"
           },
           {
@@ -125,7 +201,10 @@
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": { "showExportToExcel": true, "rowLimit": 25 }
+              "gridSettings": {
+                "showExportToExcel": true,
+                "rowLimit": 25
+              }
             },
             "customWidth": "50",
             "name": "ovw-domain"
@@ -140,12 +219,31 @@
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": { "showExportToExcel": true,
+              "gridSettings": {
+                "showExportToExcel": true,
                 "rowLimit": 25,
                 "formatters": [
-                  { "columnMatch": "MaliciousHits", "formatter": 8, "formatOptions": { "palette": "redBright" } },
-                  { "columnMatch": "RiskyHits",     "formatter": 8, "formatOptions": { "palette": "orange" } },
-                  { "columnMatch": "Hits",          "formatter": 4, "formatOptions": { "palette": "blue" } }
+                  {
+                    "columnMatch": "MaliciousHits",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "RiskyHits",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "orange"
+                    }
+                  },
+                  {
+                    "columnMatch": "Hits",
+                    "formatter": 4,
+                    "formatOptions": {
+                      "palette": "blue"
+                    }
+                  }
                 ]
               }
             },
@@ -153,10 +251,13 @@
           }
         ]
       },
-      "conditionalVisibility": { "parameterName": "Tab", "comparison": "isEqualTo", "value": "Overview" },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "Overview"
+      },
       "name": "GroupOverview"
     },
-
     {
       "type": 12,
       "content": {
@@ -166,7 +267,9 @@
         "items": [
           {
             "type": 1,
-            "content": { "json": "Users who triggered **both** risky non-business category events (Adult, Gambling, Dating, Gaming, Streaming) **and** SmartScreen Malicious / Phishing / TechScam events in the selected window. These are prime candidates for SOC follow-up: a browsing path that started in a low-reputation category and ended in confirmed malicious destinations." },
+            "content": {
+              "json": "Users who triggered **both** risky non-business category events (Adult, Gambling, Dating, Gaming, Streaming) **and** SmartScreen Malicious / Phishing / TechScam events in the selected window. These are prime candidates for SOC follow-up: a browsing path that started in a low-reputation category and ended in confirmed malicious destinations."
+            },
             "name": "corr-text"
           },
           {
@@ -179,11 +282,24 @@
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": { "showExportToExcel": true,
+              "gridSettings": {
+                "showExportToExcel": true,
                 "rowLimit": 200,
                 "formatters": [
-                  { "columnMatch": "MaliciousHits", "formatter": 8, "formatOptions": { "palette": "redBright" } },
-                  { "columnMatch": "RiskyHits",     "formatter": 8, "formatOptions": { "palette": "orange" } }
+                  {
+                    "columnMatch": "MaliciousHits",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "RiskyHits",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "orange"
+                    }
+                  }
                 ]
               }
             },
@@ -199,18 +315,42 @@
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": { "showExportToExcel": true,
+              "gridSettings": {
+                "showExportToExcel": true,
                 "rowLimit": 2000,
                 "formatters": [
-                  { "columnMatch": "Severity", "formatter": 11, "formatOptions": {
+                  {
+                    "columnMatch": "Severity",
+                    "formatter": 11,
+                    "formatOptions": {
                       "thresholdsOptions": "icons",
                       "thresholdsGrid": [
-                        { "operator": "==", "thresholdValue": "High",   "representation": "Critical", "text": "{0}{1}" },
-                        { "operator": "==", "thresholdValue": "Medium", "representation": "2",        "text": "{0}{1}" },
-                        { "operator": "==", "thresholdValue": "Low",    "representation": "3",        "text": "{0}{1}" },
-                        { "operator": "Default",                        "representation": "Info",     "text": "{0}{1}" }
+                        {
+                          "operator": "==",
+                          "thresholdValue": "High",
+                          "representation": "Critical",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Medium",
+                          "representation": "2",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Low",
+                          "representation": "3",
+                          "text": "{0}{1}"
+                        },
+                        {
+                          "operator": "Default",
+                          "representation": "Info",
+                          "text": "{0}{1}"
+                        }
                       ]
-                  }}
+                    }
+                  }
                 ]
               }
             },
@@ -218,10 +358,13 @@
           }
         ]
       },
-      "conditionalVisibility": { "parameterName": "Tab", "comparison": "isEqualTo", "value": "Correlate" },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "Correlate"
+      },
       "name": "GroupCorrelate"
     },
-
     {
       "type": 12,
       "content": {
@@ -240,7 +383,10 @@
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
               "visualization": "timechart",
-              "gridSettings": { "showExportToExcel": true, "rowLimit": 1500 }
+              "gridSettings": {
+                "showExportToExcel": true,
+                "rowLimit": 1500
+              }
             },
             "name": "all-chart"
           },
@@ -253,16 +399,22 @@
               "timeContextFromParameter": "TimeBrush",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": { "showExportToExcel": true, "rowLimit": 3000 }
+              "gridSettings": {
+                "showExportToExcel": true,
+                "rowLimit": 3000
+              }
             },
             "name": "all-grid"
           }
         ]
       },
-      "conditionalVisibility": { "parameterName": "Tab", "comparison": "isEqualTo", "value": "First" },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "First"
+      },
       "name": "Group1"
     },
-
     {
       "type": 12,
       "content": {
@@ -272,7 +424,9 @@
         "items": [
           {
             "type": 1,
-            "content": { "json": "All three Web Content Filter outcomes on one tab: **Blocked** + **Audited** from `DeviceEvents.ExploitGuardNetworkProtection*`, plus **Allowed** traffic from `DeviceNetworkEvents` (the only source for Allow-mode WCF in advanced hunting)." },
+            "content": {
+              "json": "All three Web Content Filter outcomes on one tab: **Blocked** + **Audited** from `DeviceEvents.ExploitGuardNetworkProtection*`, plus **Allowed** traffic from `DeviceNetworkEvents` (the only source for Allow-mode WCF in advanced hunting)."
+            },
             "name": "wc-text"
           },
           {
@@ -287,9 +441,11 @@
                   "label": "Policy outcome",
                   "type": 2,
                   "isRequired": true,
-                  "typeSettings": { "showDefault": false },
-                  "jsonData": "[{\"value\":\"All\",\"label\":\"All\"},{\"value\":\"Audited\",\"label\":\"Audited\",\"selected\":true},{\"value\":\"Blocked\",\"label\":\"Blocked\"},{\"value\":\"Allowed\",\"label\":\"Allowed\"}]",
-                  "value": "Audited"
+                  "typeSettings": {
+                    "showDefault": false
+                  },
+                  "jsonData": "[{\"value\":\"All\",\"label\":\"All\",\"selected\":true},{\"value\":\"Audited\",\"label\":\"Audited\"},{\"value\":\"Blocked\",\"label\":\"Blocked\"},{\"value\":\"Allowed\",\"label\":\"Allowed\"}]",
+                  "value": "All"
                 },
                 {
                   "id": "p-wc-cat",
@@ -298,7 +454,9 @@
                   "label": "Web category",
                   "type": 2,
                   "isRequired": true,
-                  "typeSettings": { "showDefault": false },
+                  "typeSettings": {
+                    "showDefault": false
+                  },
                   "query": "let classify = (h:string){case(h has_any (\"xvideos\",\"xnxx\",\"pornhub\",\"redtube\",\"xhamster\",\"chaturbate\",\"livejasmin\",\"onlyfans\",\"brazzers\",\"youporn\",\"spankbang\",\"stripchat\",\"cam4\",\"myfreecams\",\"tnaflix\",\"camsoda\",\"xvideos-cdn\",\"xnxx-cdn\"),\"Adult content\",h has_any (\"bet365\",\"betway\",\"draftkings\",\"fanduel\",\"pokerstars\",\"ladbrokes\",\"888casino\",\"bovada\",\"unibet\",\"bwin\",\"betmgm\",\"stake.com\",\"casino\",\"sportsbet\"),\"Gambling\",h has_any (\"tinder\",\"bumble\",\"match.com\",\"okcupid\",\"hinge\",\"plentyoffish\",\"ashleymadison\",\"grindr\",\"badoo\",\"eharmony\",\"zoosk\"),\"Dating\",h has_any (\"steamcommunity\",\"steampowered\",\"epicgames\",\"battle.net\",\"ubisoft\",\"roblox\",\"minecraft\",\"twitch\",\"gamespot\",\"kotaku\"),\"Gaming\",h has_any (\"netflix\",\"hulu\",\"disneyplus\",\"primevideo\",\"spotify\",\"pandora\",\"soundcloud\",\"tiktok\",\"crunchyroll\",\"hbomax\",\"peacocktv\",\"paramountplus\"),\"Streaming media\",\"\")};\r\nlet net = DeviceNetworkEvents\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| where isnotempty(Host)\r\n| extend WebCategory = classify(Host)\r\n| where isnotempty(WebCategory)\r\n| distinct WebCategory;\r\nlet de = DeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| extend WebCategory = tostring(parse_json(AdditionalFields).ResponseCategory)\r\n| where isnotempty(WebCategory)\r\n| distinct WebCategory;\r\nunion (print WebCategory=\"All\"), net, de\r\n| distinct WebCategory\r\n| order by iff(WebCategory==\"All\",0,1) asc, WebCategory asc",
                   "timeContextFromParameter": "TimePicker",
                   "queryType": 0,
@@ -329,19 +487,55 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let pf = \"{PolicyFilter}\";\r\nlet wcat = \"{WebCategoryFilter}\";\r\nlet classify = (h:string){case(h has_any (\"xvideos\",\"xnxx\",\"pornhub\",\"redtube\",\"xhamster\",\"chaturbate\",\"livejasmin\",\"onlyfans\",\"brazzers\",\"youporn\",\"spankbang\",\"stripchat\",\"cam4\",\"myfreecams\",\"tnaflix\",\"camsoda\",\"xvideos-cdn\",\"xnxx-cdn\"),\"Adult content\",h has_any (\"bet365\",\"betway\",\"draftkings\",\"fanduel\",\"pokerstars\",\"ladbrokes\",\"888casino\",\"bovada\",\"unibet\",\"bwin\",\"betmgm\",\"stake.com\",\"casino\",\"sportsbet\"),\"Gambling\",h has_any (\"tinder\",\"bumble\",\"match.com\",\"okcupid\",\"hinge\",\"plentyoffish\",\"ashleymadison\",\"grindr\",\"badoo\",\"eharmony\",\"zoosk\"),\"Dating\",h has_any (\"steamcommunity\",\"steampowered\",\"epicgames\",\"battle.net\",\"ubisoft\",\"roblox\",\"minecraft\",\"twitch\",\"gamespot\",\"kotaku\"),\"Gaming\",h has_any (\"netflix\",\"hulu\",\"disneyplus\",\"primevideo\",\"spotify\",\"pandora\",\"soundcloud\",\"tiktok\",\"crunchyroll\",\"hbomax\",\"peacocktv\",\"paramountplus\"),\"Streaming media\",\"\")};\r\nlet netAllowed = DeviceNetworkEvents\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| where isnotempty(Host)\r\n| extend WebCategory = classify(Host), PolicyAction = \"Allowed\"\r\n| where isnotempty(WebCategory);\r\nlet dePolicy = DeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| extend ResponseCat = tostring(P.ResponseCategory)\r\n| extend WebCategory = iff(isempty(ResponseCat), classify(Host), ResponseCat)\r\n| extend PolicyAction = iff(ActionType == \"ExploitGuardNetworkProtectionBlocked\",\"Blocked\",\"Audited\")\r\n| where isnotempty(WebCategory);\r\nunion netAllowed, dePolicy\r\n| where pf == \"All\" or PolicyAction == pf\r\n| where wcat == \"All\" or WebCategory == wcat\r\n| project TimeGenerated, DeviceName, User = InitiatingProcessAccountName, WebCategory, PolicyAction, Host, RemoteUrl, InitiatingProcessFileName\r\n| sort by TimeGenerated desc",
+              "query": "let pf = \"{PolicyFilter}\";\r\nlet wcat = \"{WebCategoryFilter}\";\r\nlet classify = (h:string){case(h has_any (\"xvideos\",\"xnxx\",\"pornhub\",\"redtube\",\"xhamster\",\"chaturbate\",\"livejasmin\",\"onlyfans\",\"brazzers\",\"youporn\",\"spankbang\",\"stripchat\",\"cam4\",\"myfreecams\",\"tnaflix\",\"camsoda\",\"xvideos-cdn\",\"xnxx-cdn\"),\"Adult content\",h has_any (\"bet365\",\"betway\",\"draftkings\",\"fanduel\",\"pokerstars\",\"ladbrokes\",\"888casino\",\"bovada\",\"unibet\",\"bwin\",\"betmgm\",\"stake.com\",\"casino\",\"sportsbet\"),\"Gambling\",h has_any (\"tinder\",\"bumble\",\"match.com\",\"okcupid\",\"hinge\",\"plentyoffish\",\"ashleymadison\",\"grindr\",\"badoo\",\"eharmony\",\"zoosk\"),\"Dating\",h has_any (\"steamcommunity\",\"steampowered\",\"epicgames\",\"battle.net\",\"ubisoft\",\"roblox\",\"minecraft\",\"twitch\",\"gamespot\",\"kotaku\"),\"Gaming\",h has_any (\"netflix\",\"hulu\",\"disneyplus\",\"primevideo\",\"spotify\",\"pandora\",\"soundcloud\",\"tiktok\",\"crunchyroll\",\"hbomax\",\"peacocktv\",\"paramountplus\"),\"Streaming media\",\"\")};\r\nlet netAllowed = DeviceNetworkEvents\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| where isnotempty(Host)\r\n| extend WebCategory = classify(Host), PolicyAction = \"Allowed\"\r\n| where isnotempty(WebCategory);\r\nlet dePolicy = DeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| extend ResponseCat = tostring(P.ResponseCategory)\r\n| extend WebCategory = iff(isempty(ResponseCat), classify(Host), ResponseCat)\r\n| extend PolicyAction = iff(ActionType == \"ExploitGuardNetworkProtectionBlocked\",\"Blocked\",\"Audited\")\r\n| where isnotempty(WebCategory);\r\nunion netAllowed, dePolicy\r\n| where pf == \"All\" or PolicyAction == pf\r\n| where wcat == \"All\" or WebCategory == wcat\r\n| project TimeGenerated, DeviceName, User = InitiatingProcessAccountName, WebCategory, PolicyAction, Host, RemoteUrl, InitiatingProcessFileName\r\n| top 10000 by TimeGenerated desc",
               "size": 2,
               "title": "Web Content Filter — events",
               "timeContextFromParameter": "TimeBrushWC",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": { "showExportToExcel": true,
-                "rowLimit": 3000,
+              "gridSettings": {
+                "showExportToExcel": true,
+                "rowLimit": 10000,
                 "formatters": [
-                  { "columnMatch": "WebCategory", "formatter": 1 },
-                  { "columnMatch": "PolicyAction", "formatter": 11, "formatOptions": { "thresholdsOptions": "colors", "thresholdsGrid": [ { "operator": "==", "thresholdValue": "Blocked", "representation": "redBright", "text": "{0}{1}" }, { "operator": "==", "thresholdValue": "Audited", "representation": "orange", "text": "{0}{1}" }, { "operator": "==", "thresholdValue": "Allowed", "representation": "blue", "text": "{0}{1}" }, { "operator": "Default", "representation": "gray", "text": "{0}{1}" } ] } }
+                  {
+                    "columnMatch": "WebCategory",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "PolicyAction",
+                    "formatter": 11,
+                    "formatOptions": {
+                      "thresholdsOptions": "colors",
+                      "thresholdsGrid": [
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Blocked",
+                          "representation": "redBright",
+                          "text": "{0}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Audited",
+                          "representation": "orange",
+                          "text": "{0}"
+                        },
+                        {
+                          "operator": "==",
+                          "thresholdValue": "Allowed",
+                          "representation": "blue",
+                          "text": "{0}"
+                        },
+                        {
+                          "operator": "Default",
+                          "representation": "gray",
+                          "text": "{0}"
+                        }
+                      ]
+                    }
+                  }
                 ]
-              }
+              },
+              "maxItemsCount": 10000
             },
             "name": "wc-grid"
           },
@@ -349,22 +543,52 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let pf = \"{PolicyFilter}\";\r\nlet wcat = \"{WebCategoryFilter}\";\r\nlet classify = (h:string){case(h has_any (\"xvideos\",\"xnxx\",\"pornhub\",\"redtube\",\"xhamster\",\"chaturbate\",\"livejasmin\",\"onlyfans\",\"brazzers\",\"youporn\",\"spankbang\",\"stripchat\",\"cam4\",\"myfreecams\",\"tnaflix\",\"camsoda\",\"xvideos-cdn\",\"xnxx-cdn\"),\"Adult content\",h has_any (\"bet365\",\"betway\",\"draftkings\",\"fanduel\",\"pokerstars\",\"ladbrokes\",\"888casino\",\"bovada\",\"unibet\",\"bwin\",\"betmgm\",\"stake.com\",\"casino\",\"sportsbet\"),\"Gambling\",h has_any (\"tinder\",\"bumble\",\"match.com\",\"okcupid\",\"hinge\",\"plentyoffish\",\"ashleymadison\",\"grindr\",\"badoo\",\"eharmony\",\"zoosk\"),\"Dating\",h has_any (\"steamcommunity\",\"steampowered\",\"epicgames\",\"battle.net\",\"ubisoft\",\"roblox\",\"minecraft\",\"twitch\",\"gamespot\",\"kotaku\"),\"Gaming\",h has_any (\"netflix\",\"hulu\",\"disneyplus\",\"primevideo\",\"spotify\",\"pandora\",\"soundcloud\",\"tiktok\",\"crunchyroll\",\"hbomax\",\"peacocktv\",\"paramountplus\"),\"Streaming media\",\"\")};\r\nlet netAllowed = DeviceNetworkEvents\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| where isnotempty(Host)\r\n| extend WebCategory = classify(Host), PolicyAction = \"Allowed\"\r\n| where isnotempty(WebCategory);\r\nlet dePolicy = DeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| extend ResponseCat = tostring(P.ResponseCategory)\r\n| extend WebCategory = iff(isempty(ResponseCat), classify(Host), ResponseCat)\r\n| extend PolicyAction = iff(ActionType == \"ExploitGuardNetworkProtectionBlocked\",\"Blocked\",\"Audited\")\r\n| where isnotempty(WebCategory);\r\nunion netAllowed, dePolicy\r\n| where pf == \"All\" or PolicyAction == pf\r\n| where wcat == \"All\" or WebCategory == wcat\r\n| where (wcat == \"All\" and WebCategory in (\"Adult content\",\"Gambling\",\"Dating\",\"Gaming\",\"Streaming media\")) or WebCategory == wcat\r\n| summarize Hits = count(), Devices = dcount(DeviceName), Allowed = countif(PolicyAction==\"Allowed\"), Audited = countif(PolicyAction==\"Audited\"), Blocked = countif(PolicyAction==\"Blocked\"), LastSeen = max(TimeGenerated), SampleUrls = make_set(RemoteUrl, 5) by User = InitiatingProcessAccountName, WebCategory, Host\r\n| where isnotempty(User)\r\n| order by Hits desc",
+              "query": "let pf = \"{PolicyFilter}\";\r\nlet wcat = \"{WebCategoryFilter}\";\r\nlet classify = (h:string){case(h has_any (\"xvideos\",\"xnxx\",\"pornhub\",\"redtube\",\"xhamster\",\"chaturbate\",\"livejasmin\",\"onlyfans\",\"brazzers\",\"youporn\",\"spankbang\",\"stripchat\",\"cam4\",\"myfreecams\",\"tnaflix\",\"camsoda\",\"xvideos-cdn\",\"xnxx-cdn\"),\"Adult content\",h has_any (\"bet365\",\"betway\",\"draftkings\",\"fanduel\",\"pokerstars\",\"ladbrokes\",\"888casino\",\"bovada\",\"unibet\",\"bwin\",\"betmgm\",\"stake.com\",\"casino\",\"sportsbet\"),\"Gambling\",h has_any (\"tinder\",\"bumble\",\"match.com\",\"okcupid\",\"hinge\",\"plentyoffish\",\"ashleymadison\",\"grindr\",\"badoo\",\"eharmony\",\"zoosk\"),\"Dating\",h has_any (\"steamcommunity\",\"steampowered\",\"epicgames\",\"battle.net\",\"ubisoft\",\"roblox\",\"minecraft\",\"twitch\",\"gamespot\",\"kotaku\"),\"Gaming\",h has_any (\"netflix\",\"hulu\",\"disneyplus\",\"primevideo\",\"spotify\",\"pandora\",\"soundcloud\",\"tiktok\",\"crunchyroll\",\"hbomax\",\"peacocktv\",\"paramountplus\"),\"Streaming media\",\"\")};\r\nlet netAllowed = DeviceNetworkEvents\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| where isnotempty(Host)\r\n| extend WebCategory = classify(Host), PolicyAction = \"Allowed\"\r\n| where isnotempty(WebCategory);\r\nlet dePolicy = DeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| extend ResponseCat = tostring(P.ResponseCategory)\r\n| extend WebCategory = classify(Host)\r\n| extend PolicyAction = iff(ActionType == \"ExploitGuardNetworkProtectionBlocked\",\"Blocked\",\"Audited\")\r\n| where isnotempty(WebCategory);\r\nunion netAllowed, dePolicy\r\n| where pf == \"All\" or PolicyAction == pf\r\n| where wcat == \"All\" or WebCategory == wcat\r\n| where (wcat == \"All\" and WebCategory in (\"Adult content\",\"Gambling\",\"Dating\",\"Gaming\",\"Streaming media\")) or WebCategory == wcat\r\n| summarize Hits = count(), Devices = dcount(DeviceName), Allowed = countif(PolicyAction==\"Allowed\"), Audited = countif(PolicyAction==\"Audited\"), Blocked = countif(PolicyAction==\"Blocked\"), LastSeen = max(TimeGenerated), SampleUrls = make_set(RemoteUrl, 5) by User = InitiatingProcessAccountName, WebCategory, Host\r\n| where isnotempty(User)\r\n| top 10000 by Hits desc",
               "size": 2,
               "title": "Risky Category (Adult / Gambling / Dating / Gaming / Streaming) — by User & Host",
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": { "showExportToExcel": true, "rowLimit": 500, "formatters": [ { "columnMatch": "Blocked", "formatter": 8, "formatOptions": { "palette": "redBright" } }, { "columnMatch": "Audited", "formatter": 8, "formatOptions": { "palette": "orange" } }, { "columnMatch": "Allowed", "formatter": 8, "formatOptions": { "palette": "blue" } } ] }
+              "gridSettings": {
+                "showExportToExcel": true,
+                "rowLimit": 10000,
+                "formatters": [
+                  {
+                    "columnMatch": "Blocked",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "Audited",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "orange"
+                    }
+                  },
+                  {
+                    "columnMatch": "Allowed",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "blue"
+                    }
+                  }
+                ]
+              },
+              "maxItemsCount": 10000
             },
             "name": "wc-adult"
           }
         ]
       },
-      "conditionalVisibility": { "parameterName": "Tab", "comparison": "isEqualTo", "value": "WebCat" },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "WebCat"
+      },
       "name": "GroupWebCat"
     },
-
     {
       "type": 12,
       "content": {
@@ -395,17 +619,34 @@
               "timeContextFromParameter": "TimeBrush9",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": { "showExportToExcel": true, "rowLimit": 1500, "sortBy": [{ "itemKey": "FileName", "sortOrder": 1 }] },
-              "sortBy": [{ "itemKey": "FileName", "sortOrder": 1 }]
+              "gridSettings": {
+                "showExportToExcel": true,
+                "rowLimit": 1500,
+                "sortBy": [
+                  {
+                    "itemKey": "FileName",
+                    "sortOrder": 1
+                  }
+                ]
+              },
+              "sortBy": [
+                {
+                  "itemKey": "FileName",
+                  "sortOrder": 1
+                }
+              ]
             },
             "name": "files-grid"
           }
         ]
       },
-      "conditionalVisibility": { "parameterName": "Tab", "comparison": "isEqualTo", "value": "Eighth" },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "Eighth"
+      },
       "name": "GroupFiles"
     },
-
     {
       "type": 12,
       "content": {
@@ -426,7 +667,9 @@
                   "type": 2,
                   "isRequired": true,
                   "value": "Malicious",
-                  "typeSettings": { "showDefault": false },
+                  "typeSettings": {
+                    "showDefault": false
+                  },
                   "jsonData": "[{\"value\":\"Malicious\",\"label\":\"Malicious\"},{\"value\":\"Phishing\",\"label\":\"Phishing\"},{\"value\":\"TechScam\",\"label\":\"TechScam\"},{\"value\":\"Untrusted\",\"label\":\"Untrusted\"},{\"value\":\"CustomBlockList\",\"label\":\"Custom Block List\"},{\"value\":\"CustomPolicy\",\"label\":\"Custom Policy\"}]"
                 }
               ],
@@ -438,7 +681,9 @@
           },
           {
             "type": 1,
-            "content": { "json": "Pick a SmartScreen `Experience` above to scope the chart and grid below. Covers TechScam, Phishing, Untrusted, Malicious, Custom Block List (your MDE indicators), and Custom Policy (your Web Content Filter rules)." },
+            "content": {
+              "json": "Pick a SmartScreen `Experience` above to scope the chart and grid below. Covers TechScam, Phishing, Untrusted, Malicious, Custom Block List (your MDE indicators), and Custom Policy (your Web Content Filter rules)."
+            },
             "name": "exp-text"
           },
           {
@@ -466,16 +711,22 @@
               "timeContextFromParameter": "TimeBrushExp",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": { "showExportToExcel": true, "rowLimit": 1500 }
+              "gridSettings": {
+                "showExportToExcel": true,
+                "rowLimit": 1500
+              }
             },
             "name": "exp-grid"
           }
         ]
       },
-      "conditionalVisibility": { "parameterName": "Tab", "comparison": "isEqualTo", "value": "URL" },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "URL"
+      },
       "name": "GroupURL"
     },
-
     {
       "type": 12,
       "content": {
@@ -485,7 +736,9 @@
         "items": [
           {
             "type": 1,
-            "content": { "json": "Events where a user **clicked through** a SmartScreen warning (`SmartScreenUserOverride`) or **bypassed** a Network Protection block (`NetworkProtectionUserBypassEvent`). These users acknowledged the risk and proceeded anyway — they are the highest-priority follow-ups in any web-threat hunt. The grid below also tags the browser that initiated the override so you can spot 3rd-party-browser bypass patterns." },
+            "content": {
+              "json": "Events where a user **clicked through** a SmartScreen warning (`SmartScreenUserOverride`) or **bypassed** a Network Protection block (`NetworkProtectionUserBypassEvent`). These users acknowledged the risk and proceeded anyway — they are the highest-priority follow-ups in any web-threat hunt. The grid below also tags the browser that initiated the override so you can spot 3rd-party-browser bypass patterns."
+            },
             "name": "ov-text"
           },
           {
@@ -513,11 +766,21 @@
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": { "showExportToExcel": true,
+              "gridSettings": {
+                "showExportToExcel": true,
                 "rowLimit": 500,
                 "formatters": [
-                  { "columnMatch": "Overrides", "formatter": 8, "formatOptions": { "palette": "redBright" } },
-                  { "columnMatch": "User",      "formatter": 1 }
+                  {
+                    "columnMatch": "Overrides",
+                    "formatter": 8,
+                    "formatOptions": {
+                      "palette": "redBright"
+                    }
+                  },
+                  {
+                    "columnMatch": "User",
+                    "formatter": 1
+                  }
                 ]
               }
             },
@@ -547,12 +810,22 @@
               "timeContextFromParameter": "TimeBrushOv",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
-              "gridSettings": { "showExportToExcel": true,
+              "gridSettings": {
+                "showExportToExcel": true,
                 "rowLimit": 3000,
                 "formatters": [
-                  { "columnMatch": "ActionType", "formatter": 1 },
-                  { "columnMatch": "Browser",    "formatter": 1 },
-                  { "columnMatch": "Category",   "formatter": 1 }
+                  {
+                    "columnMatch": "ActionType",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "Browser",
+                    "formatter": 1
+                  },
+                  {
+                    "columnMatch": "Category",
+                    "formatter": 1
+                  }
                 ]
               }
             },
@@ -560,7 +833,11 @@
           }
         ]
       },
-      "conditionalVisibility": { "parameterName": "Tab", "comparison": "isEqualTo", "value": "Override" },
+      "conditionalVisibility": {
+        "parameterName": "Tab",
+        "comparison": "isEqualTo",
+        "value": "Override"
+      },
       "name": "Group8"
     }
   ],

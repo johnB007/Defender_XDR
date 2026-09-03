@@ -1,7 +1,7 @@
 {
   "Source": "https://github.com/v2fly/domain-list-community",
   "License": "MIT",
-  "RetrievedUtc": "2026-08-21T15:38:32.0149493Z",
+  "RetrievedUtc": "2026-09-03T14:55:17.5158678Z",
   "Roots": [
     "category-ai-!cn",
     "category-ai-cn"
@@ -423,6 +423,10 @@
     },
     {
       "Domain": "deepseek.com",
+      "Provider": "Deepseek"
+    },
+    {
+      "Domain": "deepseeksvc.com",
       "Provider": "Deepseek"
     },
     {
@@ -1128,6 +1132,10 @@
     {
       "Domain": "windsurf.com",
       "Provider": "Windsurf"
+    },
+    {
+      "Domain": "workbuddy.cn",
+      "Provider": "Workbuddy"
     },
     {
       "Domain": "x.ai",

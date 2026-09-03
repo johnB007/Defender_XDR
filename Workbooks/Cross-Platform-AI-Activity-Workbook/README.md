@@ -124,7 +124,7 @@ The device and account filters are text filters. They are not identity pickers. 
 | Local AI Evidence by Execution, Installer, or Model File | Local tool execution, installer artifacts, model files, and related activity | Find local AI presence even without remote AI traffic |
 | Top 5 Devices with Local AI Artifacts or Execution | Devices with the most local AI evidence | Prioritize host review |
 | Top 5 Accounts Creating or Running Local AI | Accounts associated with local AI artifacts or execution | Assign ownership |
-| Local AI Tool, Model, Installer, Owner, and Response Evidence | Detailed tool, model, installer, owner, and response fields | Document the local AI investigation |
+| Local AI Tool, Model, Installer, Owner, and Response Evidence | Detailed tool, model, installer, owner, response, SHA1, and SHA256 fields when MDE reports them | Document the local AI investigation |
 
 ![Local AI tab](support/screenshots/05-local-ai.png)
 

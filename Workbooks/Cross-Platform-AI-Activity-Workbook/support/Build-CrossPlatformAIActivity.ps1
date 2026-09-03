@@ -433,24 +433,24 @@ let Downloads = DeviceFileEvents
 | where FileName has_any ('ChatGPT','Claude','ollama','LM Studio','LMStudio','gpt4all','GPT4All','Perplexity','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM','Jan')
 | where tolower(FileName) endswith '.exe' or tolower(FileName) endswith '.msi' or tolower(FileName) endswith '.msix' or tolower(FileName) endswith '.pkg' or tolower(FileName) endswith '.dmg' or tolower(FileName) endswith '.zip' or tolower(FileName) endswith '.crx' or tolower(FileName) endswith '.xpi'
 | extend Account = coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='AI installer or extension', Artifact=FileName, Detail=FolderPath, FileSize, InitiatingProcessFileName;
+| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='AI installer or extension', Artifact=FileName, Detail=FolderPath, FileSize, SHA1, SHA256, InitiatingProcessFileName;
 let Models = DeviceFileEvents
 | where ActionType in ('FileCreated','FileModified')
 | where tolower(FileName) endswith '.gguf' or tolower(FileName) endswith '.ggml' or tolower(FileName) endswith '.safetensors' or (tolower(FileName) endswith '.bin' and FileSize > 500000000)
 | extend Account = coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='Local model file', Artifact=FileName, Detail=FolderPath, FileSize, InitiatingProcessFileName;
+| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='Local model file', Artifact=FileName, Detail=FolderPath, FileSize, SHA1, SHA256, InitiatingProcessFileName;
 let Executions = DeviceProcessEvents
 | where FileName in~ (LocalAIProcesses)
 | where not(FileName startswith 'Microsoft.Copilot')
 | extend Account = coalesce(AccountUpn, AccountName)
-| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='Local AI execution', Artifact=FileName, Detail=ProcessCommandLine, FileSize=long(0), InitiatingProcessFileName;
+| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='Local AI execution', Artifact=FileName, Detail=ProcessCommandLine, FileSize=long(0), SHA1='', SHA256='', InitiatingProcessFileName;
 union Downloads, Models, Executions
 | where DeviceFilter == '' or DeviceName contains DeviceFilter
 | where AccountFilter == '' or Account contains AccountFilter
 | extend RiskScore = case(EvidenceType == 'Local model file', 85, EvidenceType == 'Local AI execution', 75, 55)
 | extend RiskLevel = case(RiskScore >= 85, 'Critical', RiskScore >= 70, 'High', 'Medium')
 | extend RecommendedAction = case(EvidenceType == 'Local model file', 'Identify model provenance and owner, inspect nearby data, and remove if unauthorized', EvidenceType == 'Local AI execution', 'Capture process context and validate approved use before containment', 'Verify installer source and remove unauthorized package')
-| project TimeGenerated, RiskLevel, RiskScore, RecommendedAction, EvidenceType, Account, DeviceName, Artifact, Detail, FileSize, InitiatingProcessFileName
+| project TimeGenerated, RiskLevel, RiskScore, RecommendedAction, EvidenceType, Account, DeviceName, DeviceId, Artifact, Detail, FileSize, SHA1, SHA256, InitiatingProcessFileName
 | top 10000 by RiskScore desc
 "@
 

@@ -443,7 +443,7 @@ let Executions = DeviceProcessEvents
 | where FileName in~ (LocalAIProcesses)
 | where not(FileName startswith 'Microsoft.Copilot')
 | extend Account = coalesce(AccountUpn, AccountName)
-| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='Local AI execution', Artifact=FileName, Detail=ProcessCommandLine, FileSize=long(0), SHA1='', SHA256='', InitiatingProcessFileName;
+| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='Local AI execution', Artifact=FileName, Detail=ProcessCommandLine, FileSize, SHA1, SHA256, InitiatingProcessFileName;
 union Downloads, Models, Executions
 | where DeviceFilter == '' or DeviceName contains DeviceFilter
 | where AccountFilter == '' or Account contains AccountFilter

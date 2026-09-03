@@ -425,7 +425,7 @@
           {
             "type": 1,
             "content": {
-              "json": "All three Web Content Filter outcomes on one tab: **Blocked** + **Audited** from `DeviceEvents.ExploitGuardNetworkProtection*`, plus **Allowed** traffic from `DeviceNetworkEvents` (the only source for Allow-mode WCF in advanced hunting)."
+              "json": "Web Content Filter blocks by category from `DeviceEvents.ExploitGuardNetworkProtectionBlocked`. This tenant runs WCF in block mode only, so Blocked is the sole outcome in advanced hunting. MDE does not emit an allowed by category event, so there is no Allowed series to chart."
             },
             "name": "wc-text"
           },
@@ -444,7 +444,7 @@
                   "typeSettings": {
                     "showDefault": false
                   },
-                  "jsonData": "[{\"value\":\"All\",\"label\":\"All\",\"selected\":true},{\"value\":\"Blocked\",\"label\":\"Blocked\"},{\"value\":\"Allowed\",\"label\":\"Allowed\"}]",
+                  "jsonData": "[{\"value\":\"All\",\"label\":\"All\",\"selected\":true},{\"value\":\"Blocked\",\"label\":\"Blocked\"}]",
                   "value": "All"
                 }
               ],
@@ -520,9 +520,9 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let pf = \"{PolicyFilter}\";\r\nlet dePolicy = DeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| extend WebCategory = tostring(P.ResponseCategory)\r\n| extend PolicyAction = iff(ActionType == \"ExploitGuardNetworkProtectionBlocked\",\"Blocked\",\"Allowed\")\r\n| where isnotempty(WebCategory);\r\ndePolicy\r\n| where pf == \"All\" or PolicyAction == pf\r\n| summarize Hits = count(), Devices = dcount(DeviceName), Allowed = countif(PolicyAction==\"Allowed\"), Blocked = countif(PolicyAction==\"Blocked\"), LastSeen = max(TimeGenerated), SampleUrls = make_set(RemoteUrl, 5) by User = InitiatingProcessAccountName, WebCategory, Host\r\n| where isnotempty(User)\r\n| top 10000 by Hits desc",
+              "query": "let pf = \"{PolicyFilter}\";\r\nlet dePolicy = DeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| extend WebCategory = tostring(P.ResponseCategory)\r\n| extend PolicyAction = iff(ActionType == \"ExploitGuardNetworkProtectionBlocked\",\"Blocked\",\"Allowed\")\r\n| where isnotempty(WebCategory);\r\ndePolicy\r\n| where pf == \"All\" or PolicyAction == pf\r\n| summarize Hits = count(), Devices = dcount(DeviceName), Blocked = countif(PolicyAction==\"Blocked\"), LastSeen = max(TimeGenerated), SampleUrls = make_set(RemoteUrl, 5) by User = InitiatingProcessAccountName, WebCategory, Host\r\n| where isnotempty(User)\r\n| top 10000 by Hits desc",
               "size": 2,
-              "title": "Category breakdown by User and Host (Blocked, Allowed)",
+              "title": "Category breakdown by User and Host (Blocked)",
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -535,13 +535,6 @@
                     "formatter": 8,
                     "formatOptions": {
                       "palette": "redBright"
-                    }
-                  },
-                  {
-                    "columnMatch": "Allowed",
-                    "formatter": 8,
-                    "formatOptions": {
-                      "palette": "blue"
                     }
                   }
                 ]

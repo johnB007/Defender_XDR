@@ -62,7 +62,7 @@
               "durationMs": 86400000
             },
             "value": {
-              "durationMs": 2592000000
+              "durationMs": 7776000000
             }
           },
           {
@@ -131,7 +131,7 @@
             "id": "tab-webcat",
             "cellValue": "Tab",
             "linkTarget": "parameter",
-            "linkLabel": "Web Content Filter (Category)",
+            "linkLabel": "Web Content Filter",
             "subTarget": "WebCat",
             "style": "link"
           },
@@ -420,12 +420,12 @@
       "content": {
         "version": "NotebookGroup/1.0",
         "groupType": "editable",
-        "title": "Web Content Filter (Category)",
+        "title": "Web Content Filter",
         "items": [
           {
             "type": 1,
             "content": {
-              "json": "Web Content Filter events by category from `DeviceEvents`. Blocked comes from `ExploitGuardNetworkProtectionBlocked`. Audited comes from `ExploitGuardNetworkProtectionAudited`, which only appears when a WCF policy runs in audit mode. If a tenant runs WCF in block mode only, the Audited series stays empty until audit mode is enabled. MDE does not emit an allowed by category event, so there is no Allowed series."
+              "json": "Web Content Filter and Network Protection blocks from `DeviceEvents`. Blocked comes from `ExploitGuardNetworkProtectionBlocked`. Audited comes from `ExploitGuardNetworkProtectionAudited`, which only appears when a policy runs in audit mode. The **Block Reason** column reads `AdditionalFields.ResponseCategory`, the reason Network Protection blocked the request. Observed values are CustomBlockList, CasbPolicy, Malicious, Phishing, TechScam, and CmdCtrl. The **Blocked URI** column reads `AdditionalFields.DisplayName`, the actual host or uri that was blocked. This telemetry does not carry a per event web content category such as Gambling or Adult, so no content category series is shown. MDE does not emit an allowed event, so there is no Allowed series."
             },
             "name": "wc-text"
           },
@@ -456,9 +456,9 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let pf = \"{PolicyFilter}\";\r\nlet dePolicy = DeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| extend WebCategory = tostring(P.ResponseCategory)\r\n| extend PolicyAction = iff(ActionType == \"ExploitGuardNetworkProtectionBlocked\",\"Blocked\",\"Audited\")\r\n| where isnotempty(WebCategory);\r\ndePolicy\r\n| where pf == \"All\" or PolicyAction == pf\r\n| summarize Hits = count() by WebCategory, bin(TimeGenerated, 1h)",
+              "query": "let pf = \"{PolicyFilter}\";\r\nlet dePolicy = DeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| extend BlockReason = tostring(P.ResponseCategory)\r\n| extend BlockedUri = tostring(P.DisplayName)\r\n| extend PolicyAction = iff(ActionType == \"ExploitGuardNetworkProtectionBlocked\",\"Blocked\",\"Audited\")\r\n| where isnotempty(BlockReason);\r\ndePolicy\r\n| where pf == \"All\" or PolicyAction == pf\r\n| summarize Hits = count() by BlockReason, bin(TimeGenerated, 1h)",
               "size": 0,
-              "title": "Web Content Filter — events by Category (filtered by Policy outcome)",
+              "title": "Web Content Filter events by block reason (filtered by policy outcome)",
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -470,9 +470,9 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let pf = \"{PolicyFilter}\";\r\nlet dePolicy = DeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| extend WebCategory = tostring(P.ResponseCategory)\r\n| extend PolicyAction = iff(ActionType == \"ExploitGuardNetworkProtectionBlocked\",\"Blocked\",\"Audited\")\r\n| where isnotempty(WebCategory);\r\ndePolicy\r\n| where pf == \"All\" or PolicyAction == pf\r\n| project TimeGenerated, DeviceName, User = InitiatingProcessAccountName, WebCategory, PolicyAction, Host, RemoteUrl, InitiatingProcessFileName\r\n| top 10000 by TimeGenerated desc",
+              "query": "let pf = \"{PolicyFilter}\";\r\nlet dePolicy = DeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| extend BlockReason = tostring(P.ResponseCategory)\r\n| extend BlockedUri = tostring(P.DisplayName)\r\n| extend PolicyAction = iff(ActionType == \"ExploitGuardNetworkProtectionBlocked\",\"Blocked\",\"Audited\")\r\n| where isnotempty(BlockReason);\r\ndePolicy\r\n| where pf == \"All\" or PolicyAction == pf\r\n| project TimeGenerated, DeviceName, User = InitiatingProcessAccountName, BlockReason, PolicyAction, BlockedUri, Host, RemoteUrl, InitiatingProcessFileName\r\n| top 10000 by TimeGenerated desc",
               "size": 2,
-              "title": "Web Content Filter — events",
+              "title": "Web Content Filter blocked events",
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -481,7 +481,7 @@
                 "rowLimit": 10000,
                 "formatters": [
                   {
-                    "columnMatch": "WebCategory",
+                    "columnMatch": "BlockReason",
                     "formatter": 1
                   },
                   {
@@ -520,9 +520,9 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let pf = \"{PolicyFilter}\";\r\nlet dePolicy = DeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| extend WebCategory = tostring(P.ResponseCategory)\r\n| extend PolicyAction = iff(ActionType == \"ExploitGuardNetworkProtectionBlocked\",\"Blocked\",\"Audited\")\r\n| where isnotempty(WebCategory);\r\ndePolicy\r\n| where pf == \"All\" or PolicyAction == pf\r\n| summarize Hits = count(), Devices = dcount(DeviceName), Blocked = countif(PolicyAction==\"Blocked\"), Audited = countif(PolicyAction==\"Audited\"), LastSeen = max(TimeGenerated), SampleUrls = make_set(RemoteUrl, 5) by User = InitiatingProcessAccountName, WebCategory, Host\r\n| where isnotempty(User)\r\n| top 10000 by Hits desc",
+              "query": "let pf = \"{PolicyFilter}\";\r\nlet dePolicy = DeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| extend BlockReason = tostring(P.ResponseCategory)\r\n| extend PolicyAction = iff(ActionType == \"ExploitGuardNetworkProtectionBlocked\",\"Blocked\",\"Audited\")\r\n| where isnotempty(BlockReason);\r\ndePolicy\r\n| where pf == \"All\" or PolicyAction == pf\r\n| summarize Hits = count(), Devices = dcount(DeviceName), Blocked = countif(PolicyAction==\"Blocked\"), Audited = countif(PolicyAction==\"Audited\"), LastSeen = max(TimeGenerated), SampleUrls = make_set(RemoteUrl, 5) by User = InitiatingProcessAccountName, BlockReason, Host\r\n| where isnotempty(User)\r\n| top 10000 by Hits desc",
               "size": 2,
-              "title": "Category breakdown by User and Host (Blocked and Audited)",
+              "title": "Block reason breakdown by user and host (blocked and audited)",
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",

@@ -444,23 +444,7 @@
                   "typeSettings": {
                     "showDefault": false
                   },
-                  "jsonData": "[{\"value\":\"All\",\"label\":\"All\",\"selected\":true},{\"value\":\"Audited\",\"label\":\"Audited\"},{\"value\":\"Blocked\",\"label\":\"Blocked\"}]",
-                  "value": "All"
-                },
-                {
-                  "id": "p-wc-cat",
-                  "version": "KqlParameterItem/1.0",
-                  "name": "WebCategoryFilter",
-                  "label": "Web category",
-                  "type": 2,
-                  "isRequired": true,
-                  "typeSettings": {
-                    "showDefault": false
-                  },
-                  "query": "let classify = (h:string){case(h has_any (\"xvideos\",\"xnxx\",\"pornhub\",\"redtube\",\"xhamster\",\"chaturbate\",\"livejasmin\",\"onlyfans\",\"brazzers\",\"youporn\",\"spankbang\",\"stripchat\",\"cam4\",\"myfreecams\",\"tnaflix\",\"camsoda\",\"xvideos-cdn\",\"xnxx-cdn\"),\"Adult content\",h has_any (\"bet365\",\"betway\",\"draftkings\",\"fanduel\",\"pokerstars\",\"ladbrokes\",\"888casino\",\"bovada\",\"unibet\",\"bwin\",\"betmgm\",\"stake.com\",\"casino\",\"sportsbet\"),\"Gambling\",h has_any (\"tinder\",\"bumble\",\"match.com\",\"okcupid\",\"hinge\",\"plentyoffish\",\"ashleymadison\",\"grindr\",\"badoo\",\"eharmony\",\"zoosk\"),\"Dating\",h has_any (\"steamcommunity\",\"steampowered\",\"epicgames\",\"battle.net\",\"ubisoft\",\"roblox\",\"minecraft\",\"twitch\",\"gamespot\",\"kotaku\"),\"Gaming\",h has_any (\"netflix\",\"hulu\",\"disneyplus\",\"primevideo\",\"spotify\",\"pandora\",\"soundcloud\",\"tiktok\",\"crunchyroll\",\"hbomax\",\"peacocktv\",\"paramountplus\"),\"Streaming media\",\"\")};\r\nlet deCat = DeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| extend ResponseCat = tostring(P.ResponseCategory)\r\n| extend WebCategory = iff(isempty(ResponseCat), classify(Host), ResponseCat)\r\n| where isnotempty(WebCategory)\r\n| distinct WebCategory;\r\nunion (print WebCategory=\"All\"), deCat\r\n| distinct WebCategory\r\n| order by iff(WebCategory==\"All\",0,1) asc, WebCategory asc",
-                  "timeContextFromParameter": "TimePicker",
-                  "queryType": 0,
-                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "jsonData": "[{\"value\":\"All\",\"label\":\"All\",\"selected\":true},{\"value\":\"Blocked\",\"label\":\"Blocked\"},{\"value\":\"Allowed\",\"label\":\"Allowed\"}]",
                   "value": "All"
                 }
               ],
@@ -472,7 +456,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let pf = \"{PolicyFilter}\";\r\nlet wcat = \"{WebCategoryFilter}\";\r\nlet classify = (h:string){case(h has_any (\"xvideos\",\"xnxx\",\"pornhub\",\"redtube\",\"xhamster\",\"chaturbate\",\"livejasmin\",\"onlyfans\",\"brazzers\",\"youporn\",\"spankbang\",\"stripchat\",\"cam4\",\"myfreecams\",\"tnaflix\",\"camsoda\",\"xvideos-cdn\",\"xnxx-cdn\"),\"Adult content\",h has_any (\"bet365\",\"betway\",\"draftkings\",\"fanduel\",\"pokerstars\",\"ladbrokes\",\"888casino\",\"bovada\",\"unibet\",\"bwin\",\"betmgm\",\"stake.com\",\"casino\",\"sportsbet\"),\"Gambling\",h has_any (\"tinder\",\"bumble\",\"match.com\",\"okcupid\",\"hinge\",\"plentyoffish\",\"ashleymadison\",\"grindr\",\"badoo\",\"eharmony\",\"zoosk\"),\"Dating\",h has_any (\"steamcommunity\",\"steampowered\",\"epicgames\",\"battle.net\",\"ubisoft\",\"roblox\",\"minecraft\",\"twitch\",\"gamespot\",\"kotaku\"),\"Gaming\",h has_any (\"netflix\",\"hulu\",\"disneyplus\",\"primevideo\",\"spotify\",\"pandora\",\"soundcloud\",\"tiktok\",\"crunchyroll\",\"hbomax\",\"peacocktv\",\"paramountplus\"),\"Streaming media\",\"\")};\r\nlet dePolicy = DeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| extend ResponseCat = tostring(P.ResponseCategory)\r\n| extend WebCategory = iff(isempty(ResponseCat), classify(Host), ResponseCat)\r\n| extend PolicyAction = iff(ActionType == \"ExploitGuardNetworkProtectionBlocked\",\"Blocked\",\"Audited\")\r\n| where isnotempty(WebCategory);\r\ndePolicy\r\n| where pf == \"All\" or PolicyAction == pf\r\n| where wcat == \"All\" or WebCategory == wcat\r\n| summarize Hits = count() by WebCategory, bin(TimeGenerated, 1h)",
+              "query": "let pf = \"{PolicyFilter}\";\r\nlet dePolicy = DeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| extend WebCategory = tostring(P.ResponseCategory)\r\n| extend PolicyAction = iff(ActionType == \"ExploitGuardNetworkProtectionBlocked\",\"Blocked\",\"Allowed\")\r\n| where isnotempty(WebCategory);\r\ndePolicy\r\n| where pf == \"All\" or PolicyAction == pf\r\n| summarize Hits = count() by WebCategory, bin(TimeGenerated, 1h)",
               "size": 0,
               "title": "Web Content Filter — events by Category (filtered by Policy outcome)",
               "timeContextFromParameter": "TimePicker",
@@ -486,7 +470,7 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let pf = \"{PolicyFilter}\";\r\nlet wcat = \"{WebCategoryFilter}\";\r\nlet classify = (h:string){case(h has_any (\"xvideos\",\"xnxx\",\"pornhub\",\"redtube\",\"xhamster\",\"chaturbate\",\"livejasmin\",\"onlyfans\",\"brazzers\",\"youporn\",\"spankbang\",\"stripchat\",\"cam4\",\"myfreecams\",\"tnaflix\",\"camsoda\",\"xvideos-cdn\",\"xnxx-cdn\"),\"Adult content\",h has_any (\"bet365\",\"betway\",\"draftkings\",\"fanduel\",\"pokerstars\",\"ladbrokes\",\"888casino\",\"bovada\",\"unibet\",\"bwin\",\"betmgm\",\"stake.com\",\"casino\",\"sportsbet\"),\"Gambling\",h has_any (\"tinder\",\"bumble\",\"match.com\",\"okcupid\",\"hinge\",\"plentyoffish\",\"ashleymadison\",\"grindr\",\"badoo\",\"eharmony\",\"zoosk\"),\"Dating\",h has_any (\"steamcommunity\",\"steampowered\",\"epicgames\",\"battle.net\",\"ubisoft\",\"roblox\",\"minecraft\",\"twitch\",\"gamespot\",\"kotaku\"),\"Gaming\",h has_any (\"netflix\",\"hulu\",\"disneyplus\",\"primevideo\",\"spotify\",\"pandora\",\"soundcloud\",\"tiktok\",\"crunchyroll\",\"hbomax\",\"peacocktv\",\"paramountplus\"),\"Streaming media\",\"\")};\r\nlet dePolicy = DeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| extend ResponseCat = tostring(P.ResponseCategory)\r\n| extend WebCategory = iff(isempty(ResponseCat), classify(Host), ResponseCat)\r\n| extend PolicyAction = iff(ActionType == \"ExploitGuardNetworkProtectionBlocked\",\"Blocked\",\"Audited\")\r\n| where isnotempty(WebCategory);\r\ndePolicy\r\n| where pf == \"All\" or PolicyAction == pf\r\n| where wcat == \"All\" or WebCategory == wcat\r\n| project TimeGenerated, DeviceName, User = InitiatingProcessAccountName, WebCategory, PolicyAction, Host, RemoteUrl, InitiatingProcessFileName\r\n| top 10000 by TimeGenerated desc",
+              "query": "let pf = \"{PolicyFilter}\";\r\nlet dePolicy = DeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| extend WebCategory = tostring(P.ResponseCategory)\r\n| extend PolicyAction = iff(ActionType == \"ExploitGuardNetworkProtectionBlocked\",\"Blocked\",\"Allowed\")\r\n| where isnotempty(WebCategory);\r\ndePolicy\r\n| where pf == \"All\" or PolicyAction == pf\r\n| project TimeGenerated, DeviceName, User = InitiatingProcessAccountName, WebCategory, PolicyAction, Host, RemoteUrl, InitiatingProcessFileName\r\n| top 10000 by TimeGenerated desc",
               "size": 2,
               "title": "Web Content Filter — events",
               "timeContextFromParameter": "TimePicker",
@@ -514,7 +498,7 @@
                         },
                         {
                           "operator": "==",
-                          "thresholdValue": "Audited",
+                          "thresholdValue": "Allowed",
                           "representation": "blue",
                           "text": "{0}"
                         },
@@ -536,9 +520,9 @@
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let pf = \"{PolicyFilter}\";\r\nlet wcat = \"{WebCategoryFilter}\";\r\nlet classify = (h:string){case(h has_any (\"xvideos\",\"xnxx\",\"pornhub\",\"redtube\",\"xhamster\",\"chaturbate\",\"livejasmin\",\"onlyfans\",\"brazzers\",\"youporn\",\"spankbang\",\"stripchat\",\"cam4\",\"myfreecams\",\"tnaflix\",\"camsoda\",\"xvideos-cdn\",\"xnxx-cdn\"),\"Adult content\",h has_any (\"bet365\",\"betway\",\"draftkings\",\"fanduel\",\"pokerstars\",\"ladbrokes\",\"888casino\",\"bovada\",\"unibet\",\"bwin\",\"betmgm\",\"stake.com\",\"casino\",\"sportsbet\"),\"Gambling\",h has_any (\"tinder\",\"bumble\",\"match.com\",\"okcupid\",\"hinge\",\"plentyoffish\",\"ashleymadison\",\"grindr\",\"badoo\",\"eharmony\",\"zoosk\"),\"Dating\",h has_any (\"steamcommunity\",\"steampowered\",\"epicgames\",\"battle.net\",\"ubisoft\",\"roblox\",\"minecraft\",\"twitch\",\"gamespot\",\"kotaku\"),\"Gaming\",h has_any (\"netflix\",\"hulu\",\"disneyplus\",\"primevideo\",\"spotify\",\"pandora\",\"soundcloud\",\"tiktok\",\"crunchyroll\",\"hbomax\",\"peacocktv\",\"paramountplus\"),\"Streaming media\",\"\")};\r\nlet dePolicy = DeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| extend ResponseCat = tostring(P.ResponseCategory)\r\n| extend WebCategory = iff(isempty(ResponseCat), classify(Host), ResponseCat)\r\n| extend PolicyAction = iff(ActionType == \"ExploitGuardNetworkProtectionBlocked\",\"Blocked\",\"Audited\")\r\n| where isnotempty(WebCategory);\r\ndePolicy\r\n| where pf == \"All\" or PolicyAction == pf\r\n| where wcat == \"All\" or WebCategory == wcat\r\n| summarize Hits = count(), Devices = dcount(DeviceName), Audited = countif(PolicyAction==\"Audited\"), Blocked = countif(PolicyAction==\"Blocked\"), LastSeen = max(TimeGenerated), SampleUrls = make_set(RemoteUrl, 5) by User = InitiatingProcessAccountName, WebCategory, Host\r\n| where isnotempty(User)\r\n| top 10000 by Hits desc",
+              "query": "let pf = \"{PolicyFilter}\";\r\nlet dePolicy = DeviceEvents\r\n| where ActionType in (\"ExploitGuardNetworkProtectionBlocked\",\"ExploitGuardNetworkProtectionAudited\")\r\n| where \"{DeviceName}\" == \"*\" or DeviceName has \"{DeviceName}\"\r\n| where InitiatingProcessAccountName !in~ (\"\",\"system\",\"local service\",\"network service\",\"defaultuser0\")\r\n| where \"{UserUPN}\" == \"*\" or InitiatingProcessAccountName has \"{UserUPN}\"\r\n| where \"{UrlContains}\" == \"\" or RemoteUrl has \"{UrlContains}\"\r\n| extend P = parse_json(AdditionalFields)\r\n| extend Host = tolower(tostring(parse_url(RemoteUrl).Host))\r\n| extend WebCategory = tostring(P.ResponseCategory)\r\n| extend PolicyAction = iff(ActionType == \"ExploitGuardNetworkProtectionBlocked\",\"Blocked\",\"Allowed\")\r\n| where isnotempty(WebCategory);\r\ndePolicy\r\n| where pf == \"All\" or PolicyAction == pf\r\n| summarize Hits = count(), Devices = dcount(DeviceName), Allowed = countif(PolicyAction==\"Allowed\"), Blocked = countif(PolicyAction==\"Blocked\"), LastSeen = max(TimeGenerated), SampleUrls = make_set(RemoteUrl, 5) by User = InitiatingProcessAccountName, WebCategory, Host\r\n| where isnotempty(User)\r\n| top 10000 by Hits desc",
               "size": 2,
-              "title": "Category breakdown by User and Host (Blocked, Audited)",
+              "title": "Category breakdown by User and Host (Blocked, Allowed)",
               "timeContextFromParameter": "TimePicker",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -554,10 +538,10 @@
                     }
                   },
                   {
-                    "columnMatch": "Audited",
+                    "columnMatch": "Allowed",
                     "formatter": 8,
                     "formatOptions": {
-                      "palette": "orange"
+                      "palette": "blue"
                     }
                   }
                 ]

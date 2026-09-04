@@ -39,7 +39,7 @@ MDA_CASB = countif(ResponseCategory=tostring(ParsedFields.ResponseCategory) == "
 
 //3rd party browser - Windows Defender Exploit Guard, Netwrk Protection
 DeviceEvents
-| where Timestamp > ago(70d)
+| where Timestamp > ago(7d)
 | where ActionType == "ExploitGuardNetworkProtectionBlocked"
 | extend ParsedFields=parse_json(AdditionalFields)
 | summarize MDE_IoC = make_list_if(RemoteUrl, ResponseCategory=tostring(ParsedFields.ResponseCategory) == "CustomBlockList"), 

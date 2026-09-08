@@ -1,0 +1,145 @@
+// Title: Feature validation samples (MDE and Defender XDR settings, Device discovery)
+// Author: John Barbare
+// Tables: DeviceInfo, DeviceEvents, AlertInfo, IdentityInfo
+// MITRE: n/a (validation, not detection)
+// Time window: last 7d unless noted
+// Notes: One simple query per test area from the validation matrix. Confirms the feature
+//        is generating telemetry. 0 rows means the query is correct but the feature has
+//        not fired yet in the window; widen the time filter or trigger the control.
+
+// ============================================================
+// TENANT ADVANCED SETTINGS
+// ============================================================
+
+// 1. Device groups and RBAC scoping
+// Validates that device groups exist and devices are assigned to them.
+DeviceInfo
+| where Timestamp > ago(7d)
+| where isnotempty(MachineGroup)
+| summarize Devices = dcount(DeviceId) by MachineGroup
+| order by Devices desc
+
+
+// 2. EDR in block mode
+// Validates that EDR block mode remediation and antivirus block telemetry is flowing.
+DeviceEvents
+| where Timestamp > ago(30d)
+| where ActionType has_any ("AntivirusDetection", "Remediat", "Quarantine", "Block")
+| summarize Events = count() by ActionType
+| order by Events desc
+
+
+// 3. Alert tuning and automated investigation
+// Validates that alerts are flowing (tuning and AIR act on these).
+AlertInfo
+| where Timestamp > ago(7d)
+| summarize Alerts = count() by ServiceSource, DetectionSource, Severity
+| order by Alerts desc
+
+
+// 4. Indicators (allow or block file, cert, IP or URL, network, process memory)
+// Validates that custom indicator blocks are firing (CustomBlockList).
+DeviceEvents
+| where Timestamp > ago(7d)
+| where ActionType in ("SmartScreenUrlWarning", "ExploitGuardNetworkProtectionBlocked")
+| extend ParsedFields = parse_json(AdditionalFields)
+| extend Source = coalesce(tostring(ParsedFields.Experience), tostring(ParsedFields.ResponseCategory))
+| where Source == "CustomBlockList"
+| summarize Blocks = count() by ActionType, DeviceName
+
+
+// 5. Tamper protection
+// Validates that tamper protection is active and blocking tampering attempts.
+DeviceEvents
+| where Timestamp > ago(30d)
+| where ActionType == "TamperingAttempt"
+| summarize Attempts = count() by DeviceName, InitiatingProcessFileName
+| order by Attempts desc
+
+
+// 6. Web content filtering
+// Validates that web content filtering is blocking by category.
+DeviceEvents
+| where Timestamp > ago(7d)
+| where ActionType == "ExploitGuardNetworkProtectionBlocked"
+| extend ParsedFields = parse_json(AdditionalFields)
+| summarize Blocks = count() by ResponseCategory = tostring(ParsedFields.ResponseCategory)
+| order by Blocks desc
+
+
+// 7. Portal investigation settings (quarantine, duplicate device records)
+// Validates quarantine activity and detects merged (duplicate) device records.
+DeviceInfo
+| where Timestamp > ago(7d)
+| where isnotempty(MergedToDeviceId)
+| summarize DuplicateRecords = dcount(DeviceId) by MergedToDeviceId
+| order by DuplicateRecords desc
+
+
+// 8. Live Response
+// Validates that Live Response sessions have run (SenseIR is the LR agent process).
+DeviceEvents
+| where Timestamp > ago(30d)
+| where InitiatingProcessFileName =~ "SenseIR.exe"
+| summarize Actions = count() by DeviceName, ActionType
+| order by Actions desc
+
+
+// 9. Defender portal tenant settings (authenticated telemetry, sensor health)
+// Validates that onboarded devices are reporting healthy sensor telemetry.
+DeviceInfo
+| where Timestamp > ago(7d)
+| summarize Devices = dcount(DeviceId) by OnboardingStatus, SensorHealthState
+| order by Devices desc
+
+
+// ============================================================
+// DEFENDER XDR SETTINGS
+// ============================================================
+
+// 10. Incident and alert email notifications
+// Validates that alerts exist across services to drive notifications.
+AlertInfo
+| where Timestamp > ago(7d)
+| summarize Alerts = count(), LatestAlert = max(Timestamp) by ServiceSource
+| order by Alerts desc
+
+
+// 11. Unified RBAC (MDE and MDI both scoped)
+// Validates that both endpoint (MDE) and identity (MDI) telemetry are present.
+// Note: IdentityInfo requires Defender for Identity. Run this in Defender XDR advanced
+//       hunting. In a Sentinel workspace without MDI streaming, the IdentityInfo half
+//       returns no table.
+union
+  (DeviceInfo   | where Timestamp > ago(7d) | summarize Records = dcount(DeviceId)  | extend Source = "MDE (DeviceInfo)"),
+  (IdentityInfo | where Timestamp > ago(7d) | summarize Records = dcount(AccountObjectId) | extend Source = "MDI (IdentityInfo)")
+| project Source, Records
+
+
+// 12. Streaming API and Sentinel connector
+// Validates Defender XDR data is landing in the Sentinel workspace (this query runs there).
+DeviceEvents
+| where Timestamp > ago(1d)
+| summarize Events = count(), LatestEvent = max(Timestamp), IngestionLagMin = datetime_diff("minute", now(), max(Timestamp))
+
+
+// 13. Device tagging and device groups (asset rules)
+// Validates that manual and dynamic device tags are applied.
+DeviceInfo
+| where Timestamp > ago(7d)
+| where isnotempty(DeviceManualTags) or isnotempty(DeviceDynamicTags) or isnotempty(RegistryDeviceTag)
+| summarize Devices = dcount(DeviceId) by ManualTags = DeviceManualTags, DynamicTags = DeviceDynamicTags
+| order by Devices desc
+
+
+// ============================================================
+// DEVICE DISCOVERY
+// ============================================================
+
+// 14. Device discovery (standard)
+// Validates that device discovery is finding unmanaged and network devices.
+DeviceInfo
+| where Timestamp > ago(7d)
+| where OnboardingStatus != "Onboarded"
+| summarize Devices = dcount(DeviceId) by OnboardingStatus, DeviceCategory, DeviceType
+| order by Devices desc

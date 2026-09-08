@@ -8,8 +8,10 @@ $ApprovedDomains = "dynamic(['copilot.microsoft.com','m365.cloud.microsoft','m36
 $BrowserProcesses = "dynamic(['chrome.exe','msedge.exe','firefox.exe','brave.exe','opera.exe','vivaldi.exe','chrome','firefox','brave','opera','vivaldi','safari','Google Chrome','Microsoft Edge'])"
 $ScriptProcesses = "dynamic(['python.exe','python3.exe','python','python3','powershell.exe','pwsh.exe','pwsh','curl.exe','curl','wget.exe','wget','node.exe','node','cmd.exe','wscript.exe','cscript.exe','bash','sh','zsh','jupyter.exe','jupyter-notebook.exe','rscript.exe','go.exe'])"
 $LocalAIProcesses = "dynamic(['ollama.exe','ollama','lmstudio.exe','lmstudio','jan.exe','jan','gpt4all.exe','gpt4all','msty.exe','msty','anythingllm.exe','anythingllm','open-webui','chatgpt.exe','claude.exe','claude','cursor.exe','cursor','windsurf.exe','windsurf','aider.exe','aider','openclaw.exe','openclaw','opencode.exe','opencode','codex.exe','codex'])"
+$LocalInstallerPredicate = "FileName has_any ('ChatGPT','Claude','ollama','LM Studio','LMStudio','gpt4all','GPT4All','Perplexity','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM','Jan') and (LowerName endswith '.exe' or LowerName endswith '.msi' or LowerName endswith '.msix' or LowerName endswith '.pkg' or LowerName endswith '.dmg' or LowerName endswith '.zip' or LowerName endswith '.crx' or LowerName endswith '.xpi')"
 $LocalModelPredicate = "LowerName endswith '.gguf' or LowerName endswith '.ggml' or LowerName endswith '.safetensors' or LowerName endswith '.onnx' or LowerName endswith '.pt' or LowerName endswith '.pth' or LowerName endswith '.ckpt' or LowerName endswith '.tflite' or LowerName endswith '.mlmodel' or LowerName endswith '.mlpackage' or LowerName endswith '.keras' or LowerName endswith '.h5' or LowerName endswith '.engine' or LowerName endswith '.plan' or LowerName endswith '.weights' or LowerName endswith '.params' or (LowerName endswith '.bin' and FileSize > 500000000)"
 $LocalModelArtifactType = "case(LowerName endswith '.gguf', 'GGUF model', LowerName endswith '.ggml', 'GGML model', LowerName endswith '.safetensors', 'SafeTensors model', LowerName endswith '.onnx', 'ONNX model', LowerName endswith '.pt' or LowerName endswith '.pth', 'PyTorch model', LowerName endswith '.ckpt', 'Model checkpoint', LowerName endswith '.tflite', 'TensorFlow Lite model', LowerName endswith '.mlmodel' or LowerName endswith '.mlpackage', 'Apple Core ML model', LowerName endswith '.keras' or LowerName endswith '.h5', 'Keras model', LowerName endswith '.engine' or LowerName endswith '.plan', 'TensorRT engine', LowerName endswith '.weights' or LowerName endswith '.params', 'AI model weights', LowerName endswith '.bin' and FileSize > 500000000, 'Large binary model candidate', 'Local model file')"
+$RiskLevelExpression = "case(RiskScore >= 90, 'Critical', RiskScore >= 75, 'High', RiskScore >= 50, 'Medium', 'Low')"
 $AIServiceExpression = "case(RemoteUrl contains 'chatgpt' or RemoteUrl contains 'openai' or RemoteUrl contains 'oaistatic' or RemoteUrl contains 'oaiusercontent', 'OpenAI and ChatGPT', RemoteUrl contains 'claude' or RemoteUrl contains 'anthropic', 'Claude', RemoteUrl contains 'gemini' or RemoteUrl contains 'aistudio' or RemoteUrl contains 'notebooklm' or RemoteUrl contains 'ai.google.dev' or RemoteUrl contains 'deepmind.google' or RemoteUrl contains 'labs.google', 'Google AI', RemoteUrl contains 'perplexity', 'Perplexity', RemoteUrl contains 'deepseek', 'DeepSeek', RemoteUrl contains 'mistral', 'Mistral', RemoteUrl contains 'huggingface', 'Hugging Face', RemoteUrl contains 'cohere', 'Cohere', RemoteUrl contains 'groq', 'Groq', RemoteUrl contains 'openrouter', 'OpenRouter', RemoteUrl contains 'replicate', 'Replicate', RemoteUrl contains 'githubcopilot' or RemoteUrl contains 'copilot-proxy', 'GitHub Copilot', RemoteUrl contains 'cursor', 'Cursor', RemoteUrl contains 'windsurf' or RemoteUrl contains 'codeium', 'Windsurf and Codeium', RemoteUrl contains 'tabnine', 'Tabnine', RemoteUrl contains 'copilot.microsoft' or RemoteUrl contains 'm365.cloud.microsoft' or RemoteUrl contains 'm365copilot' or RemoteUrl contains 'copilot.cloud.microsoft', 'M365 Copilot', RemoteUrl contains 'copilotstudio.microsoft', 'Microsoft Copilot Studio', RemoteUrl contains 'securitycopilot.microsoft', 'Microsoft Security Copilot', RemoteUrl contains 'designer.microsoft', 'Microsoft Designer', RemoteUrl contains 'lex-runtime', 'Amazon Lex', RemoteUrl contains 'polly.', 'Amazon Polly', RemoteUrl contains 'deepgram', 'Deepgram', RemoteUrl contains 'elevenlabs', 'ElevenLabs', RemoteUrl contains 'gamma.app', 'Gamma', RemoteUrl contains 'meshy.ai', 'Meshy', RemoteUrl contains 'venice.ai', 'Venice AI', RemoteUrl contains 'cline.bot', 'Cline', RemoteUrl contains 'freeconvert', 'FreeConvert', RemoteUrl contains 'kiro.dev', 'Kiro', RemoteUrl contains 'meta.ai', 'Meta AI', RemoteUrl contains 'grok' or RemoteUrl contains 'x.ai', 'Grok', RemoteUrl contains 'poe.com', 'Poe', RemoteUrl contains 'character.ai', 'Character AI', RemoteUrl contains 'replit', 'Replit', RemoteUrl contains 'v0.dev', 'Vercel v0', RemoteUrl contains 'lovable', 'Lovable', RemoteUrl contains 'bolt.new', 'Bolt', RemoteUrl)"
 
 $AICatalogRepository = 'https://github.com/v2fly/domain-list-community'
@@ -190,49 +192,6 @@ function New-Group {
     }
 }
 
-$OverviewKpis = @"
-let RogueDomains = $RogueDomains;
-let ApprovedDomains = $ApprovedDomains;
-let ScriptProcesses = $ScriptProcesses;
-let LocalAIProcesses = $LocalAIProcesses;
-let DeviceFilter = '{DeviceFilter}';
-let AccountFilter = '{AccountFilter}';
-let Rogue = DeviceNetworkEvents
-| where isnotempty(RemoteUrl) and RemoteUrl has_any (RogueDomains)
-| where not(RemoteUrl has_any (ApprovedDomains))
-| extend Account = coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-| where DeviceFilter == '' or DeviceName contains DeviceFilter
-| where AccountFilter == '' or Account contains AccountFilter
-| extend AIService = $AIServiceExpression;
-let Approved = DeviceNetworkEvents
-| where isnotempty(RemoteUrl) and RemoteUrl has_any (ApprovedDomains)
-| extend Account = coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-| where DeviceFilter == '' or DeviceName contains DeviceFilter
-| where AccountFilter == '' or Account contains AccountFilter;
-let LocalEvidence = union
-    (DeviceProcessEvents
-    | where FileName in~ (LocalAIProcesses)
-    | extend Account = coalesce(AccountUpn, AccountName)
-    | where DeviceFilter == '' or DeviceName contains DeviceFilter
-    | where AccountFilter == '' or Account contains AccountFilter
-    | project DeviceId),
-    (DeviceFileEvents
-    | extend LowerName=tolower(FileName)
-    | where $LocalModelPredicate
-    | extend Account = coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-    | where DeviceFilter == '' or DeviceName contains DeviceFilter
-    | where AccountFilter == '' or Account contains AccountFilter
-    | project DeviceId);
-union
-    (Rogue | summarize value=dcountif(Account, isnotempty(Account)) | extend label='Unauthorized users', subtitle='Distinct accounts using nonapproved AI'),
-    (Rogue | summarize value=dcount(DeviceId) | extend label='Affected devices', subtitle='MDE devices with unauthorized AI access'),
-    (Rogue | summarize value=dcount(AIService) | extend label='Unauthorized services', subtitle='Distinct nonapproved AI providers'),
-    (Rogue | where InitiatingProcessFileName in~ (ScriptProcesses) | summarize value=dcountif(Account, isnotempty(Account)) | extend label='Scripted API users', subtitle='Accounts using automation against AI endpoints'),
-    (LocalEvidence | summarize value=dcount(DeviceId) | extend label='Local AI devices', subtitle='Devices with local AI process or model evidence'),
-    (Approved | summarize value=dcountif(Account, isnotempty(Account)) | extend label='Approved Copilot users', subtitle='Observed M365 Copilot accounts, excluded from rogue totals')
-| project label, value, subtitle
-"@
-
 $OverviewTrend = @"
 let RogueDomains = $RogueDomains;
 let ApprovedDomains = $ApprovedDomains;
@@ -286,9 +245,9 @@ DeviceNetworkEvents
 | extend AccessMethod = case(InitiatingProcessFileName in~ (ScriptProcesses), 'Script or API', InitiatingProcessFileName in~ (BrowserProcesses), 'Browser', 'Desktop or other application')
 | summarize Events=count(), FirstSeen=min(TimeGenerated), LastSeen=max(TimeGenerated), Domains=make_set(RemoteUrl, 10), Actions=make_set(ActionType, 10) by AIService, DeviceName, DeviceId, Account, InitiatingProcessFileName, AccessMethod
 | extend RiskScore = case(AccessMethod == 'Script or API' and Events > 50, 90, AccessMethod == 'Script or API', 75, AccessMethod == 'Desktop or other application', 65, Events > 100, 60, 40)
-| extend RiskLevel = case(RiskScore >= 85, 'Critical', RiskScore >= 70, 'High', RiskScore >= 50, 'Medium', 'Low')
+| extend RiskLevel = $RiskLevelExpression
 | extend RecommendedAction = case(AccessMethod == 'Script or API', 'Validate business need, identify API credentials, and contain unauthorized automation', AccessMethod == 'Desktop or other application', 'Verify installation approval and remove unauthorized software', 'Confirm business purpose and coach or restrict the account')
-| project LastSeen, RiskLevel, RiskScore, RecommendedAction, AIService, AccessMethod, Account, DeviceName, InitiatingProcessFileName, Events, FirstSeen, Domains, Actions
+| project LastSeen, RiskLevel, RiskScore, RecommendedAction, AIService, AccessMethod, Account, DeviceName, DeviceId, InitiatingProcessFileName, Events, FirstSeen, Domains, Actions
 | top 10000 by RiskScore desc
 "@
 
@@ -343,10 +302,10 @@ Files
 | where AIConnectionTime between (FileActivityTime .. FileActivityTime + CorrelationWindow)
 | extend MinutesUntilAI = datetime_diff('minute', AIConnectionTime, FileActivityTime)
 | extend RiskScore = case(Extension in ('.pfx','.p12','.pem','.key','.env','.sql','.dump'), 85, FolderPath has_any ('secret','credential','payroll','ssn','cui','fouo'), 80, MinutesUntilAI <= 2, 70, 60)
-| extend RiskLevel = case(RiskScore >= 85, 'Critical', RiskScore >= 70, 'High', 'Medium')
+| extend RiskLevel = $RiskLevelExpression
 | extend EvidenceStatement = strcat('Sensitive file activity preceded ', AIService, ' access by ', tostring(MinutesUntilAI), ' minute(s). This is an exposure indicator, not proof of upload.')
-| extend RecommendedAction = case(RiskScore >= 85, 'Preserve evidence, contact the user, inspect file and browser activity, and assess containment', RiskScore >= 70, 'Validate the file purpose and review surrounding process and network activity', 'Review the user and device timeline for legitimate business context')
-| project AIConnectionTime, RiskLevel, RiskScore, RecommendedAction, Account, DeviceName, AIService, AIProcess, FileName, FolderPath, FileAction, FileProcess, MinutesUntilAI, EvidenceStatement
+| extend RecommendedAction = case(RiskScore >= 90, 'Preserve evidence, contact the user, inspect file and browser activity, and assess containment', RiskScore >= 75, 'Validate the file purpose and review surrounding process and network activity', 'Review the user and device timeline for legitimate business context')
+| project AIConnectionTime, RiskLevel, RiskScore, RecommendedAction, Account, DeviceName, DeviceId, AIService, AIProcess, FileName, FolderPath, FileAction, FileProcess, MinutesUntilAI, EvidenceStatement
 | top 10000 by RiskScore desc
 "@
 
@@ -404,27 +363,10 @@ Connections
 | summarize APICalls=count(), FirstCall=min(TimeGenerated), LastCall=max(TimeGenerated), Endpoints=make_set(RemoteUrl, 10), Services=make_set(AIService, 10) by DeviceId, DeviceName, Account, Process
 | join kind=leftouter ProcessContext on DeviceId, Account, Process
 | extend RiskScore = case(APICalls > 500, 95, APICalls > 50, 85, APICalls > 10, 70, 60)
-| extend RiskLevel = case(RiskScore >= 90, 'Critical', RiskScore >= 80, 'High', RiskScore >= 70, 'Medium', 'Low')
-| extend RecommendedAction = case(RiskScore >= 90, 'Disable exposed credentials, stop the process, and isolate if activity is unapproved', RiskScore >= 80, 'Identify the script owner, API key source, and data handled', 'Validate business purpose and move access to an approved service')
-| project LastCall, RiskLevel, RiskScore, RecommendedAction, Account, DeviceName, Process, APICalls, Services, FirstCall, Endpoints, CommandLines, ParentProcesses
+| extend RiskLevel = $RiskLevelExpression
+| extend RecommendedAction = case(RiskScore >= 90, 'Disable exposed credentials, stop the process, and isolate if activity is unapproved', RiskScore >= 75, 'Identify the script owner, API key source, and data handled', 'Validate business purpose and move access to an approved service')
+| project LastCall, RiskLevel, RiskScore, RecommendedAction, Account, DeviceName, DeviceId, Process, APICalls, Services, FirstCall, Endpoints, CommandLines, ParentProcesses
 | top 10000 by RiskScore desc
-"@
-
-$AutomationTrend = @"
-let RogueDomains = $RogueDomains;
-let ApprovedDomains = $ApprovedDomains;
-let ScriptProcesses = $ScriptProcesses;
-let DeviceFilter = '{DeviceFilter}';
-let AccountFilter = '{AccountFilter}';
-DeviceNetworkEvents
-| where isnotempty(RemoteUrl) and RemoteUrl has_any (RogueDomains)
-| where not(RemoteUrl has_any (ApprovedDomains))
-| where InitiatingProcessFileName in~ (ScriptProcesses)
-| extend Account = coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-| where DeviceFilter == '' or DeviceName contains DeviceFilter
-| where AccountFilter == '' or Account contains AccountFilter
-| summarize APICalls=count(), Users=dcountif(Account, isnotempty(Account)) by bin(TimeGenerated, 1d), InitiatingProcessFileName
-| order by TimeGenerated asc
 "@
 
 $LocalEvidence = @"
@@ -433,9 +375,8 @@ let DeviceFilter = '{DeviceFilter}';
 let AccountFilter = '{AccountFilter}';
 let Downloads = DeviceFileEvents
 | where ActionType in ('FileCreated','FileModified')
-| where FileName has_any ('ChatGPT','Claude','ollama','LM Studio','LMStudio','gpt4all','GPT4All','Perplexity','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM','Jan')
-| where tolower(FileName) endswith '.exe' or tolower(FileName) endswith '.msi' or tolower(FileName) endswith '.msix' or tolower(FileName) endswith '.pkg' or tolower(FileName) endswith '.dmg' or tolower(FileName) endswith '.zip' or tolower(FileName) endswith '.crx' or tolower(FileName) endswith '.xpi'
 | extend LowerName=tolower(FileName), Account = coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
+| where $LocalInstallerPredicate
 | extend ArtifactType=iff(LowerName endswith '.crx' or LowerName endswith '.xpi', 'Browser extension package', 'Installer package')
 | project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='AI installer or extension', ArtifactType, Artifact=FileName, Detail=FolderPath, FileSize, SHA1, SHA256, InitiatingProcessFileName;
 let Models = DeviceFileEvents
@@ -453,7 +394,7 @@ union Downloads, Models, Executions
 | where DeviceFilter == '' or DeviceName contains DeviceFilter
 | where AccountFilter == '' or Account contains AccountFilter
 | extend RiskScore = case(EvidenceType == 'Local model file', 85, EvidenceType == 'Local AI execution', 75, 55)
-| extend RiskLevel = case(RiskScore >= 85, 'Critical', RiskScore >= 70, 'High', 'Medium')
+| extend RiskLevel = $RiskLevelExpression
 | extend RecommendedAction = case(EvidenceType == 'Local model file', 'Identify model provenance and owner, inspect nearby data, and remove if unauthorized', EvidenceType == 'Local AI execution', 'Capture process context and validate approved use before containment', 'Verify installer source and remove unauthorized package')
 | extend HashKey=case(isnotempty(SHA256), strcat('SHA256:', SHA256), isnotempty(SHA1), strcat('SHA1:', SHA1), strcat('NoHash:', tolower(Artifact), '|', tolower(Detail)))
 | summarize arg_max(TimeGenerated, RiskLevel, RiskScore, RecommendedAction, EvidenceType, ArtifactType, Artifact, Detail, FileSize, InitiatingProcessFileName), FirstSeen=min(TimeGenerated), Occurrences=count(), DeviceCount=dcount(DeviceId), AccountCount=dcountif(Account, isnotempty(Account)), Devices=make_set(DeviceName, 100), Accounts=make_set(Account, 100) by HashKey, SHA1, SHA256
@@ -468,7 +409,7 @@ let AccountFilter = '{AccountFilter}';
 let Files = DeviceFileEvents
 | where ActionType in ('FileCreated','FileModified')
 | extend LowerName=tolower(FileName), Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-| where $LocalModelPredicate or FileName has_any ('ollama','LM Studio','LMStudio','gpt4all','GPT4All','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM')
+| where $LocalModelPredicate or $LocalInstallerPredicate
 | extend EvidenceType=iff($LocalModelPredicate, 'Local model file', 'Installer or package')
 | project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType;
 let Processes = DeviceProcessEvents
@@ -504,14 +445,10 @@ let FileEvidence = DeviceFileEvents
 | where FileName in~ ('AGENTS.md','CLAUDE.md','.cursorrules','.cursorignore','mcp.json','mcp.yaml','mcp.yml','SKILL.md','copilot-instructions.md','settings.json') or FolderPath has_any ('.claude','.cursor','.agents','.continue','.openclaw')
 | extend Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
 | project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='Instruction or MCP configuration file', ActionType, Artifact=FileName, Detail=FolderPath, SHA256, InitiatingProcessFileName, InitiatingProcessCommandLine;
-let ProcessEvidence = DeviceProcessEvents
-| where ProcessCommandLine has_any (' mcp ','--mcp','mcp.json','modelcontextprotocol','openclaw','opencode','aider','claude-code')
-| extend Account=coalesce(AccountUpn, AccountName)
-| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType='MCP or agent command', ActionType, Artifact=FileName, Detail=ProcessCommandLine, SHA256, InitiatingProcessFileName, InitiatingProcessCommandLine;
-union FileEvidence, ProcessEvidence
+FileEvidence
 | where DeviceFilter == '' or DeviceName contains DeviceFilter
 | where AccountFilter == '' or Account contains AccountFilter
-| extend RecommendedAction=iff(EvidenceType == 'MCP or agent command', 'Identify the command owner and review tool permissions, credentials, and configured servers', 'Review instructions, tools, credentials, and server definitions before allowing agent execution')
+| extend RecommendedAction='Review instructions, tools, credentials, and server definitions before allowing agent execution'
 | project TimeGenerated, RecommendedAction, EvidenceType, DeviceName, DeviceId, Account, ActionType, Artifact, Detail, SHA256, InitiatingProcessFileName, InitiatingProcessCommandLine
 | top 10000 by TimeGenerated desc
 "@
@@ -546,9 +483,9 @@ let PersistenceFindings = DeviceRegistryEvents
 | where AccountFilter == '' or Account contains AccountFilter
 | project LastSeen=TimeGenerated, FirstSeen=TimeGenerated, DeviceName, DeviceId, Account, FindingType='AI persistence', RiskScore=90, Subject=RegistryValueName, Process=InitiatingProcessFileName, Events=1, Evidence=pack_array(RegistryKey, RegistryValueData);
 union NetworkFindings, ModelFindings, PersistenceFindings
-| extend RiskLevel=case(RiskScore >= 90, 'Critical', RiskScore >= 75, 'High', RiskScore >= 50, 'Medium', 'Low')
+| extend RiskLevel=$RiskLevelExpression
 | extend RecommendedAction=case(FindingType == 'AI persistence', 'Remove persistence, preserve artifacts, and inspect the full process tree', FindingType == 'Local AI model file', 'Identify owner and model source, inspect adjacent data, and remove if unauthorized', FindingType == 'Scripted AI API access', 'Identify credentials and data scope, then stop unauthorized automation', 'Confirm business purpose and apply access controls or user coaching')
-| project LastSeen, RiskLevel, RiskScore, RecommendedAction, FindingType, Subject, Account, DeviceName, Process, Events, FirstSeen, Evidence
+| project LastSeen, RiskLevel, RiskScore, RecommendedAction, FindingType, Subject, Account, DeviceName, DeviceId, Process, Events, FirstSeen, Evidence
 | top 10000 by RiskScore desc
 "@
 
@@ -634,7 +571,7 @@ Files
 | where AIConnectionTime between (FileActivityTime .. FileActivityTime + CorrelationWindow)
 | extend MinutesUntilAI=datetime_diff('minute', AIConnectionTime, FileActivityTime)
 | extend RiskScore=case(Extension in ('.pfx','.p12','.pem','.key','.env','.sql','.dump'), 85, FolderPath has_any ('secret','credential','payroll','ssn','cui','fouo'), 80, MinutesUntilAI <= 2, 70, 60)
-| extend RiskLevel=case(RiskScore >= 85, 'Critical', RiskScore >= 70, 'High', 'Medium')
+| extend RiskLevel=$RiskLevelExpression
 | summarize Indicators=count() by RiskLevel
 | top 5 by Indicators desc
 | project RiskLevel, Indicators
@@ -680,46 +617,6 @@ union Files, Processes
 | project DeviceName, Events
 "@
 
-$LocalTrend = @"
-let LocalAIProcesses = $LocalAIProcesses;
-let DeviceFilter = '{DeviceFilter}';
-let AccountFilter = '{AccountFilter}';
-let Files = DeviceFileEvents
-| where ActionType in ('FileCreated','FileModified')
-| extend LowerName=tolower(FileName), Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-| where $LocalModelPredicate or FileName has_any ('ollama','LM Studio','LMStudio','gpt4all','GPT4All','Cursor','Windsurf','Codeium','Tabnine','Msty','AnythingLLM')
-| extend EvidenceType=iff($LocalModelPredicate, 'Model file', 'Installer or package')
-| project TimeGenerated, DeviceName, Account, EvidenceType;
-let Processes = DeviceProcessEvents
-| where FileName in~ (LocalAIProcesses)
-| extend Account=coalesce(AccountUpn, AccountName), EvidenceType='Execution'
-| project TimeGenerated, DeviceName, Account, EvidenceType;
-union Files, Processes
-| where DeviceFilter == '' or DeviceName contains DeviceFilter
-| where AccountFilter == '' or Account contains AccountFilter
-| summarize Events=count() by bin(TimeGenerated, 1d), EvidenceType
-| order by TimeGenerated asc
-"@
-
-$AgentScope = @"
-let AgentProcesses = dynamic(['claude.exe','claude','cursor.exe','cursor','windsurf.exe','windsurf','aider.exe','aider','openclaw.exe','openclaw','opencode.exe','opencode','codex.exe','codex','cline.exe','continue.exe']);
-let DeviceFilter = '{DeviceFilter}';
-let AccountFilter = '{AccountFilter}';
-let Processes = DeviceProcessEvents
-| where FileName in~ (AgentProcesses) or ProcessCommandLine has_any (' mcp ','--mcp','mcp.json','modelcontextprotocol','openclaw','opencode','aider','claude-code')
-| extend Account=coalesce(AccountUpn, AccountName), EvidenceType='Agent execution'
-| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType;
-let Files = DeviceFileEvents
-| where FileName in~ ('AGENTS.md','CLAUDE.md','.cursorrules','.cursorignore','mcp.json','mcp.yaml','mcp.yml','SKILL.md','copilot-instructions.md','settings.json') or FolderPath has_any ('.claude','.cursor','.agents','.continue','.openclaw')
-| extend Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName), EvidenceType='Agent configuration'
-| project TimeGenerated, DeviceName, DeviceId, Account, EvidenceType;
-union Processes, Files
-| where DeviceFilter == '' or DeviceName contains DeviceFilter
-| where AccountFilter == '' or Account contains AccountFilter
-| summarize Events=count(), Devices=dcount(DeviceId), Users=dcountif(Account, isnotempty(Account)), LastSeen=max(TimeGenerated) by EvidenceType
-| top 10000 by Events desc
-"@
-
 $RelatedAlertSummary = @"
 let RogueDomains = $RogueDomains;
 let ApprovedDomains = $ApprovedDomains;
@@ -738,62 +635,6 @@ AlertEvidence
 | summarize Alerts=dcount(AlertId) by Severity
 | top 5 by Alerts desc
 | project Severity, Alerts
-"@
-
-$NativeInvestigationSignals = @"
-let RogueDomains = $RogueDomains;
-let ApprovedDomains = $ApprovedDomains;
-let ScriptProcesses = $ScriptProcesses;
-let LocalAIProcesses = $LocalAIProcesses;
-let DeviceFilter = '{DeviceFilter}';
-let AccountFilter = '{AccountFilter}';
-union
-    (DeviceNetworkEvents
-    | where isnotempty(RemoteUrl) and RemoteUrl has_any (RogueDomains)
-    | where not(RemoteUrl has_any (ApprovedDomains))
-    | extend Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-    | where DeviceFilter == '' or DeviceName contains DeviceFilter
-    | where AccountFilter == '' or Account contains AccountFilter
-    | summarize value=count()
-    | extend label='Unauthorized AI connections', subtitle='Native DeviceNetworkEvents evidence'),
-    (DeviceNetworkEvents
-    | where isnotempty(RemoteUrl) and RemoteUrl has_any (RogueDomains)
-    | where not(RemoteUrl has_any (ApprovedDomains)) and InitiatingProcessFileName in~ (ScriptProcesses)
-    | extend Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-    | where DeviceFilter == '' or DeviceName contains DeviceFilter
-    | where AccountFilter == '' or Account contains AccountFilter
-    | summarize value=count()
-    | extend label='Scripted AI connections', subtitle='Potential API automation'),
-    (DeviceProcessEvents
-    | where FileName in~ (LocalAIProcesses) or ProcessCommandLine has_any (' mcp ','--mcp','mcp.json','modelcontextprotocol')
-    | extend Account=coalesce(AccountUpn, AccountName)
-    | where DeviceFilter == '' or DeviceName contains DeviceFilter
-    | where AccountFilter == '' or Account contains AccountFilter
-    | summarize value=count()
-    | extend label='Local agent executions', subtitle='Native process evidence'),
-    (DeviceFileEvents
-    | extend LowerName=tolower(FileName), Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-    | where $LocalModelPredicate or FileName in~ ('AGENTS.md','CLAUDE.md','mcp.json','mcp.yaml','mcp.yml','SKILL.md')
-    | where DeviceFilter == '' or DeviceName contains DeviceFilter
-    | where AccountFilter == '' or Account contains AccountFilter
-    | summarize value=count()
-    | extend label='Model and configuration files', subtitle='Native file evidence')
-| project label, value, subtitle
-"@
-
-$ApprovedCopilotDetail = @"
-let ApprovedDomains = $ApprovedDomains;
-let DeviceFilter = '{DeviceFilter}';
-let AccountFilter = '{AccountFilter}';
-DeviceNetworkEvents
-| where isnotempty(RemoteUrl) and RemoteUrl has_any (ApprovedDomains)
-| extend Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName)
-| where DeviceFilter == '' or DeviceName contains DeviceFilter
-| where AccountFilter == '' or Account contains AccountFilter
-| summarize Events=count(), FirstSeen=min(TimeGenerated), LastSeen=max(TimeGenerated), Domains=make_set(RemoteUrl, 10), Actions=make_set(ActionType, 10) by DeviceName, DeviceId, Account, InitiatingProcessFileName
-| extend GovernanceStatus='Approved M365 Copilot', RecommendedAction='Confirm expected business use and retain as the approved usage baseline'
-| project LastSeen, GovernanceStatus, RecommendedAction, Account, DeviceName, DeviceId, InitiatingProcessFileName, Events, FirstSeen, Domains, Actions
-| top 10000 by LastSeen desc
 "@
 
 $ProviderDomainInventory = @"
@@ -1078,26 +919,6 @@ DeviceNetworkEvents
 | project Process, Events
 "@
 
-$AIWebScope = @"
-let RogueDomains = $RogueDomains;
-let ApprovedDomains = $ApprovedDomains;
-let DeviceFilter = '{DeviceFilter}';
-let AccountFilter = '{AccountFilter}';
-let Activity = DeviceNetworkEvents
-| where isnotempty(RemoteUrl) and (RemoteUrl has_any (RogueDomains) or RemoteUrl has_any (ApprovedDomains))
-| extend Account=coalesce(InitiatingProcessAccountUpn, InitiatingProcessAccountName), AIService=$AIServiceExpression
-| where DeviceFilter == '' or DeviceName contains DeviceFilter
-| where AccountFilter == '' or Account contains AccountFilter;
-union
-    (Activity | summarize value=dcount(AIService) | extend label='Observed AI applications', subtitle='Applications seen in endpoint network telemetry'),
-    (Activity | where not(RemoteUrl has_any (ApprovedDomains)) | summarize value=dcount(AIService) | extend label='Unauthorized applications', subtitle='Observed applications outside the approved M365 Copilot domains'),
-    (Activity | summarize value=count() | extend label='Activity events', subtitle='Network events, not traffic bytes or transactions'),
-    (Activity | summarize value=dcountif(Account, isnotempty(Account)) | extend label='Users', subtitle='Distinct observed accounts'),
-    (Activity | summarize value=dcount(DeviceId) | extend label='Devices', subtitle='Distinct MDE device identifiers'),
-    (Activity | summarize value=dcountif(RemoteIP, isnotempty(RemoteIP)) | extend label='IP addresses', subtitle='Distinct remote IP addresses')
-| project label, value, subtitle
-"@
-
 $AIWebApplicationInventory = @"
 let RogueDomains = $RogueDomains;
 let ApprovedDomains = $ApprovedDomains;
@@ -1289,7 +1110,7 @@ $Groups = @(
         (New-QueryItem -Name 'agent-top-devices' -Title 'Top 5 Devices Running Agents or MCP Commands' -Query $AgentTopDevices -Visualization 'barchart' -Width '33' -Height '50'),
         (New-QueryItem -Name 'agent-tool-inventory' -Title 'Agent Tool Ownership, First Seen, Last Seen, and Commands' -Query $AgentToolInventory -Grid -Width '100' -Height '70'),
         (New-QueryItem -Name 'agent-processes' -Title 'Agent Executable and MCP Command Evidence' -Query $AgentProcesses -Grid -Width '50' -Height '90'),
-        (New-QueryItem -Name 'agent-context-files' -Title 'Agent Instructions, MCP Configuration, and Command Evidence' -Query $ContextFiles -Grid -Width '50' -Height '90')
+        (New-QueryItem -Name 'agent-context-files' -Title 'Agent Instructions and MCP Configuration File Evidence' -Query $ContextFiles -Grid -Width '50' -Height '90')
     )),
     (New-Group -Name 'group-investigation' -TabValue 'Investigation' -Items @(
         (New-TextItem -Name 'investigation-header' -Text "## AI Findings and Existing Device Alerts | The alerts here are existing Microsoft Defender alerts on devices that also have AI evidence. They are not AI alerts, and this workbook does not claim AI caused them. Use the timeline and association statement to decide whether they are related." -Style 'info'),
@@ -1299,7 +1120,7 @@ $Groups = @(
         (New-QueryItem -Name 'related-alerts' -Title 'Existing Defender Alerts on AI Evidence Devices, Correlation Only' -Query $RelatedAlerts -Grid -Width '100' -Height '105')
     )),
     (New-Group -Name 'group-web-tracking' -TabValue 'WebTracking' -Items @(
-        (New-TextItem -Name 'web-tracking-header' -Text "## AI Application Discovery | Application inventory modeled on the tenant discovery views. M365 Copilot is the only approved AI service. The Primary AI Application Governance Inventory is the approval and posture view, one row per service and governance status with a policy priority. AI Application Users, Devices, Domains is the row level view, one row per user, device, host, and process. Cloud Discovery traffic, upload, transaction, and catalog metrics exist in the Defender portal but are not exposed by the current Log Analytics tables. Browser paste evidence does not prove upload." -Style 'info'),
+        (New-TextItem -Name 'web-tracking-header' -Text "## AI Application Discovery | Application inventory modeled on the tenant discovery views. M365 Copilot is the starter approved classification and each customer must confirm it against policy. The Primary AI Application Governance Inventory is the approval and posture view, one row per service and governance status with a policy priority. AI Application Users, Devices, Domains is the row level view, one row per user, device, host, and process. Cloud Discovery traffic, upload, transaction, and catalog metrics exist in the Defender portal but are not exposed by the current Log Analytics tables. Browser paste evidence does not prove upload." -Style 'info'),
         (New-QueryItem -Name 'web-application-inventory' -Title 'Primary AI Application Governance Inventory: Approval, Activity, Users, IP Addresses, Devices, and Action' -Query $AIWebApplicationInventory -Grid -Width '100'),
         (New-QueryItem -Name 'web-top-accounts' -Title 'Top 5 Accounts across Approved and Nonapproved AI Events' -Query $AIWebTopAccounts -Visualization 'barchart' -Width '34' -Height '55'),
         (New-QueryItem -Name 'web-top-devices' -Title 'Top 5 Devices across Approved and Nonapproved AI Events' -Query $AIWebTopDevices -Visualization 'barchart' -Width '33' -Height '55'),
@@ -1312,7 +1133,7 @@ $Groups = @(
 $Workbook = [ordered]@{
     version = 'Notebook/1.0'
     items = @(
-        (New-TextItem -Name 'workbook-header' -Text "# AI Activity and Exposure Investigation Workbook`n`nPrioritized evidence and response actions across MDE onboarded Windows, macOS, and Linux devices. AI apps ranked by users, with devices, endpoint events, and remote IPs. M365 Copilot approved. Domains from the MIT licensed v2fly community list: https://github.com/v2fly/domain-list-community" -Style 'info'),
+        (New-TextItem -Name 'workbook-header' -Text "# AI Activity and Exposure Investigation Workbook`n`nPrioritized evidence and response actions across MDE onboarded Windows, macOS, and Linux devices. AI apps ranked by users, with devices, endpoint events, and remote IPs. M365 Copilot is the starter approved classification; confirm customer policy before response. Domains from the MIT licensed v2fly community list: https://github.com/v2fly/domain-list-community" -Style 'info'),
         $Parameters,
         $TabNavigation
     ) + $Groups

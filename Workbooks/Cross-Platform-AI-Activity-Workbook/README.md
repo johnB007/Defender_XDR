@@ -16,7 +16,7 @@ The workbook identifies activity that matches known artificial intelligence doma
 
 A network match is an investigation signal. It is not proof that a user entered a prompt, received an answer, or transferred a specific document. `CloudAppEvents` paste records show that a paste action was observed, but the Sentinel event does not expose the literal clipboard text. Evidence collection in Microsoft Purview may provide a separate evidence path when it was enabled before the event.
 
-Microsoft 365 Copilot is represented as the approved service in the workbook. Approval is a policy classification in this workbook, not a claim that every event is risk free.
+Microsoft 365 Copilot is represented as the approved service in the workbook. Approval is a starter policy classification, not a claim that every event is risk free. Each customer must confirm this classification against its own approved application policy before using the response guidance.
 
 ### Domain Catalog Refresh
 
@@ -143,7 +143,7 @@ The device and account filters are text filters. They are not identity pickers. 
 | Top 5 Devices Running Agents or MCP Commands | Devices associated with agent or MCP activity | Scope device investigation |
 | Agent Tool Ownership, First Seen, Last Seen, and Commands | Ownership, timing, command, and tool context | Build a repeat activity timeline |
 | Agent Executable and MCP Command Evidence | Executable, command line, process owner, and endpoint evidence | Determine how the tool was launched |
-| Agent Instructions, MCP Configuration, and Command Evidence | Instruction files, configuration files, and command evidence | Review tool permissions and connected services |
+| Agent Instructions and MCP Configuration File Evidence | Instruction and configuration files associated with agent tools | Review tool permissions and connected services |
 
 ![Agents and MCP tab](support/screenshots/06-agents-and-mcp-v2.png)
 

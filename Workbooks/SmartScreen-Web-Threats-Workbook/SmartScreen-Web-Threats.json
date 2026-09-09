@@ -444,7 +444,7 @@
                   "typeSettings": {
                     "showDefault": false
                   },
-                  "jsonData": "[{\"value\":\"All\",\"label\":\"All\",\"selected\":true},{\"value\":\"Blocked\",\"label\":\"Blocked\"},{\"value\":\"Audited\",\"label\":\"Audited\"},{\"value\":\"Bypassed\",\"label\":\"Bypassed\"},{\"value\":\"Allowed\",\"label\":\"Allowed\"}]",
+                  "jsonData": "[{\"value\":\"All\",\"label\":\"All\",\"selected\":true},{\"value\":\"Blocked\",\"label\":\"Blocked\"},{\"value\":\"Bypassed\",\"label\":\"Bypassed\"},{\"value\":\"Allowed\",\"label\":\"Allowed\"}]",
                   "value": "All"
                 }
               ],

@@ -8,7 +8,6 @@
 
 ## Quick links
 
-- [Offline HTML companion](MDE_Linux_Live_Response_Troubleshooting.html)
 - [Linux MDE Connectivity Analyzer for IL5](https://github.com/johnB007/Scripts/blob/main/Live%20Response/LinuxMDEConnectivityAnalyzer-IL5.sh)
 - [MDE Linux Diagnostic Collector](https://github.com/johnB007/Scripts/blob/main/Live%20Response/Collect-MDELinuxDiagnostics.sh)
 - [Microsoft Live Response documentation](https://learn.microsoft.com/defender-endpoint/live-response)

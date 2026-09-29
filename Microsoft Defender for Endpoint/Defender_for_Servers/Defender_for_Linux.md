@@ -811,6 +811,8 @@ sudo sh InstallDependencyAgent-Linux64.bin -s
 
 ## 9. TROUBLESHOOTING
 
+For an onsite, self-contained Live Response workflow with the complete Linux-supported command reference, use the [MDE Linux Live Response Troubleshooting Field Guide](MDE_Linux_Live_Response_Troubleshooting.md).
+
 ### 9.1 Agent Installation Issues
 
 **Issue: Agent fails to install or update**

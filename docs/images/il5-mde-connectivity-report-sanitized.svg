@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="590" viewBox="0 0 1200 590" role="img" aria-labelledby="title desc">
+  <title id="title">Sanitized IL5 MDE connectivity report example</title>
+  <desc id="desc">A sanitized example showing reachable IL5 MDE services, including an HTTP 502 warning that still proves transport reachability.</desc>
+  <rect width="1200" height="590" fill="#f8fafc"/>
+  <text x="45" y="58" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#0f172a">IL5 Microsoft Defender for Endpoint Connectivity Report</text>
+  <rect x="45" y="85" width="1110" height="110" rx="10" fill="#fff" stroke="#cbd5e1"/>
+  <text x="70" y="123" font-family="Arial, sans-serif" font-size="18" fill="#1f2937"><tspan font-weight="700">Device:</tspan> REDACTED-LINUX-HOST</text>
+  <text x="70" y="157" font-family="Arial, sans-serif" font-size="18" fill="#1f2937"><tspan font-weight="700">Overall result:</tspan> <tspan font-weight="700" fill="#166534">PASS</tspan>   <tspan font-weight="700">Required failures:</tspan> 0   <tspan font-weight="700">Warnings:</tspan> 1</text>
+  <text x="45" y="240" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="#0f172a">Endpoint results</text>
+  <g font-family="Arial, sans-serif" font-size="14" fill="#1f2937">
+    <rect x="45" y="265" width="1110" height="48" fill="#e2e8f0" stroke="#94a3b8"/>
+    <text x="60" y="295" font-weight="700">Service</text><text x="330" y="295" font-weight="700">Host</text><text x="660" y="295" font-weight="700">DNS</text><text x="745" y="295" font-weight="700">TCP</text><text x="825" y="295" font-weight="700">HTTP</text><text x="1035" y="295" font-weight="700">Code</text>
+    <rect x="45" y="313" width="1110" height="60" fill="#fff" stroke="#cbd5e1"/>
+    <text x="60" y="349">MDE SmartScreen DoD</text><text x="330" y="349">unitedstates2.ss.wd.microsoft.us</text><text x="660" y="349" fill="#166534">PASS</text><text x="745" y="349" fill="#166534">PASS</text><text x="825" y="349" fill="#a16207">WARN: REACHABLE</text><text x="1035" y="349">502</text>
+    <rect x="45" y="373" width="1110" height="60" fill="#fff" stroke="#cbd5e1"/>
+    <text x="60" y="409">MDE configuration DoD</text><text x="330" y="409">config.ecs.dod.teams.microsoft.us</text><text x="660" y="409" fill="#166534">PASS</text><text x="745" y="409" fill="#166534">PASS</text><text x="825" y="409" fill="#166534">PASS: REACHABLE</text><text x="1035" y="409">400</text>
+    <rect x="45" y="433" width="1110" height="60" fill="#fff" stroke="#cbd5e1"/>
+    <text x="60" y="469">MDE government identity</text><text x="330" y="469">login.microsoftonline.us</text><text x="660" y="469" fill="#166534">PASS</text><text x="745" y="469" fill="#166534">PASS</text><text x="825" y="469" fill="#166534">PASS</text><text x="1035" y="469">302</text>
+  </g>
+  <text x="45" y="535" font-family="Arial, sans-serif" font-size="16" fill="#475569">HTTP 5xx is shown as reachable with warning when DNS, TCP, TLS, and HTTP transport complete successfully.</text>
+  <text x="45" y="565" font-family="Arial, sans-serif" font-size="15" fill="#64748b">Sanitized example. Device, timestamps, resolved addresses, tenant data, and environment identifiers are omitted or replaced.</text>
+</svg>

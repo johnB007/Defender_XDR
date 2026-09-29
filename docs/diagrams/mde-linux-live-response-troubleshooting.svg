@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="300" viewBox="0 0 1200 300" role="img" aria-labelledby="title desc">
+  <title id="title">MDE Linux Live Response troubleshooting workflow</title>
+  <desc id="desc">Connect to the Linux device, run the IL5 connectivity analyzer, review results, run full diagnostics when needed, retrieve evidence, and clean up device archives.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/>
+    </marker>
+    <style>
+      .box { fill: #eff6ff; stroke: #2563eb; stroke-width: 2; rx: 10; }
+      .decision { fill: #fff7ed; stroke: #ea580c; stroke-width: 2; }
+      .done { fill: #f0fdf4; stroke: #16a34a; stroke-width: 2; rx: 10; }
+      .text { font: 16px "Segoe UI", Arial, sans-serif; fill: #111827; text-anchor: middle; }
+      .small { font: 13px "Segoe UI", Arial, sans-serif; fill: #374151; text-anchor: middle; }
+      .line { stroke: #2563eb; stroke-width: 2; fill: none; marker-end: url(#arrow); }
+    </style>
+  </defs>
+
+  <rect class="box" x="20" y="95" width="150" height="70"/>
+  <text class="text" x="95" y="123">Connect</text>
+  <text class="small" x="95" y="147">Confirm session</text>
+
+  <rect class="box" x="215" y="75" width="205" height="110"/>
+  <text class="text" x="317" y="108">Run IL5 analyzer</text>
+  <text class="small" x="317" y="132">DNS, TCP, TLS, HTTP</text>
+  <text class="small" x="317" y="153">MDE health and native test</text>
+
+  <polygon class="decision" points="520,65 620,130 520,195 420,130"/>
+  <text class="text" x="520" y="124">Healthy and</text>
+  <text class="text" x="520" y="146">reachable?</text>
+
+  <rect class="box" x="680" y="25" width="215" height="100"/>
+  <text class="text" x="787" y="59">Run full diagnostics</text>
+  <text class="small" x="787" y="83">Logs, service, platform,</text>
+  <text class="small" x="787" y="103">native and support bundles</text>
+
+  <rect class="box" x="680" y="175" width="215" height="80"/>
+  <text class="text" x="787" y="208">Retrieve archive</text>
+  <text class="small" x="787" y="232">getfile /tmp/file.tar.gz</text>
+
+  <rect class="done" x="950" y="175" width="220" height="80"/>
+  <text class="text" x="1060" y="207">Review and clean up</text>
+  <text class="small" x="1060" y="231">Open HTML, retain evidence, delete /tmp archive</text>
+
+  <path class="line" d="M170 130 H215"/>
+  <path class="line" d="M420 130 H420"/>
+  <path class="line" d="M620 130 H650 V75 H680"/>
+  <path class="line" d="M520 195 V215 H680"/>
+  <path class="line" d="M787 125 V175"/>
+  <path class="line" d="M895 215 H950"/>
+
+  <text class="small" x="650" y="64">No or uncertain</text>
+  <text class="small" x="585" y="211">Yes</text>
+</svg>

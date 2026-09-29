@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MDE Linux Live Response Troubleshooting Field Guide</title>
+<style>
+:root { color-scheme: light dark; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; max-width: 1100px; margin: 2rem auto; padding: 0 1.25rem 4rem; line-height: 1.55; color: #1f2937; background: #fff; }
+@media (prefers-color-scheme: dark) {
+  body { color: #e5e7eb; background: #0f172a; }
+  a { color: #60a5fa; }
+  .card, pre, code { background: #111827 !important; border-color: #374151 !important; }
+  th { background: #1f2937 !important; }
+  th, td { border-color: #4b5563 !important; }
+  blockquote { color: #d1d5db !important; border-left-color: #60a5fa !important; }
+}
+h1, h2, h3 { color: inherit; margin-top: 1.6em; }
+h1 { font-size: 2rem; border-bottom: 3px solid #2563eb; padding-bottom: .35rem; }
+h2 { border-bottom: 1px solid #cbd5e1; padding-bottom: .25rem; }
+.card { background: #eff6ff; border: 1px solid #93c5fd; border-radius: 8px; padding: 1rem 1.2rem; margin: 1rem 0; }
+.warning { background: #fff7ed; border-color: #fdba74; }
+pre { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: .9rem; overflow-x: auto; }
+code { font-family: Consolas, "Courier New", monospace; background: #f1f5f9; padding: .1rem .3rem; border-radius: 3px; }
+pre code { background: transparent; padding: 0; }
+table { border-collapse: collapse; width: 100%; margin: 1rem 0; font-size: .93rem; }
+th, td { border: 1px solid #cbd5e1; padding: .5rem; text-align: left; vertical-align: top; }
+th { background: #e2e8f0; }
+blockquote { border-left: 4px solid #2563eb; margin: 1rem 0; padding: .4rem 1rem; color: #475569; }
+nav ul { columns: 2; }
+svg { width: 100%; height: auto; margin: 1rem 0; }
+.small { font-size: .9rem; color: #64748b; }
+</style>
+</head>
+<body>
+<h1>MDE Linux Live Response Troubleshooting Field Guide</h1>
+<p><strong>Purpose:</strong> Self-contained onsite guidance for investigating MDE on Linux through Microsoft Defender Live Response.</p>
+<p><strong>Applies to:</strong> Supported Linux devices onboarded to MDE, including DoD IL5 / US Government.</p>
+<p><strong>Validated:</strong> September 28, 2026. Use <code>help &lt;command&gt;</code> to confirm syntax exposed by the current service.</p>
+
+<div class="card warning"><strong>Important:</strong> Live Response is not a normal Bash prompt. Enter only Live Response commands in the console. Run Linux commands through an uploaded Bash script with <code>run</code>.</div>
+
+<nav class="card">
+<strong>Quick links</strong>
+<ul>
+<li><a href="MDE_Linux_Live_Response_Troubleshooting.md">Markdown source</a></li>
+<li><a href="https://github.com/johnB007/Scripts/blob/main/Live%20Response/LinuxMDEConnectivityAnalyzer-IL5.sh">Linux MDE Connectivity Analyzer for IL5</a></li>
+<li><a href="https://github.com/johnB007/Scripts/blob/main/Live%20Response/Collect-MDELinuxDiagnostics.sh">MDE Linux Diagnostic Collector</a></li>
+<li><a href="https://learn.microsoft.com/defender-endpoint/live-response">Microsoft Live Response documentation</a></li>
+<li><a href="https://learn.microsoft.com/defender-endpoint/live-response-command-examples">Command examples</a></li>
+</ul>
+</nav>
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 300" role="img" aria-label="MDE Linux Live Response troubleshooting workflow">
+<defs><marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/></marker></defs>
+<g font-family="Segoe UI,Arial,sans-serif" text-anchor="middle" fill="#111827">
+<rect x="20" y="95" width="150" height="70" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/><text x="95" y="123" font-size="16">Connect</text><text x="95" y="147" font-size="13">Confirm session</text>
+<rect x="215" y="75" width="205" height="110" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/><text x="317" y="108" font-size="16">Run IL5 analyzer</text><text x="317" y="132" font-size="13">DNS, TCP, TLS, HTTP</text><text x="317" y="153" font-size="13">MDE health and native test</text>
+<polygon points="520,65 620,130 520,195 420,130" fill="#fff7ed" stroke="#ea580c" stroke-width="2"/><text x="520" y="124" font-size="16">Healthy and</text><text x="520" y="146" font-size="16">reachable?</text>
+<rect x="680" y="25" width="215" height="100" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/><text x="787" y="59" font-size="16">Run full diagnostics</text><text x="787" y="83" font-size="13">Logs, service, platform,</text><text x="787" y="103" font-size="13">native and support bundles</text>
+<rect x="680" y="175" width="215" height="80" rx="10" fill="#eff6ff" stroke="#2563eb" stroke-width="2"/><text x="787" y="208" font-size="16">Retrieve archive</text><text x="787" y="232" font-size="13">getfile /tmp/file.tar.gz</text>
+<rect x="950" y="175" width="220" height="80" rx="10" fill="#f0fdf4" stroke="#16a34a" stroke-width="2"/><text x="1060" y="207" font-size="16">Review and clean up</text><text x="1060" y="231" font-size="13">Open HTML and delete archive</text>
+<g fill="none" stroke="#2563eb" stroke-width="2" marker-end="url(#arrow)"><path d="M170 130 H215"/><path d="M620 130 H650 V75 H680"/><path d="M520 195 V215 H680"/><path d="M787 125 V175"/><path d="M895 215 H950"/></g>
+<text x="650" y="64" font-size="13">No or uncertain</text><text x="585" y="211" font-size="13">Yes</text>
+</g></svg>
+
+<h2>1. Before going onsite</h2>
+<ul>
+<li>Confirm the device is in the Defender device inventory.</li>
+<li>Linux Live Response requires MDE agent version <code>101.45.13</code> or later.</li>
+<li>Enable Live Response and Live Response for servers.</li>
+<li>Confirm RBAC access to basic and advanced commands.</li>
+<li>Upload both Bash scripts to the tenant library before travel.</li>
+<li>US Government library size is 5 MB by default.</li>
+</ul>
+<table><thead><tr><th>Script</th><th>Use</th><th>Output</th></tr></thead><tbody>
+<tr><td><code>LinuxMDEConnectivityAnalyzer-IL5.sh</code></td><td>Fast DoD IL5 connectivity, TLS, health, and native MDE validation</td><td><code>/tmp/IL5MDEConnectivity_...tar.gz</code></td></tr>
+<tr><td><code>Collect-MDELinuxDiagnostics.sh</code></td><td>Full diagnostic and support evidence</td><td><code>/tmp/MDELinuxDiagnostics_...tar.gz</code></td></tr>
+</tbody></table>
+
+<h2>2. Onsite workflow</h2>
+<h3>Connect and verify the library</h3>
+<pre><code>connect
+help
+library</code></pre>
+
+<h3>Run connectivity analysis first</h3>
+<pre><code>run LinuxMDEConnectivityAnalyzer-IL5.sh
+getfile "/tmp/IL5MDEConnectivity_&lt;device&gt;_&lt;UTC&gt;.tar.gz"</code></pre>
+<p>Open <code>IL5-MDE-Connectivity-Report.html</code> after extracting the archive.</p>
+<p>On Windows 10 or 11, open PowerShell in the download folder:</p>
+<pre><code>$archive = ".\IL5MDEConnectivity_&lt;device&gt;_&lt;UTC&gt;.tar.gz"
+$folder = ".\IL5MDEConnectivity_&lt;device&gt;_&lt;UTC&gt;"
+New-Item -ItemType Directory -Path $folder -Force | Out-Null
+tar -xzf $archive -C $folder
+Start-Process "$folder\IL5-MDE-Connectivity-Report.html"</code></pre>
+
+<h3>Interpret key results</h3>
+<table><thead><tr><th>Result</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><code>PASS</code></td><td>Required network and MDE checks succeeded.</td></tr>
+<tr><td>HTTP 4xx and <code>PASS: REACHABLE</code></td><td>The anonymous request was rejected, but DNS, TCP, TLS, and HTTP transport worked.</td></tr>
+<tr><td>HTTP 5xx and <code>WARN: REACHABLE</code></td><td>The service or gateway responded. Check the native MDE test; this is not a firewall failure by itself.</td></tr>
+<tr><td>HTTP 000 or curl failure</td><td>Investigate firewall, proxy, routing, timeout, TLS, or certificate validation.</td></tr>
+<tr><td>HTTP 407</td><td>Proxy authentication is required.</td></tr>
+<tr><td>DNS unresolved</td><td>Investigate the configured resolver and DNS policy.</td></tr>
+<tr><td>TCP failure</td><td>Investigate route, firewall, proxy design, and endpoint allowlist.</td></tr>
+<tr><td>TLS verify not 0</td><td>Investigate time, trust store, and TLS inspection.</td></tr>
+</tbody></table>
+
+<h3>Sanitized report examples</h3>
+<p>These examples are recreated from lab output. Device, timestamps, tenant and organization IDs, machine IDs, subscription and workspace IDs, resolved addresses, and local paths are replaced or omitted.</p>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 590" role="img" aria-label="Sanitized IL5 MDE connectivity report example">
+<rect width="1200" height="590" fill="#f8fafc"/><text x="45" y="58" font-family="Arial,sans-serif" font-size="30" font-weight="700" fill="#0f172a">IL5 Microsoft Defender for Endpoint Connectivity Report</text>
+<rect x="45" y="85" width="1110" height="110" rx="10" fill="#fff" stroke="#cbd5e1"/><text x="70" y="123" font-family="Arial,sans-serif" font-size="18" fill="#1f2937"><tspan font-weight="700">Device:</tspan> REDACTED-LINUX-HOST</text><text x="70" y="157" font-family="Arial,sans-serif" font-size="18" fill="#1f2937"><tspan font-weight="700">Overall result:</tspan> <tspan font-weight="700" fill="#166534">PASS</tspan>   <tspan font-weight="700">Required failures:</tspan> 0   <tspan font-weight="700">Warnings:</tspan> 1</text>
+<text x="45" y="240" font-family="Arial,sans-serif" font-size="24" font-weight="700" fill="#0f172a">Endpoint results</text>
+<g font-family="Arial,sans-serif" font-size="14" fill="#1f2937"><rect x="45" y="265" width="1110" height="48" fill="#e2e8f0" stroke="#94a3b8"/><text x="60" y="295" font-weight="700">Service</text><text x="330" y="295" font-weight="700">Host</text><text x="660" y="295" font-weight="700">DNS</text><text x="745" y="295" font-weight="700">TCP</text><text x="825" y="295" font-weight="700">HTTP</text><text x="1035" y="295" font-weight="700">Code</text>
+<rect x="45" y="313" width="1110" height="60" fill="#fff" stroke="#cbd5e1"/><text x="60" y="349">MDE SmartScreen DoD</text><text x="330" y="349">unitedstates2.ss.wd.microsoft.us</text><text x="660" y="349" fill="#166534">PASS</text><text x="745" y="349" fill="#166534">PASS</text><text x="825" y="349" fill="#a16207">WARN: REACHABLE</text><text x="1035" y="349">502</text>
+<rect x="45" y="373" width="1110" height="60" fill="#fff" stroke="#cbd5e1"/><text x="60" y="409">MDE configuration DoD</text><text x="330" y="409">config.ecs.dod.teams.microsoft.us</text><text x="660" y="409" fill="#166534">PASS</text><text x="745" y="409" fill="#166534">PASS</text><text x="825" y="409" fill="#166534">PASS: REACHABLE</text><text x="1035" y="409">400</text>
+<rect x="45" y="433" width="1110" height="60" fill="#fff" stroke="#cbd5e1"/><text x="60" y="469">MDE government identity</text><text x="330" y="469">login.microsoftonline.us</text><text x="660" y="469" fill="#166534">PASS</text><text x="745" y="469" fill="#166534">PASS</text><text x="825" y="469" fill="#166534">PASS</text><text x="1035" y="469">302</text></g>
+<text x="45" y="535" font-family="Arial,sans-serif" font-size="16" fill="#475569">HTTP 5xx is reachable with warning when DNS, TCP, TLS, and HTTP transport complete successfully.</text><text x="45" y="565" font-family="Arial,sans-serif" font-size="15" fill="#64748b">Sanitized example. Device, timestamps, resolved addresses, tenant data, and environment identifiers are omitted or replaced.</text></svg>
+
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 650" role="img" aria-label="Sanitized MDE Linux diagnostic report example">
+<rect width="1100" height="650" fill="#f8fafc"/><text x="50" y="60" font-family="Arial,sans-serif" font-size="30" font-weight="700" fill="#0f172a">Microsoft Defender for Endpoint Linux Diagnostic Report</text>
+<rect x="50" y="90" width="1000" height="135" rx="10" fill="#fff" stroke="#cbd5e1"/><text x="75" y="128" font-family="Arial,sans-serif" font-size="19" fill="#1f2937"><tspan font-weight="700">Device:</tspan> REDACTED-LINUX-HOST</text><text x="75" y="162" font-family="Arial,sans-serif" font-size="19" fill="#1f2937"><tspan font-weight="700">Completed UTC:</tspan> YYYY-MM-DDTHH:MM:SSZ</text><text x="75" y="196" font-family="Arial,sans-serif" font-size="19" fill="#1f2937"><tspan font-weight="700">Result:</tspan> <tspan font-weight="700" fill="#166534">PASS</tspan>   <tspan font-weight="700">Warnings:</tspan> 0</text>
+<text x="50" y="275" font-family="Arial,sans-serif" font-size="25" font-weight="700" fill="#0f172a">Primary findings</text><rect x="50" y="300" width="1000" height="295" rx="8" fill="#0f172a"/>
+<g font-family="Consolas,monospace" font-size="17" fill="#e2e8f0"><text x="75" y="338">Operating system                 : Ubuntu 22.04 LTS</text><text x="75" y="370">Architecture                     : aarch64</text><text x="75" y="402">Support assessment               : SUPPORTED</text><text x="75" y="434">healthy                          : true</text><text x="75" y="466">licensed                         : true</text><text x="75" y="498">cloud_enabled                    : true</text><text x="75" y="530">real_time_protection_enabled     : true</text><text x="75" y="562">definitions_status               : up_to_date</text></g>
+<text x="50" y="628" font-family="Arial,sans-serif" font-size="15" fill="#64748b">Sanitized example. Device, tenant, machine, subscription, workspace, timestamps, addresses, and local paths are omitted or replaced.</text></svg>
+
+<h3>Run full diagnostics when needed</h3>
+<pre><code>run Collect-MDELinuxDiagnostics.sh
+getfile "/tmp/MDELinuxDiagnostics_&lt;device&gt;_&lt;UTC&gt;.tar.gz"</code></pre>
+<p>Open <code>MDE-Linux-Diagnostics-Report.html</code>. Retain the raw evidence for approved escalation channels.</p>
+
+<h3>Clean up exact device archives</h3>
+<pre><code>remediate file /tmp/IL5MDEConnectivity_&lt;device&gt;_&lt;UTC&gt;.tar.gz
+remediate file /tmp/MDELinuxDiagnostics_&lt;device&gt;_&lt;UTC&gt;.tar.gz</code></pre>
+<p><code>remediate file</code> permanently deletes the endpoint copy. It does not delete the analyst download.</p>
+
+<h2>3. Every Live Response command supported on Linux</h2>
+<h3>Basic commands</h3>
+<table><thead><tr><th>Command</th><th>Example</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>cd</code></td><td><code>cd /tmp</code></td><td>Change working directory</td></tr>
+<tr><td><code>cls</code></td><td><code>cls</code></td><td>Clear console display</td></tr>
+<tr><td><code>connect</code></td><td><code>connect</code></td><td>Establish or confirm session</td></tr>
+<tr><td><code>dir</code></td><td><code>dir /tmp -output json</code></td><td>List files and directories</td></tr>
+<tr><td><code>fg</code></td><td><code>fg 1234</code></td><td>Bring command ID to foreground</td></tr>
+<tr><td><code>fileinfo</code></td><td><code>fileinfo /tmp/report.tar.gz</code></td><td>Show file metadata</td></tr>
+<tr><td><code>findfile</code></td><td><code>findfile mdatp.log</code></td><td>Find a file by name</td></tr>
+<tr><td><code>getfile</code></td><td><code>getfile "/tmp/report.tar.gz"</code></td><td>Download a device file</td></tr>
+<tr><td><code>help</code></td><td><code>help remediate</code></td><td>Show current command syntax</td></tr>
+<tr><td><code>jobs</code></td><td><code>jobs</code></td><td>List Live Response jobs and IDs</td></tr>
+<tr><td><code>processes</code></td><td><code>processes -output json</code></td><td>List Linux processes</td></tr>
+<tr><td><code>status</code></td><td><code>status 1234</code></td><td>Show command status and output</td></tr>
+<tr><td><code>trace</code></td><td><code>help trace</code></td><td>Configure terminal debug logging</td></tr>
+</tbody></table>
+
+<h3>Advanced commands</h3>
+<table><thead><tr><th>Command</th><th>Example</th><th>Purpose</th></tr></thead><tbody>
+<tr><td><code>collect</code></td><td><code>collect</code></td><td>Collect Linux platform forensics package</td></tr>
+<tr><td><code>run</code></td><td><code>run LinuxMDEConnectivityAnalyzer-IL5.sh</code></td><td>Run a library Bash script</td></tr>
+<tr><td><code>library</code></td><td><code>library</code></td><td>List library files; <code>library delete name.sh</code> removes one</td></tr>
+<tr><td><code>putfile</code></td><td><code>putfile name.sh -overwrite</code></td><td>Place a library file on device; <code>-keep</code> retains it after reboot</td></tr>
+<tr><td><code>remediate</code></td><td><code>remediate file /tmp/file -auto</code></td><td>Delete or remediate an entity; destructive on Linux</td></tr>
+<tr><td><code>scan</code></td><td><code>scan</code></td><td>Start a quick antivirus scan</td></tr>
+</tbody></table>
+
+<h3>Not supported on Linux</h3>
+<pre><code>analyze  connections  drivers  isolate  persistence  registry
+release  scheduledtasks  services  startupfolders  undo</code></pre>
+
+<h2>4. Console techniques</h2>
+<pre><code># Current syntax
+help run
+help getfile
+help remediate
+
+# Background download
+getfile "/tmp/large-report.tar.gz" &amp;
+jobs
+status &lt;command_ID&gt;
+fg &lt;command_ID&gt;
+
+# Save output on device, then retrieve
+processes &gt; processes.txt
+getfile processes.txt</code></pre>
+<p>JSON usually exposes more fields than table output. Ctrl+Z moves a waiting download to the background. Ctrl+C cancels the portal-side display and might not stop endpoint-side work.</p>
+
+<h2>5. Limits</h2>
+<ul>
+<li>50 simultaneous sessions per tenant; five per user; one per device.</li>
+<li>30-minute inactivity timeout.</li>
+<li>Most commands: 10 minutes. <code>getfile</code>, <code>findfile</code>, and <code>run</code>: 30 minutes.</li>
+<li><code>getfile</code>: 3 GB. <code>fileinfo</code>: 30 GB.</li>
+<li>General library: 250 MB. US Government default: 5 MB.</li>
+<li><code>putfile</code> on non-Windows platforms: 10 MB.</li>
+</ul>
+
+<h2>6. Fast troubleshooting matrix</h2>
+<table><thead><tr><th>Symptom</th><th>Action</th></tr></thead><tbody>
+<tr><td>Session will not connect</td><td>Check service, agent version, Live Response settings, RBAC, clock, proxy, and endpoints.</td></tr>
+<tr><td>Device is spotty</td><td>Run the IL5 analyzer and retain HTML, CSV, TLS, and native output.</td></tr>
+<tr><td>Connectivity passes but MDE is unhealthy</td><td>Run the full diagnostic collector.</td></tr>
+<tr><td>Native MDE test fails</td><td>Investigate the exact hostname reported by <code>mdatp</code>.</td></tr>
+<tr><td>Service inactive</td><td>Collect diagnostics before making service changes.</td></tr>
+</tbody></table>
+
+<h2>7. Command card</h2>
+<pre><code>connect
+library
+run LinuxMDEConnectivityAnalyzer-IL5.sh
+getfile "/tmp/IL5MDEConnectivity_&lt;device&gt;_&lt;UTC&gt;.tar.gz"
+
+# If failed, unhealthy, or unexplained:
+run Collect-MDELinuxDiagnostics.sh
+getfile "/tmp/MDELinuxDiagnostics_&lt;device&gt;_&lt;UTC&gt;.tar.gz"
+
+# After download verification:
+remediate file /tmp/IL5MDEConnectivity_&lt;device&gt;_&lt;UTC&gt;.tar.gz
+remediate file /tmp/MDELinuxDiagnostics_&lt;device&gt;_&lt;UTC&gt;.tar.gz</code></pre>
+
+<h2>8. Escalation package</h2>
+<ol>
+<li>Device and UTC investigation window.</li>
+<li>Distribution, version, architecture, and kernel.</li>
+<li>MDE version and organization ID.</li>
+<li>Exact symptom and reproduction time.</li>
+<li>Both retrieved archives.</li>
+<li>Firewall or proxy logs for failed destinations.</li>
+<li>TLS inspection status and recent environment changes.</li>
+</ol>
+
+<h2>9. Microsoft references</h2>
+<ul>
+<li><a href="https://learn.microsoft.com/defender-endpoint/live-response">Investigate entities using Live Response</a></li>
+<li><a href="https://learn.microsoft.com/defender-endpoint/live-response-command-examples">Live Response command examples</a></li>
+<li><a href="https://learn.microsoft.com/defender-endpoint/troubleshoot-collect-support-log">Collect support logs using Live Response</a></li>
+<li><a href="https://learn.microsoft.com/defender-endpoint/run-analyzer-linux">Run the Client Analyzer on Linux</a></li>
+<li><a href="https://learn.microsoft.com/defender-endpoint/linux-resources">MDE Linux resources</a></li>
+<li><a href="https://learn.microsoft.com/defender-endpoint/streamlined-device-connectivity-urls-gov">US Government streamlined connectivity</a></li>
+</ul>
+</body>
+</html>

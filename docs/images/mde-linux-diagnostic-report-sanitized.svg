@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1100" height="650" viewBox="0 0 1100 650" role="img" aria-labelledby="title desc">
+  <title id="title">Sanitized MDE Linux diagnostic report example</title>
+  <desc id="desc">A sanitized example showing a passing diagnostic report, supported Ubuntu platform, and healthy MDE fields without device or tenant identifiers.</desc>
+  <rect width="1100" height="650" fill="#f8fafc"/>
+  <text x="50" y="60" font-family="Arial, sans-serif" font-size="30" font-weight="700" fill="#0f172a">Microsoft Defender for Endpoint Linux Diagnostic Report</text>
+  <rect x="50" y="90" width="1000" height="135" rx="10" fill="#fff" stroke="#cbd5e1"/>
+  <text x="75" y="128" font-family="Arial, sans-serif" font-size="19" fill="#1f2937"><tspan font-weight="700">Device:</tspan> REDACTED-LINUX-HOST</text>
+  <text x="75" y="162" font-family="Arial, sans-serif" font-size="19" fill="#1f2937"><tspan font-weight="700">Completed UTC:</tspan> YYYY-MM-DDTHH:MM:SSZ</text>
+  <text x="75" y="196" font-family="Arial, sans-serif" font-size="19" fill="#1f2937"><tspan font-weight="700">Result:</tspan> <tspan font-weight="700" fill="#166534">PASS</tspan>   <tspan font-weight="700">Warnings:</tspan> 0</text>
+  <text x="50" y="275" font-family="Arial, sans-serif" font-size="25" font-weight="700" fill="#0f172a">Primary findings</text>
+  <rect x="50" y="300" width="1000" height="295" rx="8" fill="#0f172a"/>
+  <g font-family="Consolas, monospace" font-size="17" fill="#e2e8f0">
+    <text x="75" y="338">Operating system                 : Ubuntu 22.04 LTS</text>
+    <text x="75" y="370">Architecture                     : aarch64</text>
+    <text x="75" y="402">Support assessment               : SUPPORTED</text>
+    <text x="75" y="434">healthy                          : true</text>
+    <text x="75" y="466">licensed                         : true</text>
+    <text x="75" y="498">cloud_enabled                    : true</text>
+    <text x="75" y="530">real_time_protection_enabled     : true</text>
+    <text x="75" y="562">definitions_status               : up_to_date</text>
+  </g>
+  <text x="50" y="628" font-family="Arial, sans-serif" font-size="15" fill="#64748b">Sanitized example. Device, tenant, machine, subscription, workspace, timestamps, addresses, and local paths are omitted or replaced.</text>
+</svg>

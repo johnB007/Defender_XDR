@@ -72,6 +72,22 @@ Confirm the following before depending on Live Response:
 
 Upload from **Live Response > Upload file to library** or from **Settings > Endpoints > Live response > Library management**. Library filenames can use letters, numbers, hyphens, underscores, and periods.
 
+The [Scripts repository `.gitattributes`](https://github.com/johnB007/Scripts/blob/main/.gitattributes) file forces LF line endings for `.sh` files. From the folder containing the downloaded scripts, verify that neither file contains a carriage return before uploading from Windows:
+
+```powershell
+$scripts = @(
+    '.\LinuxMDEConnectivityAnalyzer-IL5.sh',
+    '.\Collect-MDELinuxDiagnostics.sh'
+)
+foreach ($script in $scripts) {
+    if ([IO.File]::ReadAllBytes($script) -contains 13) {
+        throw "$script contains CRLF line endings. Re-download or convert it to LF before upload."
+    }
+}
+```
+
+Errors such as `$'\r': command not found`, malformed `pipefail`, or `octal number out of range077` mean the uploaded file was converted to CRLF. Delete that library copy and upload the LF-only file.
+
 Verify availability:
 
 ```text
@@ -192,16 +208,16 @@ MDE-Linux-Diagnostics-Report.html
 
 The archive also retains the raw evidence, native MDE diagnostic package, and Client Analyzer output when available. Do not send the package outside approved channels; it can contain device, tenant, subscription, network, process, and configuration identifiers.
 
-### Step 5: Clean up device archives
+### Step 5: Handle device archives
 
-After confirming the download, remove only the exact archive that the script printed:
+After confirming the download, use SSH or another approved Linux administration shell to delete only the exact archive path printed by the script:
 
-```text
-remediate file /tmp/IL5MDEConnectivity_<device>_<UTC>.tar.gz
-remediate file /tmp/MDELinuxDiagnostics_<device>_<UTC>.tar.gz
+```bash
+rm -- "/tmp/IL5MDEConnectivity_<device>_<UTC>.tar.gz"
+rm -- "/tmp/MDELinuxDiagnostics_<device>_<UTC>.tar.gz"
 ```
 
-`remediate file` permanently deletes the target from the device. It does not delete the downloaded analyst copy.
+Do not enter `rm` at the Live Response prompt; it is a Linux shell command. Do not use wildcards for this cleanup. Do not use the Live Response `remediate file` command for routine cleanup: it routes the archive through Defender Antivirus quarantine and creates a synthetic `Trojan:Linux/sense_remediate_threat` malware alert.
 
 To remove an obsolete script from the tenant library:
 
@@ -239,7 +255,7 @@ The tables below include every command marked **Linux = Y** in Microsoft's curre
 | `run` | `run <script.sh>` | Run a Bash script from the library. Example: `run LinuxMDEConnectivityAnalyzer-IL5.sh` |
 | `library` | `library` | List tenant library files. `library delete <name>` removes a library item |
 | `putfile` | `putfile <library_file>` | Place a library file on the device. Add `-overwrite` to replace it or `-keep` to retain it after reboot. Non-Windows file limit: 10 MB |
-| `remediate` | `remediate file <path> [-auto]` | Delete a file. For Linux, also supports supported entity remediation exposed by `help remediate`. Verify the target before running |
+| `remediate` | Intentionally omitted | Destructive command that routes file cleanup through Defender Antivirus quarantine and can create a synthetic malware alert. Do not use for routine archive cleanup |
 | `scan` | `scan` | Start a quick antivirus scan on Linux. Use `help scan` for current options |
 
 ### Commands not supported on Linux
@@ -500,10 +516,6 @@ getfile "/tmp/IL5MDEConnectivity_<device>_<UTC>.tar.gz"
 # If anything is failed, unhealthy, or unexplained:
 run Collect-MDELinuxDiagnostics.sh
 getfile "/tmp/MDELinuxDiagnostics_<device>_<UTC>.tar.gz"
-
-# After download verification:
-remediate file /tmp/IL5MDEConnectivity_<device>_<UTC>.tar.gz
-remediate file /tmp/MDELinuxDiagnostics_<device>_<UTC>.tar.gz
 ```
 
 ## 10. Escalation package

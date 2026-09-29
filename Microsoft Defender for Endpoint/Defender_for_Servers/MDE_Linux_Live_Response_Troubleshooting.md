@@ -1,19 +1,51 @@
-# MDE Linux Live Response Troubleshooting Guide
+<h1 align="center">MDE Linux Live Response Troubleshooting Guide</h1>
 
-**Purpose:** A self-contained guide for investigating Microsoft Defender for Endpoint (MDE) on Linux through Microsoft Defender Live Response.
-**Applies to:** Supported Linux devices onboarded to MDE, including DoD IL5 / US Government environments.
-**Validated:** September 28, 2026. Always use `help <command>` in the session to confirm the syntax exposed by the current service.
+<p align="center">
+  <strong>Microsoft Defender for Endpoint | Linux | Live Response | DoD IL5</strong>
+</p>
 
-> Live Response is not a normal Bash prompt. Enter only Live Response commands in the console. Run Linux commands through an uploaded Bash script with `run`.
+<p align="center">
+  A self-contained guide for investigating connectivity, health, service, and command-execution problems on Linux devices.
+</p>
 
-## Quick links
+| Guide information | Value |
+|---|---|
+| **Scope** | Supported Linux devices onboarded to MDE, including DoD IL5 / US Government |
+| **MDE requirement** | Agent version `101.45.13` or later for Linux Live Response |
+| **Primary workflow** | Connectivity analyzer first, full diagnostics when failed or uncertain |
+| **Safety** | The supplied scripts are read only; `remediate` is destructive |
+| **Validated** | September 28, 2026 |
 
-- [Linux MDE Connectivity Analyzer for IL5](https://github.com/johnB007/Scripts/blob/main/Live%20Response/LinuxMDEConnectivityAnalyzer-IL5.sh)
-- [MDE Linux Diagnostic Collector](https://github.com/johnB007/Scripts/blob/main/Live%20Response/Collect-MDELinuxDiagnostics.sh)
-- [Microsoft Live Response documentation](https://learn.microsoft.com/defender-endpoint/live-response)
-- [Microsoft Live Response command examples](https://learn.microsoft.com/defender-endpoint/live-response-command-examples)
-- [MDE Linux Client Analyzer](https://learn.microsoft.com/defender-endpoint/run-analyzer-linux)
-- [Supported MDE Linux distributions](https://learn.microsoft.com/defender-endpoint/mde-linux-prerequisites#supported-linux-distributions)
+> [!IMPORTANT]
+> Live Response is not a normal Bash prompt. Enter only Live Response commands in the console. Run Linux commands through an uploaded Bash script with `run`. Always use `help <command>` to confirm the syntax exposed by the current service.
+
+<details>
+<summary><strong>Guide contents</strong></summary>
+
+- [1. Prerequisites](#1-prerequisites)
+- [2. Recommended troubleshooting workflow](#2-recommended-troubleshooting-workflow)
+- [3. Every Live Response command supported on Linux](#3-every-live-response-command-supported-on-linux)
+- [4. Live Response console techniques](#4-live-response-console-techniques)
+- [5. Evidence checklist and decision points](#5-evidence-checklist-and-decision-points)
+- [6. Built-in Linux MDE commands used by the collectors](#6-built-in-linux-mde-commands-used-by-the-collectors)
+- [7. Session and file limits](#7-session-and-file-limits)
+- [8. Fast troubleshooting matrix](#8-fast-troubleshooting-matrix)
+- [9. Quick command reference](#9-quick-command-reference)
+- [10. Escalation package](#10-escalation-package)
+- [11. Microsoft references](#11-microsoft-references)
+
+</details>
+
+## Quick access
+
+| Resource | Purpose |
+|---|---|
+| [Linux MDE Connectivity Analyzer for IL5](https://github.com/johnB007/Scripts/blob/main/Live%20Response/LinuxMDEConnectivityAnalyzer-IL5.sh) | Fast DNS, TCP, TLS, HTTP, native MDE, and IL5 endpoint validation |
+| [MDE Linux Diagnostic Collector](https://github.com/johnB007/Scripts/blob/main/Live%20Response/Collect-MDELinuxDiagnostics.sh) | Full MDE, service, platform, log, native diagnostic, and support collection |
+| [Microsoft Live Response documentation](https://learn.microsoft.com/defender-endpoint/live-response) | Current command support, prerequisites, behavior, and limits |
+| [Microsoft Live Response command examples](https://learn.microsoft.com/defender-endpoint/live-response-command-examples) | Official command syntax examples |
+| [MDE Linux Client Analyzer](https://learn.microsoft.com/defender-endpoint/run-analyzer-linux) | Microsoft support analyzer usage and output |
+| [Supported MDE Linux distributions](https://learn.microsoft.com/defender-endpoint/mde-linux-prerequisites#supported-linux-distributions) | Current platform support matrix |
 
 ![MDE Linux Live Response troubleshooting workflow](../../docs/diagrams/mde-linux-live-response-workflow.svg)
 

@@ -1,6 +1,6 @@
-# MDE Linux Live Response Troubleshooting Field Guide
+# MDE Linux Live Response Troubleshooting Guide
 
-**Purpose:** A self-contained onsite guide for investigating Microsoft Defender for Endpoint (MDE) on Linux through Microsoft Defender Live Response.
+**Purpose:** A self-contained guide for investigating Microsoft Defender for Endpoint (MDE) on Linux through Microsoft Defender Live Response.
 **Applies to:** Supported Linux devices onboarded to MDE, including DoD IL5 / US Government environments.
 **Validated:** September 28, 2026. Always use `help <command>` in the session to confirm the syntax exposed by the current service.
 
@@ -17,7 +17,7 @@
 
 ![MDE Linux Live Response troubleshooting workflow](../../docs/diagrams/mde-linux-live-response-troubleshooting.svg)
 
-## 1. Before going onsite
+## 1. Prerequisites
 
 ### Portal and role prerequisites
 
@@ -46,7 +46,7 @@ Verify availability:
 library
 ```
 
-## 2. Recommended onsite workflow
+## 2. Recommended troubleshooting workflow
 
 ### Step 1: Start and verify the session
 
@@ -381,6 +381,7 @@ Low bandwidth can still cause a transfer to time out below the size limit. Keep 
 | Symptom | First action | Evidence to retain |
 |---|---|---|
 | Live Response will not connect | Confirm service health, agent version, advanced feature, RBAC, clock, proxy, and Live Response endpoints | Portal error, device timeline, local MDE service logs |
+| `library` works but device commands fail | Use the command ladder below. `library` is tenant-side and does not prove the endpoint command channel works | Exact command, complete error, command ID, command log, agent version |
 | Device is onboarded but spotty | Run `LinuxMDEConnectivityAnalyzer-IL5.sh` | HTML, CSV, TLS certificate output, native connectivity output |
 | Analyzer passes but protection is unhealthy | Run `Collect-MDELinuxDiagnostics.sh` | Full archive and HTML |
 | DNS fails | Validate configured resolver and conditional forwarding | Resolved names, `/etc/resolv.conf`, `resolvectl` output |
@@ -391,7 +392,71 @@ Low bandwidth can still cause a transfer to time out below the size limit. Keep 
 | Native connectivity fails | Investigate the specific hostname reported by `mdatp` | Complete `mdatp connectivity test` output |
 | Service inactive | Run full diagnostics before considering service changes | `systemctl`, journal, MDE diagnostic archive |
 
-## 9. Onsite command card
+### When `library` works but everything else fails
+
+Run this ladder in a new session and stop at the first failure:
+
+```text
+connect
+help
+library
+dir /tmp
+processes
+jobs
+```
+
+Then:
+
+1. Open the **Command log** tab.
+2. Record the failed command, command ID, complete error text, duration, and status.
+3. If a command ID exists, run `status <command_ID>`.
+4. Disconnect and start one new session. Do not keep retrying in the same failed session.
+5. Confirm the script name shown by `library` exactly matches:
+
+   ```text
+   LinuxMDEConnectivityAnalyzer-IL5.sh
+   Collect-MDELinuxDiagnostics.sh
+   ```
+
+6. Try the current filename exactly:
+
+   ```text
+   run LinuxMDEConnectivityAnalyzer-IL5.sh
+   ```
+
+Use the failure boundary to identify the likely cause:
+
+| What works | What fails | Most likely area |
+|---|---|---|
+| Only `help` and `library` | `dir`, `processes`, and `run` | Endpoint-side Live Response command channel, MDE agent, or stale session |
+| Basic commands such as `dir` and `processes` | `run`, `collect`, `putfile`, or `remediate` | Advanced-command RBAC or portal feature configuration |
+| `run` starts but script reports a shell error | Only that Bash script | Wrong filename, old library version, CRLF line endings, or script runtime dependency |
+| Some named commands fail | Commands in the unsupported list | Platform limitation; the command is not available on Linux |
+| Command remains running | It times out | Agent responsiveness, low bandwidth, command timeout, or service-side job issue |
+
+If no endpoint-side command works, use SSH, a console, or the local Linux administrator to collect:
+
+```bash
+mdatp health --field app_version
+mdatp health
+mdatp connectivity test
+systemctl status mdatp --no-pager
+journalctl -u mdatp --since "1 hour ago" --no-pager --utc
+```
+
+Confirm:
+
+- Agent version is at least `101.45.13`.
+- `healthy`, `licensed`, and `cloud_enabled` are `true`.
+- The `mdatp` service is active.
+- The native connectivity test passes.
+- Device time is synchronized.
+- Live Response and Live Response for servers are enabled in portal settings.
+- Your role has the required basic and advanced Live Response permissions.
+
+Do not restart or reinstall MDE until the health, journal, connectivity output, portal error, and command log have been retained.
+
+## 9. Quick command reference
 
 ```text
 connect

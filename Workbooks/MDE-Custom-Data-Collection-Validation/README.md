@@ -39,12 +39,27 @@ Each table needs its own custom data collection rule (Defender portal, Settings,
 |---|---|---|
 | Process | ProcessCreated | ProcessCommandLine, Not equals, blank |
 | Image load | ImageLoaded | FileName, Not equals, blank |
-| File | FileCreated | FileName, Not equals, blank |
+| File | FileCreated | FolderPath, Not equals, blank |
 | Network event | ConnectionSuccess | RemotePort, Not equals, 0 |
 | Registry (preview) | RegistryValueSet | RegistryKey, Not equals, blank |
 | Script | AmsiScriptContent | InitiatingProcessFileName, Not equals, blank |
 
-Requires MDE Plan 2 and a Sentinel workspace already connected to the tenant. Telemetry starts flowing 20 minutes to 1 hour after a rule deploys, and every rule caps at 75,000 events per device per 24 hour rolling window.
+Requires MDE Plan 2 and a Sentinel workspace already connected to the tenant. Telemetry starts flowing 20 minutes to 1 hour after a rule deploys, and every rule caps at 75,000 events per device per 24 hour rolling window. This starter pass is one rule per table, six rules total, enough to prove the workbook works end to end. It is not full coverage, see below.
+
+### Full coverage, every action type per table
+
+Each rule allows exactly one action type, so seeing everything a table can produce means one rule per action type, not one rule per table. This is what true max telemetry looks like:
+
+| Table | Action types (one rule each) | Condition |
+|---|---|---|
+| Process | ProcessCreated | ProcessCommandLine, Not equals, blank |
+| Image load | ImageLoaded | FileName, Not equals, blank |
+| Script | AmsiScriptContent | InitiatingProcessFileName, Not equals, blank |
+| File | FileCreated, FileModified, FileDeleted, FileRenamed | FolderPath, Not equals, blank |
+| Registry (preview) | RegistryKeyCreated, RegistryKeyDeleted, RegistryKeyRenamed, RegistryValueSet, RegistryValueDeleted, RegistryKeyQueried, RegistryValueQueried, RegistryKeyValuesEnumerated | RegistryKey, Not equals, blank |
+| Network event | KerberosConnectionInspected, ConnectionSuccess, ListeningConnectionCreated, NetworkSignatureInspected, SshConnectionInspected, SmtpConnectionInspected, FtpConnectionInspected, IcmpConnectionInspected, HttpConnectionInspected, SslConnectionInspected, DnsConnectionInspected, NtlmAuthenticationInspected, InboundInternetScanInspected, ConnectionAttempt, ConnectionAcknowledged, ConnectionFailed, InboundConnectionAccepted | RemotePort, Not equals, 0 |
+
+That is 1 + 1 + 1 + 4 + 8 + 17 = **32 rules** for full coverage, each with its own 75,000 events per device per 24 hour cap. The `RemotePort` condition is confirmed for `ConnectionSuccess`, the protocol specific Inspected action types may offer different condition fields, if `RemotePort` is not offered for a given action type, use `InitiatingProcessFileName`, `Not equals`, blank instead, that field is present across every custom table. Registry's condition fields can also vary slightly by action type, verify `RegistryKey` is offered before saving each rule.
 
 ---
 

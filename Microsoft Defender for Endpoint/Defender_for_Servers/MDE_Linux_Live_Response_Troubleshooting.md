@@ -15,7 +15,7 @@
 - [MDE Linux Client Analyzer](https://learn.microsoft.com/defender-endpoint/run-analyzer-linux)
 - [Supported MDE Linux distributions](https://learn.microsoft.com/defender-endpoint/mde-linux-prerequisites#supported-linux-distributions)
 
-![MDE Linux Live Response troubleshooting workflow](../../docs/diagrams/mde-linux-live-response-troubleshooting.svg)
+![MDE Linux Live Response troubleshooting workflow](../../docs/diagrams/mde-linux-live-response-workflow.svg)
 
 ## 1. Prerequisites
 

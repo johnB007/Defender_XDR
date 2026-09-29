@@ -51,8 +51,8 @@
   <path class="line" d="M787 125 V175"/>
   <path class="line" d="M895 215 H935"/>
 
-  <rect class="label-bg" x="603" y="37" width="114" height="28"/>
-  <text class="label" x="660" y="56">No or uncertain</text>
+  <rect class="label-bg" x="573" y="37" width="104" height="28"/>
+  <text class="label" x="625" y="56">No / uncertain</text>
   <rect class="label-bg" x="562" y="194" width="56" height="28"/>
   <text class="label" x="590" y="213">Yes</text>
 </svg>

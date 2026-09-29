@@ -69,7 +69,7 @@ Use one of the deployment buttons below.
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FMDE-Custom-Data-Collection-Validation%2Fdeployment%2Fazuredeploy.json)
 
-[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FMDE-Custom-Data-Collection-Validation%2Fdeployment%2Fazuredeploy.json)
+[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovernbutton)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FMDE-Custom-Data-Collection-Validation%2Fdeployment%2Fazuredeploy.json)
 
 To import manually instead, open Sentinel **Workbooks** > **+ Add workbook**, select the pencil (Edit) icon, then **Advanced Editor**, and paste the contents of `deployment/MDE-Custom-Data-Collection-Validation.workbook`.
 

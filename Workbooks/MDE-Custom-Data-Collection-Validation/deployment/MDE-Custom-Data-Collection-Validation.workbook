@@ -394,16 +394,16 @@
           },
           {
             "type": 1,
-            "content": { "json": "**Values only seen in custom** - every distinct FileName in the custom feed, checked against the default feed on the same devices and window. OnlyInCustom is 1 and colored green when the default table never saw that value at all, this is your ready made list of good search terms, no guessing needed. A 0 means the value already exists in both, that is the completeness story instead." },
+            "content": { "json": "**Values only seen in custom** - covers the same two fields the search box above filters, FileName and ProcessCommandLine, each checked against the default feed on the same devices and window. OnlyInCustom is 1 and colored green when the default table never saw that value at all, this is your ready made list of good search terms, no guessing needed. A 0 means the value already exists in both, that is the completeness story instead." },
             "name": "pr-onlycustom-header"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let cd = DeviceCustomProcessEvents | where Timestamp {TimeRange} | distinct DeviceName;\nlet defNames = DeviceProcessEvents | where Timestamp {TimeRange} | where DeviceName in (cd) | distinct FileName;\nDeviceCustomProcessEvents\n| where Timestamp {TimeRange}\n| where '{DeviceName}' in ('All Devices','*') or isempty('{DeviceName}') or DeviceName contains '{DeviceName}'\n| summarize Events=count(), Devices=dcount(DeviceName) by FileName\n| extend OnlyInCustom=iff(FileName in (defNames), 0, 1)\n| order by OnlyInCustom desc, Events desc\n| take 10000",
+              "query": "let cd = DeviceCustomProcessEvents | where Timestamp {TimeRange} | distinct DeviceName;\nlet defFileName = DeviceProcessEvents | where Timestamp {TimeRange} | where DeviceName in (cd) | distinct FileName;\nlet defCmdLine = DeviceProcessEvents | where Timestamp {TimeRange} | where DeviceName in (cd) | distinct ProcessCommandLine;\nlet a = DeviceCustomProcessEvents\n| where Timestamp {TimeRange}\n| where '{DeviceName}' in ('All Devices','*') or isempty('{DeviceName}') or DeviceName contains '{DeviceName}'\n| where isnotempty(FileName)\n| summarize Events=count(), Devices=dcount(DeviceName) by Field='FileName', Value=FileName\n| extend OnlyInCustom=iff(Value in (defFileName), 0, 1);\nlet b = DeviceCustomProcessEvents\n| where Timestamp {TimeRange}\n| where '{DeviceName}' in ('All Devices','*') or isempty('{DeviceName}') or DeviceName contains '{DeviceName}'\n| where isnotempty(ProcessCommandLine)\n| summarize Events=count(), Devices=dcount(DeviceName) by Field='ProcessCommandLine', Value=ProcessCommandLine\n| extend OnlyInCustom=iff(Value in (defCmdLine), 0, 1);\nunion a, b\n| order by OnlyInCustom desc, Events desc\n| take 10000",
               "size": 0,
-              "title": "Custom only file names (not seen in default DeviceProcessEvents)",
+              "title": "Custom only values (not seen in default DeviceProcessEvents)",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -412,8 +412,9 @@
                 "filter": true,
                 "rowLimit": 10000,
                 "formatters": [
-                  { "columnMatch": "FileName", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "50%" } },
-                  { "columnMatch": "Events", "formatter": 4, "formatOptions": { "palette": "blue", "min": 0, "customColumnWidthSetting": "20%" } },
+                  { "columnMatch": "Field", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "14%" } },
+                  { "columnMatch": "Value", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "38%" } },
+                  { "columnMatch": "Events", "formatter": 4, "formatOptions": { "palette": "blue", "min": 0, "customColumnWidthSetting": "18%" } },
                   { "columnMatch": "Devices", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "10%" } },
                   { "columnMatch": "OnlyInCustom", "formatter": 4, "formatOptions": { "palette": "green", "min": 0, "max": 1, "customColumnWidthSetting": "20%" } }
                 ]
@@ -547,16 +548,16 @@
           },
           {
             "type": 1,
-            "content": { "json": "**Values only seen in custom** - every distinct RemoteIP in the custom feed, checked against the default feed on the same devices and window. OnlyInCustom is 1 and colored green when the default table never saw that destination at all, this is your ready made list of good search terms, no guessing needed. A 0 means the value already exists in both, that is the completeness story instead." },
+            "content": { "json": "**Values only seen in custom** - covers the same three fields the search box above filters, RemoteUrl, RemoteIP, and InitiatingProcessFileName, each checked against the default feed on the same devices and window. OnlyInCustom is 1 and colored green when the default table never saw that value at all, this is your ready made list of good search terms, no guessing needed. A 0 means the value already exists in both, that is the completeness story instead." },
             "name": "nw-onlycustom-header"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let cd = DeviceCustomNetworkEvents | where Timestamp {TimeRange} | distinct DeviceName;\nlet defIPs = DeviceNetworkEvents | where Timestamp {TimeRange} | where DeviceName in (cd) | distinct RemoteIP;\nDeviceCustomNetworkEvents\n| where Timestamp {TimeRange}\n| where '{DeviceName}' in ('All Devices','*') or isempty('{DeviceName}') or DeviceName contains '{DeviceName}'\n| summarize Events=count(), Devices=dcount(DeviceName) by RemoteIP\n| extend OnlyInCustom=iff(RemoteIP in (defIPs), 0, 1)\n| order by OnlyInCustom desc, Events desc\n| take 10000",
+              "query": "let cd = DeviceCustomNetworkEvents | where Timestamp {TimeRange} | distinct DeviceName;\nlet defUrl = DeviceNetworkEvents | where Timestamp {TimeRange} | where DeviceName in (cd) | distinct RemoteUrl;\nlet defIP = DeviceNetworkEvents | where Timestamp {TimeRange} | where DeviceName in (cd) | distinct RemoteIP;\nlet defProc = DeviceNetworkEvents | where Timestamp {TimeRange} | where DeviceName in (cd) | distinct InitiatingProcessFileName;\nlet a = DeviceCustomNetworkEvents\n| where Timestamp {TimeRange}\n| where '{DeviceName}' in ('All Devices','*') or isempty('{DeviceName}') or DeviceName contains '{DeviceName}'\n| where isnotempty(RemoteUrl)\n| summarize Events=count(), Devices=dcount(DeviceName) by Field='RemoteUrl', Value=RemoteUrl\n| extend OnlyInCustom=iff(Value in (defUrl), 0, 1);\nlet b = DeviceCustomNetworkEvents\n| where Timestamp {TimeRange}\n| where '{DeviceName}' in ('All Devices','*') or isempty('{DeviceName}') or DeviceName contains '{DeviceName}'\n| where isnotempty(RemoteIP)\n| summarize Events=count(), Devices=dcount(DeviceName) by Field='RemoteIP', Value=RemoteIP\n| extend OnlyInCustom=iff(Value in (defIP), 0, 1);\nlet c = DeviceCustomNetworkEvents\n| where Timestamp {TimeRange}\n| where '{DeviceName}' in ('All Devices','*') or isempty('{DeviceName}') or DeviceName contains '{DeviceName}'\n| where isnotempty(InitiatingProcessFileName)\n| summarize Events=count(), Devices=dcount(DeviceName) by Field='InitiatingProcessFileName', Value=InitiatingProcessFileName\n| extend OnlyInCustom=iff(Value in (defProc), 0, 1);\nunion a, b, c\n| order by OnlyInCustom desc, Events desc\n| take 10000",
               "size": 0,
-              "title": "Custom only remote IPs (not seen in default DeviceNetworkEvents)",
+              "title": "Custom only values (not seen in default DeviceNetworkEvents)",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -565,8 +566,9 @@
                 "filter": true,
                 "rowLimit": 10000,
                 "formatters": [
-                  { "columnMatch": "RemoteIP", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "50%" } },
-                  { "columnMatch": "Events", "formatter": 4, "formatOptions": { "palette": "blue", "min": 0, "customColumnWidthSetting": "20%" } },
+                  { "columnMatch": "Field", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "14%" } },
+                  { "columnMatch": "Value", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "38%" } },
+                  { "columnMatch": "Events", "formatter": 4, "formatOptions": { "palette": "blue", "min": 0, "customColumnWidthSetting": "18%" } },
                   { "columnMatch": "Devices", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "10%" } },
                   { "columnMatch": "OnlyInCustom", "formatter": 4, "formatOptions": { "palette": "green", "min": 0, "max": 1, "customColumnWidthSetting": "20%" } }
                 ]
@@ -700,16 +702,16 @@
           },
           {
             "type": 1,
-            "content": { "json": "**Values only seen in custom** - every distinct FileName in the custom feed, checked against the default feed on the same devices and window. OnlyInCustom is 1 and colored green when the default table never saw that file at all, this is your ready made list of good search terms, no guessing needed. Confirmed live example, aggregatestatus.json is 0 in default and over 200,000 in custom." },
+            "content": { "json": "**Values only seen in custom** - covers the same two fields the search box above filters, FileName and FolderPath, each checked against the default feed on the same devices and window. OnlyInCustom is 1 and colored green when the default table never saw that value at all, this is your ready made list of good search terms, no guessing needed. Confirmed live example, aggregatestatus.json is 0 in default and over 200,000 in custom." },
             "name": "fl-onlycustom-header"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let cd = DeviceCustomFileEvents | where Timestamp {TimeRange} | distinct DeviceName;\nlet defNames = DeviceFileEvents | where Timestamp {TimeRange} | where DeviceName in (cd) | distinct FileName;\nDeviceCustomFileEvents\n| where Timestamp {TimeRange}\n| where '{DeviceName}' in ('All Devices','*') or isempty('{DeviceName}') or DeviceName contains '{DeviceName}'\n| summarize Events=count(), Devices=dcount(DeviceName) by FileName\n| extend OnlyInCustom=iff(FileName in (defNames), 0, 1)\n| order by OnlyInCustom desc, Events desc\n| take 10000",
+              "query": "let cd = DeviceCustomFileEvents | where Timestamp {TimeRange} | distinct DeviceName;\nlet defFileName = DeviceFileEvents | where Timestamp {TimeRange} | where DeviceName in (cd) | distinct FileName;\nlet defFolderPath = DeviceFileEvents | where Timestamp {TimeRange} | where DeviceName in (cd) | distinct FolderPath;\nlet a = DeviceCustomFileEvents\n| where Timestamp {TimeRange}\n| where '{DeviceName}' in ('All Devices','*') or isempty('{DeviceName}') or DeviceName contains '{DeviceName}'\n| where isnotempty(FileName)\n| summarize Events=count(), Devices=dcount(DeviceName) by Field='FileName', Value=FileName\n| extend OnlyInCustom=iff(Value in (defFileName), 0, 1);\nlet b = DeviceCustomFileEvents\n| where Timestamp {TimeRange}\n| where '{DeviceName}' in ('All Devices','*') or isempty('{DeviceName}') or DeviceName contains '{DeviceName}'\n| where isnotempty(FolderPath)\n| summarize Events=count(), Devices=dcount(DeviceName) by Field='FolderPath', Value=FolderPath\n| extend OnlyInCustom=iff(Value in (defFolderPath), 0, 1);\nunion a, b\n| order by OnlyInCustom desc, Events desc\n| take 10000",
               "size": 0,
-              "title": "Custom only file names (not seen in default DeviceFileEvents)",
+              "title": "Custom only values (not seen in default DeviceFileEvents)",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -718,8 +720,9 @@
                 "filter": true,
                 "rowLimit": 10000,
                 "formatters": [
-                  { "columnMatch": "FileName", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "50%" } },
-                  { "columnMatch": "Events", "formatter": 4, "formatOptions": { "palette": "blue", "min": 0, "customColumnWidthSetting": "20%" } },
+                  { "columnMatch": "Field", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "14%" } },
+                  { "columnMatch": "Value", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "38%" } },
+                  { "columnMatch": "Events", "formatter": 4, "formatOptions": { "palette": "blue", "min": 0, "customColumnWidthSetting": "18%" } },
                   { "columnMatch": "Devices", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "10%" } },
                   { "columnMatch": "OnlyInCustom", "formatter": 4, "formatOptions": { "palette": "green", "min": 0, "max": 1, "customColumnWidthSetting": "20%" } }
                 ]
@@ -853,16 +856,16 @@
           },
           {
             "type": 1,
-            "content": { "json": "**Values only seen in custom** - every distinct RegistryKey in the custom feed, checked against the default feed on the same devices and window. OnlyInCustom is 1 and colored green when the default table never saw that key at all, this is your ready made list of good search terms, no guessing needed. Confirmed live example, RDInfraAgent is 0 in default and over 125,000 in custom." },
+            "content": { "json": "**Values only seen in custom** - covers the same two fields the search box above filters, RegistryKey and RegistryValueName, each checked against the default feed on the same devices and window. OnlyInCustom is 1 and colored green when the default table never saw that value at all, this is your ready made list of good search terms, no guessing needed. Confirmed live example, RDInfraAgent is 0 in default and over 125,000 in custom." },
             "name": "rg-onlycustom-header"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let cd = union isfuzzy=true (datatable(Timestamp:datetime, DeviceName:string)[]), (DeviceCustomRegistryEvents) | where Timestamp {TimeRange} | distinct DeviceName;\nlet defKeys = DeviceRegistryEvents | where Timestamp {TimeRange} | where DeviceName in (cd) | distinct RegistryKey;\nDeviceCustomRegistryEvents\n| where Timestamp {TimeRange}\n| where '{DeviceName}' in ('All Devices','*') or isempty('{DeviceName}') or DeviceName contains '{DeviceName}'\n| summarize Events=count(), Devices=dcount(DeviceName) by RegistryKey\n| extend OnlyInCustom=iff(RegistryKey in (defKeys), 0, 1)\n| order by OnlyInCustom desc, Events desc\n| take 10000",
+              "query": "let cd = union isfuzzy=true (datatable(Timestamp:datetime, DeviceName:string)[]), (DeviceCustomRegistryEvents) | where Timestamp {TimeRange} | distinct DeviceName;\nlet defKeys = DeviceRegistryEvents | where Timestamp {TimeRange} | where DeviceName in (cd) | distinct RegistryKey;\nlet defValueNames = DeviceRegistryEvents | where Timestamp {TimeRange} | where DeviceName in (cd) | distinct RegistryValueName;\nlet a = DeviceCustomRegistryEvents\n| where Timestamp {TimeRange}\n| where '{DeviceName}' in ('All Devices','*') or isempty('{DeviceName}') or DeviceName contains '{DeviceName}'\n| where isnotempty(RegistryKey)\n| summarize Events=count(), Devices=dcount(DeviceName) by Field='RegistryKey', Value=RegistryKey\n| extend OnlyInCustom=iff(Value in (defKeys), 0, 1);\nlet b = DeviceCustomRegistryEvents\n| where Timestamp {TimeRange}\n| where '{DeviceName}' in ('All Devices','*') or isempty('{DeviceName}') or DeviceName contains '{DeviceName}'\n| where isnotempty(RegistryValueName)\n| summarize Events=count(), Devices=dcount(DeviceName) by Field='RegistryValueName', Value=RegistryValueName\n| extend OnlyInCustom=iff(Value in (defValueNames), 0, 1);\nunion a, b\n| order by OnlyInCustom desc, Events desc\n| take 10000",
               "size": 0,
-              "title": "Custom only registry keys (not seen in default DeviceRegistryEvents)",
+              "title": "Custom only values (not seen in default DeviceRegistryEvents)",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -871,8 +874,9 @@
                 "filter": true,
                 "rowLimit": 10000,
                 "formatters": [
-                  { "columnMatch": "RegistryKey", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "55%" } },
-                  { "columnMatch": "Events", "formatter": 4, "formatOptions": { "palette": "blue", "min": 0, "customColumnWidthSetting": "15%" } },
+                  { "columnMatch": "Field", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "16%" } },
+                  { "columnMatch": "Value", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "36%" } },
+                  { "columnMatch": "Events", "formatter": 4, "formatOptions": { "palette": "blue", "min": 0, "customColumnWidthSetting": "18%" } },
                   { "columnMatch": "Devices", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "10%" } },
                   { "columnMatch": "OnlyInCustom", "formatter": 4, "formatOptions": { "palette": "green", "min": 0, "max": 1, "customColumnWidthSetting": "20%" } }
                 ]
@@ -1006,16 +1010,16 @@
           },
           {
             "type": 1,
-            "content": { "json": "**Values only seen in custom** - every distinct FileName in the custom feed, checked against the default feed on the same devices and window. OnlyInCustom is 1 and colored green when the default table never saw that module load at all, this is your ready made list of good search terms, no guessing needed. Confirmed live example, wmidcom.dll is 0 in default and over 230,000 in custom." },
+            "content": { "json": "**Values only seen in custom** - covers the same two fields the search box above filters, FileName and FolderPath, each checked against the default feed on the same devices and window. OnlyInCustom is 1 and colored green when the default table never saw that value at all, this is your ready made list of good search terms, no guessing needed. Confirmed live example, wmidcom.dll is 0 in default and over 230,000 in custom." },
             "name": "il-onlycustom-header"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let cd = DeviceCustomImageLoadEvents | where Timestamp {TimeRange} | distinct DeviceName;\nlet defNames = DeviceImageLoadEvents | where Timestamp {TimeRange} | where DeviceName in (cd) | distinct FileName;\nDeviceCustomImageLoadEvents\n| where Timestamp {TimeRange}\n| where '{DeviceName}' in ('All Devices','*') or isempty('{DeviceName}') or DeviceName contains '{DeviceName}'\n| summarize Events=count(), Devices=dcount(DeviceName) by FileName\n| extend OnlyInCustom=iff(FileName in (defNames), 0, 1)\n| order by OnlyInCustom desc, Events desc\n| take 10000",
+              "query": "let cd = DeviceCustomImageLoadEvents | where Timestamp {TimeRange} | distinct DeviceName;\nlet defFileName = DeviceImageLoadEvents | where Timestamp {TimeRange} | where DeviceName in (cd) | distinct FileName;\nlet defFolderPath = DeviceImageLoadEvents | where Timestamp {TimeRange} | where DeviceName in (cd) | distinct FolderPath;\nlet a = DeviceCustomImageLoadEvents\n| where Timestamp {TimeRange}\n| where '{DeviceName}' in ('All Devices','*') or isempty('{DeviceName}') or DeviceName contains '{DeviceName}'\n| where isnotempty(FileName)\n| summarize Events=count(), Devices=dcount(DeviceName) by Field='FileName', Value=FileName\n| extend OnlyInCustom=iff(Value in (defFileName), 0, 1);\nlet b = DeviceCustomImageLoadEvents\n| where Timestamp {TimeRange}\n| where '{DeviceName}' in ('All Devices','*') or isempty('{DeviceName}') or DeviceName contains '{DeviceName}'\n| where isnotempty(FolderPath)\n| summarize Events=count(), Devices=dcount(DeviceName) by Field='FolderPath', Value=FolderPath\n| extend OnlyInCustom=iff(Value in (defFolderPath), 0, 1);\nunion a, b\n| order by OnlyInCustom desc, Events desc\n| take 10000",
               "size": 0,
-              "title": "Custom only file names (not seen in default DeviceImageLoadEvents)",
+              "title": "Custom only values (not seen in default DeviceImageLoadEvents)",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -1024,8 +1028,9 @@
                 "filter": true,
                 "rowLimit": 10000,
                 "formatters": [
-                  { "columnMatch": "FileName", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "50%" } },
-                  { "columnMatch": "Events", "formatter": 4, "formatOptions": { "palette": "blue", "min": 0, "customColumnWidthSetting": "20%" } },
+                  { "columnMatch": "Field", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "14%" } },
+                  { "columnMatch": "Value", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "38%" } },
+                  { "columnMatch": "Events", "formatter": 4, "formatOptions": { "palette": "blue", "min": 0, "customColumnWidthSetting": "18%" } },
                   { "columnMatch": "Devices", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "10%" } },
                   { "columnMatch": "OnlyInCustom", "formatter": 4, "formatOptions": { "palette": "green", "min": 0, "max": 1, "customColumnWidthSetting": "20%" } }
                 ]
@@ -1159,16 +1164,16 @@
           },
           {
             "type": 1,
-            "content": { "json": "**Values only seen in custom** - every distinct InitiatingProcessFileName in the custom feed, checked against script related default DeviceEvents on the same devices and window. OnlyInCustom is 1 and colored green when the default table never saw that process running a script at all, this is your ready made list of good search terms, no guessing needed. Confirmed live example, gc_worker.exe is 0 in default and over 375,000 in custom. Note powershell.exe usually shows 0 here since default AMSI logging already sees it, that is expected and is the completeness story instead." },
+            "content": { "json": "**Values only seen in custom** - covers the same two fields the search box above filters, ScriptContent and InitiatingProcessCommandLine, each checked against script related default DeviceEvents on the same devices and window (ScriptContent is parsed out of the default table's AdditionalFields JSON to make the comparison fair). OnlyInCustom is 1 and colored green when the default table never saw that value at all, this is your ready made list of good search terms, no guessing needed. Confirmed live example, gc_worker.exe command lines are 0 in default and over 375,000 in custom. Note powershell.exe content usually shows 0 here since default AMSI logging already sees it, that is expected and is the completeness story instead." },
             "name": "sc-onlycustom-header"
           },
           {
             "type": 3,
             "content": {
               "version": "KqlItem/1.0",
-              "query": "let cd = DeviceCustomScriptEvents | where Timestamp {TimeRange} | distinct DeviceName;\nlet defNames = DeviceEvents | where Timestamp {TimeRange} | where DeviceName in (cd) and ActionType has_any ('ScriptContent','PowerShellCommand','AmsiScriptContent','ScriptExecution') | distinct InitiatingProcessFileName;\nDeviceCustomScriptEvents\n| where Timestamp {TimeRange}\n| where '{DeviceName}' in ('All Devices','*') or isempty('{DeviceName}') or DeviceName contains '{DeviceName}'\n| summarize Events=count(), Devices=dcount(DeviceName) by InitiatingProcessFileName\n| extend OnlyInCustom=iff(InitiatingProcessFileName in (defNames), 0, 1)\n| order by OnlyInCustom desc, Events desc\n| take 10000",
+              "query": "let cd = DeviceCustomScriptEvents | where Timestamp {TimeRange} | distinct DeviceName;\nlet defScriptContent = DeviceEvents | where Timestamp {TimeRange} | where DeviceName in (cd) and ActionType has_any ('ScriptContent','PowerShellCommand','AmsiScriptContent','ScriptExecution') | extend ScriptContent = tostring(parse_json(AdditionalFields).ScriptContent) | distinct ScriptContent;\nlet defCmdLine = DeviceEvents | where Timestamp {TimeRange} | where DeviceName in (cd) and ActionType has_any ('ScriptContent','PowerShellCommand','AmsiScriptContent','ScriptExecution') | distinct InitiatingProcessCommandLine;\nlet a = DeviceCustomScriptEvents\n| where Timestamp {TimeRange}\n| where '{DeviceName}' in ('All Devices','*') or isempty('{DeviceName}') or DeviceName contains '{DeviceName}'\n| where isnotempty(ScriptContent)\n| summarize Events=count(), Devices=dcount(DeviceName) by Field='ScriptContent', Value=ScriptContent\n| extend OnlyInCustom=iff(Value in (defScriptContent), 0, 1);\nlet b = DeviceCustomScriptEvents\n| where Timestamp {TimeRange}\n| where '{DeviceName}' in ('All Devices','*') or isempty('{DeviceName}') or DeviceName contains '{DeviceName}'\n| where isnotempty(InitiatingProcessCommandLine)\n| summarize Events=count(), Devices=dcount(DeviceName) by Field='InitiatingProcessCommandLine', Value=InitiatingProcessCommandLine\n| extend OnlyInCustom=iff(Value in (defCmdLine), 0, 1);\nunion a, b\n| order by OnlyInCustom desc, Events desc\n| take 10000",
               "size": 0,
-              "title": "Custom only script hosts (not seen in default script related DeviceEvents)",
+              "title": "Custom only values (not seen in default script related DeviceEvents)",
               "timeContextFromParameter": "TimeRange",
               "queryType": 0,
               "resourceType": "microsoft.operationalinsights/workspaces",
@@ -1177,8 +1182,9 @@
                 "filter": true,
                 "rowLimit": 10000,
                 "formatters": [
-                  { "columnMatch": "InitiatingProcessFileName", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "50%" } },
-                  { "columnMatch": "Events", "formatter": 4, "formatOptions": { "palette": "blue", "min": 0, "customColumnWidthSetting": "20%" } },
+                  { "columnMatch": "Field", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "18%" } },
+                  { "columnMatch": "Value", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "34%" } },
+                  { "columnMatch": "Events", "formatter": 4, "formatOptions": { "palette": "blue", "min": 0, "customColumnWidthSetting": "18%" } },
                   { "columnMatch": "Devices", "formatter": 0, "formatOptions": { "customColumnWidthSetting": "10%" } },
                   { "columnMatch": "OnlyInCustom", "formatter": 4, "formatOptions": { "palette": "green", "min": 0, "max": 1, "customColumnWidthSetting": "20%" } }
                 ]

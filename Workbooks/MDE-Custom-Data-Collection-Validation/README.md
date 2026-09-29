@@ -1,10 +1,21 @@
-# MDE Custom Data Collection, Validation Workbook
+# MDE Custom Data Collection Validation Workbook
 
-Sentinel workbook plus a companion deck for teaching and validating MDE Custom Data Collection rules across all six `DeviceCustom*Events` tables. Every tab compares the default sensor table against the custom rule feed on the same devices and time window, and highlights values only the custom feed sees.
+A Microsoft Sentinel workbook for teaching and validating MDE Custom Data Collection rules across all six `DeviceCustom*Events` tables. Every tab compares the default sensor table against the custom rule feed on the same devices and time window, and highlights values only the custom feed sees, so a class or a validation pass has a concrete, provable answer instead of a guess.
 
 ---
 
-## What It Shows
+## What This Package Contains
+
+| Path | Description |
+|---|---|
+| `deployment/MDE-Custom-Data-Collection-Validation.workbook` | Importable Microsoft Sentinel workbook definition |
+| `deployment/azuredeploy.json` | One click ARM deployment template (Commercial plus Gov) |
+| `support/Invoke-Regsvr32SquiblydooGenerator.ps1` | Generates regsvr32 Squiblydoo activity so the tables have real data to compare |
+| `support/Invoke-MDECustomTelemetryProbe.ps1` | Fires one benign, marker tagged event into all six custom tables to confirm a rule is streaming |
+
+---
+
+## Tab Guide
 
 | Tab | Default table | Custom table | What the tab proves |
 |---|---|---|---|
@@ -41,7 +52,7 @@ Requires MDE Plan 2 and a Sentinel workspace already connected to the tenant. Te
 
 - MDE Plan 2.
 - A Sentinel enabled Log Analytics workspace, one per tenant, connected before rules are created.
-- Permission to create custom data collection rules and to open the target workbook in Sentinel.
+- Permission to create custom data collection rules and to deploy or import the workbook.
 
 ## Known Limitations
 
@@ -50,13 +61,17 @@ Requires MDE Plan 2 and a Sentinel workspace already connected to the tenant. Te
 - File on Linux (preview) drops `FileModified` and uses Linux paths, it is a separate rule and a separate workbook tab state, not a toggle on the Windows rule.
 - Registry has no dedicated default advanced hunting experience for several action types (Queried, Enumerated), so the custom feed is the only view for those.
 
-## Files
+---
 
-- `MDE-Custom-Data-Collection-Validation.workbook`: the Sentinel workbook, tabs for Overview, Process, Network, File, Registry, Image load, Script.
-- `MDE-Custom-Data-Collection-Regsvr32-MSFT-Template.pptx`: the teaching deck, walks the same six tables plus a regsvr32 Squiblydoo use case.
-- `MDE-Custom-Data-Collection-Broad-Starter-Rules.docx`: the exact rules used to turn telemetry on for testing, see above.
-- `Invoke-Regsvr32SquiblydooGenerator.ps1`: generates the regsvr32 activity used in the deck.
-- `Invoke-MDECustomTelemetryProbe.ps1`: validation probe for confirming a rule is streaming.
+## How To Deploy
+
+Use one of the deployment buttons below.
+
+[![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FMDE-Custom-Data-Collection-Validation%2Fdeployment%2Fazuredeploy.json)
+
+[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FWorkbooks%2FMDE-Custom-Data-Collection-Validation%2Fdeployment%2Fazuredeploy.json)
+
+To import manually instead, open Sentinel **Workbooks** > **+ Add workbook**, select the pencil (Edit) icon, then **Advanced Editor**, and paste the contents of `deployment/MDE-Custom-Data-Collection-Validation.workbook`.
 
 ## How To Use This Workbook
 
@@ -65,6 +80,6 @@ Requires MDE Plan 2 and a Sentinel workspace already connected to the tenant. Te
 3. Start on **Overview** to confirm which tables have custom collection turned on and how much volume each is adding.
 4. Walk each table tab, compare the default and custom grids side by side, then use the **Values only seen in custom** grid to pick a real search term and confirm the split yourself.
 
-## License
+## License And Attribution
 
 MIT, same as the parent [Defender_XDR](https://github.com/johnB007/Defender_XDR) repo.

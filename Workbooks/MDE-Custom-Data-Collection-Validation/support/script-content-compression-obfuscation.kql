@@ -1,0 +1,16 @@
+// Hunt: Compression based payload obfuscation in script content
+// Table: DeviceCustomScriptEvents
+// Purpose: Detect scripts that decompress an embedded Gzip or Deflate stream
+//          after a base64 decode, a common second stage loader pattern used to
+//          shrink and obscure a larger payload before execution in memory.
+// Validated: success, rows returned against live SOC-Central data (7 day window).
+//          Sample hits in this tenant were MDE Sense DataCollection PS1
+//          wrapper scripts, confirmed benign, useful as a baseline for tuning.
+DeviceCustomScriptEvents
+| where Timestamp > ago(7d)
+| where isnotempty(ScriptContent)
+| where ScriptContent has_any ('IO.Compression.GzipStream', 'IO.Compression.DeflateStream', 'System.IO.Compression', 'FromBase64String')
+    and ScriptContent has_any ('MemoryStream', 'Convert]::FromBase64String')
+| project Timestamp, DeviceName, InitiatingProcessFileName, InitiatingProcessCommandLine, RuleName
+| order by Timestamp desc
+| take 10000

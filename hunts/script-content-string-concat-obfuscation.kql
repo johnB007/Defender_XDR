@@ -1,0 +1,20 @@
+// Hunt: Heavy string concatenation obfuscation in script content
+// Table: DeviceCustomScriptEvents
+// Purpose: Obfuscation tools such as Invoke-Obfuscation commonly split a
+//          sensitive keyword like Invoke-Expression into many short quoted
+//          fragments joined with the + operator, to defeat simple keyword
+//          matching. A high raw count of + operators on a single script
+//          content value is a cheap, robust heuristic for this pattern and
+//          avoids fragile quote escaped regex.
+// Validated: success, rows returned against live SOC-Central data (7 day window).
+//          Threshold of 8 is tuned from real samples; raise it if a specific
+//          environment has legitimately math heavy scripts and generates
+//          excess noise.
+DeviceCustomScriptEvents
+| where Timestamp > ago(7d)
+| where isnotempty(ScriptContent)
+| extend ConcatHits = countof(ScriptContent, '+')
+| where ConcatHits >= 8
+| project Timestamp, DeviceName, InitiatingProcessFileName, ConcatHits, RuleName
+| order by ConcatHits desc
+| take 10000

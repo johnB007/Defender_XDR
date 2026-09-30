@@ -1,0 +1,15 @@
+// Hunt: URLs or domains embedded in custom script content
+// Table: DeviceCustomScriptEvents
+// Purpose: Surface any http or https URL appearing inside a script body
+//          captured by MDE custom data collection. Useful for spotting
+//          staging servers, exfil endpoints, or download cradle targets.
+// Validated: success, rows returned against live SOC-Central data (7 day window).
+DeviceCustomScriptEvents
+| where Timestamp > ago(7d)
+| where isnotempty(ScriptContent)
+| extend URLMatches = extract_all(@'(https?://[a-zA-Z0-9\.\-_/:%?=&#]+)', ScriptContent)
+| where array_length(URLMatches) > 0
+| mv-expand Url = URLMatches to typeof(string)
+| summarize Devices = dcount(DeviceName), Events = count(), FirstSeen = min(Timestamp), LastSeen = max(Timestamp) by Url, InitiatingProcessFileName
+| order by Events desc
+| take 10000

@@ -1,0 +1,15 @@
+// Hunt: Download cradle indicators in script content
+// Table: DeviceCustomScriptEvents
+// Purpose: Detect the classic download and execute pattern where a script
+//          pulls remote content with WebClient, Invoke-WebRequest, or
+//          Start-BitsTransfer and then feeds it straight into Invoke-Expression
+//          or the iex alias, without ever writing the payload to disk.
+// Validated: success, rows returned against live SOC-Central data (7 day window).
+DeviceCustomScriptEvents
+| where Timestamp > ago(7d)
+| where isnotempty(ScriptContent)
+| where ScriptContent has_any ('Net.WebClient', 'DownloadString', 'DownloadFile', 'Invoke-WebRequest', 'iwr ', 'Start-BitsTransfer')
+    and ScriptContent has_any ('IEX', 'Invoke-Expression', 'iex ')
+| project Timestamp, DeviceName, InitiatingProcessFileName, InitiatingProcessAccountName, RuleName
+| order by Timestamp desc
+| take 10000

@@ -1,0 +1,16 @@
+// Hunt: Reflection and in-memory execution indicators in script content
+// Table: DeviceCustomScriptEvents
+// Purpose: Detect use of .NET reflection and unmanaged memory APIs commonly
+//          used to load and run a payload entirely in memory without ever
+//          dropping an executable to disk, for example a reflective PE loader
+//          or shellcode runner.
+// Validated: success, rows returned against live SOC-Central data (7 day window).
+//          Sample hits in this tenant were MDE Sense DataCollection PS1
+//          wrapper scripts, confirmed benign, useful as a baseline for tuning.
+DeviceCustomScriptEvents
+| where Timestamp > ago(7d)
+| where isnotempty(ScriptContent)
+| where ScriptContent has_any ('Reflection.Assembly', '[Reflection.Assembly]', 'Assembly]::Load', 'Marshal]::', 'VirtualAlloc', 'CreateThread', 'WriteProcessMemory', 'GetDelegateForFunctionPointer')
+| project Timestamp, DeviceName, InitiatingProcessFileName, InitiatingProcessAccountName, InitiatingProcessCommandLine, RuleName
+| order by Timestamp desc
+| take 10000

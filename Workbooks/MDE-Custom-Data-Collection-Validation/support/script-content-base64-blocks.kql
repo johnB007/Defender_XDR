@@ -1,0 +1,17 @@
+// Hunt: Long base64 encoded blocks embedded in custom script content
+// Table: DeviceCustomScriptEvents
+// Purpose: Surface script bodies containing a contiguous base64 like run of
+//          80 or more characters. Legitimate scripts rarely contain long
+//          base64 blocks outside of certificate or hash material, while
+//          obfuscated payloads and staged second stage code frequently do.
+// Validated: success, rows returned against live SOC-Central data (7 day window).
+DeviceCustomScriptEvents
+| where Timestamp > ago(7d)
+| where isnotempty(ScriptContent)
+| extend Base64Blocks = extract_all(@'([A-Za-z0-9+/]{80,}={0,2})', ScriptContent)
+| where array_length(Base64Blocks) > 0
+| mv-expand B64 = Base64Blocks to typeof(string)
+| extend B64Length = strlen(B64)
+| summarize Devices = dcount(DeviceName), Events = count(), MaxBlockLength = max(B64Length), SampleBlock = any(B64) by InitiatingProcessFileName, InitiatingProcessCommandLine
+| order by Events desc
+| take 10000

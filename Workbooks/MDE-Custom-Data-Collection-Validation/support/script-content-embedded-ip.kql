@@ -1,0 +1,22 @@
+// Hunt: Hardcoded IPv4 addresses embedded in custom script content
+// Table: DeviceCustomScriptEvents
+// Purpose: Surface any IPv4 literal appearing inside a script body captured by
+//          MDE custom data collection (AmsiScriptContent). Threat actors often
+//          hardcode a callback or staging IP directly in a dropped script
+//          rather than a domain name, to avoid DNS based detection.
+// Validated: success, rows returned against live SOC-Central data (7 day window).
+// Known noise: assembly or module version strings such as "1.0.0.0" or
+//          "3.1.0.0" match the IPv4 pattern and will appear in results.
+//          Treat single digit leading octets with trailing .0.0 as lower
+//          priority and triage private/reserved ranges separately from
+//          public routable IPs.
+DeviceCustomScriptEvents
+| where Timestamp > ago(7d)
+| where isnotempty(ScriptContent)
+| extend IPMatches = extract_all(@'((?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)', ScriptContent)
+| where array_length(IPMatches) > 0
+| mv-expand IP = IPMatches to typeof(string)
+| where IP !startswith '127.' and IP != '0.0.0.0'
+| summarize Devices = dcount(DeviceName), Events = count(), FirstSeen = min(Timestamp), LastSeen = max(Timestamp) by IP, InitiatingProcessFileName
+| order by Events desc
+| take 10000

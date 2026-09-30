@@ -1,0 +1,20 @@
+// Hunt: PowerShell -EncodedCommand extraction and decode
+// Table: DeviceCustomScriptEvents
+// Purpose: Pull the base64 payload out of a -EncodedCommand invocation on the
+//          initiating process command line and decode it for review. PowerShell
+//          encodes -EncodedCommand as UTF-16LE, so the decoded text will show
+//          interleaved null bytes when rendered as plain UTF-8. This is
+//          expected and not a query defect. For clean text, post process the
+//          EncodedPortion with base64_decode_toarray plus a UTF-16 aware
+//          string conversion outside of KQL, or eyeball the decoded text with
+//          the nulls stripped.
+// Validated: success, rows returned against live SOC-Central data (7 day window).
+DeviceCustomScriptEvents
+| where Timestamp > ago(7d)
+| where InitiatingProcessCommandLine contains '-EncodedCommand'
+| extend EncodedPortion = extract(@'(?i)encodedcommand\s+([A-Za-z0-9+/=]{20,})', 1, InitiatingProcessCommandLine)
+| where isnotempty(EncodedPortion)
+| extend DecodedAttempt = base64_decode_tostring(EncodedPortion)
+| project Timestamp, DeviceName, InitiatingProcessFileName, InitiatingProcessAccountName, EncodedPortion, DecodedAttempt, RuleName
+| order by Timestamp desc
+| take 10000

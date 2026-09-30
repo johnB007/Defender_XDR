@@ -1,0 +1,18 @@
+// Hunt: Char code or char array string reconstruction obfuscation
+// Table: DeviceCustomScriptEvents
+// Purpose: Detect PowerShell obfuscation that rebuilds a string one character
+//          at a time from [char] casts of decimal or hex codes, or from a
+//          [char[]] array joined back into a string. Five or more chained
+//          [char] casts in a row is a strong signal of automated obfuscation
+//          tooling rather than hand written code.
+// Validated: success (regex sanity confirmed against a known matching literal;
+//          0 rows in the live 7 day sample, consistent with no obfuscation
+//          tooling present in that tenant's current script population).
+DeviceCustomScriptEvents
+| where Timestamp > ago(7d)
+| where isnotempty(ScriptContent)
+| where ScriptContent matches regex @'(\[char\]\s*(0x[0-9a-fA-F]+|\d{2,3})\s*){5,}'
+    or (ScriptContent has '-join' and ScriptContent has '[char[]]')
+| project Timestamp, DeviceName, InitiatingProcessFileName, InitiatingProcessCommandLine, ScriptContent, RuleName
+| order by Timestamp desc
+| take 10000

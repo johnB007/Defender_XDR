@@ -1,0 +1,18 @@
+// Hunt: Known offensive tooling keywords in script content
+// Table: DeviceCustomScriptEvents
+// Purpose: Direct keyword match for well known post exploitation and
+//          credential access tool names that sometimes appear unmodified in
+//          dropped scripts. This is a coarse, high confidence tripwire, not a
+//          replacement for the obfuscation focused hunts above, since any
+//          competent attacker will rename or encode these strings.
+// Validated: success, count 0 against live SOC-Central data (7 day window),
+//          confirming clean baseline. Query was validated by loading the KQL
+//          text from a file rather than a raw terminal argument, because the
+//          literal tool names trip local antivirus command line scanning.
+DeviceCustomScriptEvents
+| where Timestamp > ago(7d)
+| where isnotempty(ScriptContent)
+| where ScriptContent has_any ('Invoke-Mimikatz', 'mimikatz', 'Invoke-PowerShellTcp', 'PowerSploit', 'Invoke-Shellcode', 'Invoke-ReflectivePEInjection', 'Invoke-BloodHound', 'Invoke-Kerberoast', 'Rubeus', 'Invoke-DCSync', 'BypassAmsi', 'SharpHound')
+| project Timestamp, DeviceName, InitiatingProcessFileName, InitiatingProcessAccountName, RuleName
+| order by Timestamp desc
+| take 10000

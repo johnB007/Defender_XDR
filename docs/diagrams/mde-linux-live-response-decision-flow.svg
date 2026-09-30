@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="320" viewBox="0 0 1200 320" role="img" aria-labelledby="title desc">
   <title id="title">MDE Linux Live Response troubleshooting workflow</title>
-  <desc id="desc">Connect to the Linux device, run the IL5 connectivity analyzer, review results, run full diagnostics when needed, retrieve evidence, and clean up device archives.</desc>
+  <desc id="desc">Connect to the Linux device, run the IL5 connectivity and government Blob analyzer, review results, run full diagnostics when needed, retrieve standalone HTML or bounded evidence, and clean up exact device paths.</desc>
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
       <path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/>
@@ -23,7 +23,7 @@
 
   <rect class="box" x="215" y="75" width="205" height="110"/>
   <text class="text" x="317" y="108">Run IL5 analyzer</text>
-  <text class="small" x="317" y="132">DNS, TCP, TLS, HTTP</text>
+  <text class="small" x="317" y="132">DNS, TCP, TLS, HTTP, Blob</text>
   <text class="small" x="317" y="153">MDE health and native test</text>
 
   <polygon class="decision" points="520,65 620,130 520,195 420,130"/>
@@ -36,13 +36,13 @@
   <text class="small" x="787" y="103">native and support bundles</text>
 
   <rect class="box" x="680" y="175" width="215" height="80"/>
-  <text class="text" x="787" y="208">Retrieve archive</text>
-  <text class="small" x="787" y="232">getfile /tmp/file.tar.gz</text>
+  <text class="text" x="787" y="208">Retrieve results</text>
+  <text class="small" x="787" y="232">HTML first; archive if needed</text>
 
   <rect class="done" x="935" y="165" width="245" height="100"/>
   <text class="text" x="1057" y="198">Review and clean up</text>
-  <text class="small" x="1057" y="224">Open HTML and retain evidence</text>
-  <text class="small" x="1057" y="246">Delete exact /tmp archive</text>
+  <text class="small" x="1057" y="224">Review HTML and bounded evidence</text>
+  <text class="small" x="1057" y="246">Delete exact /tmp files</text>
 
   <path class="line" d="M170 130 H215"/>
   <path class="line" d="M420 130 H420"/>

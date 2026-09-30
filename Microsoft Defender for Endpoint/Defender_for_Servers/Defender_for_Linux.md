@@ -1,4 +1,4 @@
-# MDE Linux Server Deployment Guide for IL5 (On-Prem and Azure VMs) NOT FINAL
+# MDE Linux Server Deployment Guide for IL5 (On-Prem and Azure VMs)
 
 **Document Type:** Step-by-Step Deployment Guide  \
 **Environment:** DoD only (IL5 / USGovDoD)  \

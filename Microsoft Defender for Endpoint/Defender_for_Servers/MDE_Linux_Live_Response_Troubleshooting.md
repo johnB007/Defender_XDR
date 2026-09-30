@@ -14,7 +14,7 @@
 | **MDE requirement** | Agent version `101.45.13` or later for Linux Live Response |
 | **Primary workflow** | Connectivity analyzer first, full diagnostics when failed or uncertain |
 | **Safety** | The supplied scripts are read only; `remediate` is destructive |
-| **Validated** | September 28, 2026 |
+| **Validated** | September 29, 2026 |
 
 > [!IMPORTANT]
 > Live Response is not a normal Bash prompt. Enter only Live Response commands in the console. Run Linux commands through an uploaded Bash script with `run`. Always use `help <command>` to confirm the syntax exposed by the current service.
@@ -67,8 +67,8 @@ Confirm the following before depending on Live Response:
 
 | Script | Use it for | Expected output |
 |---|---|---|
-| `LinuxMDEConnectivityAnalyzer-IL5.sh` | Fast DoD IL5 network, endpoint, TLS, proxy, MDE health, and native connectivity validation | `/tmp/IL5MDEConnectivity_<device>_<UTC>.tar.gz` |
-| `Collect-MDELinuxDiagnostics.sh` | Full troubleshooting and Microsoft support evidence when connectivity passes but MDE is unhealthy or inconsistent | `/tmp/MDELinuxDiagnostics_<device>_<UTC>.tar.gz` |
+| `LinuxMDEConnectivityAnalyzer-IL5.sh` | Fast DoD IL5 network, government Blob transfer, TLS, proxy, MDE health, and native connectivity validation | Standalone `.html` report and optional `.tar.gz` evidence archive |
+| `Collect-MDELinuxDiagnostics.sh` | Full troubleshooting and bounded Microsoft support evidence when connectivity passes but MDE is unhealthy or inconsistent | Standalone `.html` report and optional `.tar.gz` evidence archive |
 
 Upload from **Live Response > Upload file to library** or from **Settings > Endpoints > Live response > Library management**. Library filenames can use letters, numbers, hyphens, underscores, and periods.
 
@@ -87,6 +87,8 @@ foreach ($script in $scripts) {
 ```
 
 Errors such as `$'\r': command not found`, malformed `pipefail`, or `octal number out of range077` mean the uploaded file was converted to CRLF. Delete that library copy and upload the LF-only file.
+
+After uploading or replacing either script, disconnect any existing session and start a new Live Response session. An active session can retain the library snapshot that existed when the session started.
 
 Verify availability:
 
@@ -121,19 +123,21 @@ The script is read only. It checks:
 - TLS negotiation and certificate validation
 - HTTP transport and response codes
 - DoD IL5 MDE endpoints and required global dependencies
+- The documented DoD Azure Government Blob baseline used to validate the `*.blob.core.usgovcloudapi.net:443` transfer path
+- Concrete Azure Government Blob hosts observed in local MDE connectivity or journal evidence
 - Native `mdatp connectivity test`
 - MDE health, licensing, and cloud state
 - MDE service status and recent journal
 - Routes, DNS configuration, clock synchronization, FIPS state, and proxy-variable presence
 - Local nftables, iptables, and firewalld evidence
 
-Copy the exact archive path printed after `Saved:` and retrieve it:
+The script prints two retrieval choices. Retrieve the standalone HTML report for normal review:
 
 ```text
-getfile "/tmp/IL5MDEConnectivity_<device>_<UTC>.tar.gz"
+getfile "/tmp/IL5MDEConnectivity_<device>_<UTC>.html"
 ```
 
-For a large download, run it in the background:
+Retrieve the evidence archive only when raw CSV, TLS, MDE, network, or firewall evidence is required:
 
 ```text
 getfile "/tmp/IL5MDEConnectivity_<device>_<UTC>.tar.gz" &
@@ -142,7 +146,7 @@ status <command_ID>
 fg <command_ID>
 ```
 
-Extract the archive on the analyst workstation and open:
+The standalone HTML opens directly. If you retrieved the evidence archive, extract it and open:
 
 ```text
 IL5-MDE-Connectivity-Report.html
@@ -171,6 +175,11 @@ Start-Process "$folder\IL5-MDE-Connectivity-Report.html"
 | Direct TCP `FAIL` | The target port could not be opened directly | Check firewall, proxy-only design, routing, and endpoint allowlists |
 | TLS verify other than `0` | Certificate verification failed | Check trust store, device time, and TLS break-and-inspect |
 | Native `mdatp connectivity test` failure | The installed agent could not reach one or more concrete service endpoints | Treat this as authoritative agent-path evidence and investigate the reported host |
+| Government Blob baseline returns HTTP 4xx | DNS, TCP, TLS, and HTTP reached Azure Government Blob Storage; anonymous access was rejected as expected | The tested Blob path is reachable |
+| Government Blob baseline returns HTTP `000`, TLS failure, or timeout | The file-transfer path did not complete | Investigate `*.blob.core.usgovcloudapi.net:443`, DNS, proxy authentication, TLS inspection, SAS URL filtering, and firewall policy |
+
+> [!IMPORTANT]
+> Live Response control traffic and file-transfer traffic are separate. A session can connect while `run` or `getfile` fails because an Azure Government Blob hostname is blocked. The analyzer must itself be delivered through Live Response, so complete Blob blockage can prevent it from starting. In that case, run equivalent checks through SSH or another approved local administration channel and review the firewall or proxy log for the exact blocked Blob hostname.
 
 ### Sanitized report examples
 
@@ -194,7 +203,13 @@ Run the full collector if:
 run Collect-MDELinuxDiagnostics.sh
 ```
 
-Retrieve the printed archive:
+Retrieve the standalone HTML report first:
+
+```text
+getfile "/tmp/MDELinuxDiagnostics_<device>_<UTC>.html"
+```
+
+Retrieve the optional bounded evidence archive only when deeper analysis or support escalation requires it:
 
 ```text
 getfile "/tmp/MDELinuxDiagnostics_<device>_<UTC>.tar.gz"
@@ -206,14 +221,18 @@ Extract it and open:
 MDE-Linux-Diagnostics-Report.html
 ```
 
-The archive also retains the raw evidence, native MDE diagnostic package, and Client Analyzer output when available. Do not send the package outside approved channels; it can contain device, tenant, subscription, network, process, and configuration identifiers.
+The archive retains raw evidence, the native MDE diagnostic package, and bounded Client Analyzer output when available. To keep Live Response retrieval practical, the collector omits each individual file larger than 25 MiB (`26,214,400` bytes). The HTML report and `omitted-large-files.txt` record every omitted path and original size. Use a separate Microsoft Support collection workflow if support explicitly requires the complete oversized Client Analyzer payload.
+
+Do not send either output outside approved channels; it can contain device, tenant, subscription, network, process, and configuration identifiers.
 
 ### Step 5: Handle device archives
 
-After confirming the download, use SSH or another approved Linux administration shell to delete only the exact archive path printed by the script:
+After confirming the required downloads, use SSH or another approved Linux administration shell to delete only the exact HTML and archive paths printed by the scripts:
 
 ```bash
+rm -- "/tmp/IL5MDEConnectivity_<device>_<UTC>.html"
 rm -- "/tmp/IL5MDEConnectivity_<device>_<UTC>.tar.gz"
+rm -- "/tmp/MDELinuxDiagnostics_<device>_<UTC>.html"
 rm -- "/tmp/MDELinuxDiagnostics_<device>_<UTC>.tar.gz"
 ```
 
@@ -404,7 +423,7 @@ For MDE version `101.25082.0000` or later, the shipped Client Analyzer is normal
 /opt/microsoft/mdatp/tools/client_analyzer/binary/MDESupportTool
 ```
 
-The full diagnostic collector attempts to run the shipped analyzer in diagnostic mode and preserves its output in the retrieved archive.
+The full diagnostic collector attempts to run the shipped analyzer in diagnostic mode. It retains files up to 25 MiB each and records larger omitted payloads in the report and omission manifest.
 
 ## 7. Session and file limits
 
@@ -429,6 +448,7 @@ Low bandwidth can still cause a transfer to time out below the size limit. Keep 
 | Symptom | First action | Evidence to retain |
 |---|---|---|
 | Live Response will not connect | Confirm service health, agent version, advanced feature, RBAC, clock, proxy, and Live Response endpoints | Portal error, device timeline, local MDE service logs |
+| Live Response connects but `run` or `getfile` fails | Validate the separate Azure Government Blob transfer path and inspect the proxy or firewall for the exact storage hostname | `*.blob.core.usgovcloudapi.net:443`, DNS/TLS result, blocked hostname, command log |
 | `library` works but device commands fail | Use the command ladder below. `library` is tenant-side and does not prove the endpoint command channel works | Exact command, complete error, command ID, command log, agent version |
 | Device is onboarded but spotty | Run `LinuxMDEConnectivityAnalyzer-IL5.sh` | HTML, CSV, TLS certificate output, native connectivity output |
 | Analyzer passes but protection is unhealthy | Run `Collect-MDELinuxDiagnostics.sh` | Full archive and HTML |
@@ -511,10 +531,12 @@ connect
 library
 
 run LinuxMDEConnectivityAnalyzer-IL5.sh
+getfile "/tmp/IL5MDEConnectivity_<device>_<UTC>.html"
 getfile "/tmp/IL5MDEConnectivity_<device>_<UTC>.tar.gz"
 
 # If anything is failed, unhealthy, or unexplained:
 run Collect-MDELinuxDiagnostics.sh
+getfile "/tmp/MDELinuxDiagnostics_<device>_<UTC>.html"
 getfile "/tmp/MDELinuxDiagnostics_<device>_<UTC>.tar.gz"
 ```
 
@@ -526,8 +548,8 @@ Provide the following through an approved support channel:
 2. Linux distribution, version, architecture, and kernel.
 3. MDE agent version and organization ID.
 4. Exact symptom and reproduction time.
-5. IL5 analyzer archive.
-6. Full diagnostic collector archive.
+5. IL5 analyzer standalone HTML and, when needed, its evidence archive.
+6. Full diagnostic collector standalone HTML and bounded evidence archive.
 7. Firewall or proxy logs for the failed hostname and UTC window.
 8. Confirmation of whether TLS inspection is enabled.
 9. Any recent package, kernel, proxy, firewall, or certificate changes.

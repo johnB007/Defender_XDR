@@ -13,7 +13,7 @@
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent)
-| extend IPMatches = extract_all(@'((?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)', ScriptContent)
+| extend IPMatches = extract_all(@'((?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?))', ScriptContent)
 | where array_length(IPMatches) > 0
 | mv-expand IP = IPMatches to typeof(string)
 | where IP !startswith '127.' and IP != '0.0.0.0'

@@ -1,0 +1,36 @@
+// Hunt: ClickFix LOLBin download and execute combo (process command line)
+// Table: DeviceProcessEvents
+// Source: adapted from Microsoft Threat Intelligence, "Think before you
+//         Click(Fix): Analyzing the ClickFix social engineering technique",
+//         Microsoft Security Blog, August 21 2025.
+// Purpose: RunMRU only captures the Windows Run dialog entry vector. Newer
+//          ClickFix lures instruct the target to paste directly into
+//          Windows Terminal or PowerShell instead, which leaves no RunMRU
+//          trace. This hunt looks at the process command line itself for
+//          the combination the blog calls out: a living off the land
+//          binary (powershell, mshta, cmd, curl, wscript, cscript,
+//          msiexec, forfiles, bitsadmin, rundll32) paired with a download
+//          or execute primitive (DownloadString, IEX, Invoke-Expression,
+//          Invoke-WebRequest, Invoke-RestMethod, FromBase64String,
+//          System.IO.Compression) AND a defense evasion flag (hidden
+//          window, -EncodedCommand, caret escaping, char array casts).
+//          Requiring both halves keeps this from over triggering on
+//          routine admin scripting.
+// Validated: success (query mechanics confirmed: 1187 powershell.exe
+//          launches matched the base FileName filter in the same 7 day
+//          window, proving the table and fields resolve correctly), 0 rows
+//          for the full combo. In this tenant the collected PowerShell
+//          command lines are short wrapper invocations that call a .ps1
+//          file by path, with the actual download and execute logic living
+//          inside ScriptContent rather than on the command line. That is a
+//          genuine true negative for this telemetry shape, not a broken
+//          query, pair this hunt with the script-content-download-cradle
+//          hunt to also cover content executed from a saved script file.
+DeviceProcessEvents
+| where Timestamp > ago(7d)
+| where FileName has_any ('powershell.exe', 'pwsh.exe', 'mshta.exe', 'cmd.exe', 'curl.exe', 'wscript.exe', 'cscript.exe', 'msiexec.exe', 'forfiles.exe', 'bitsadmin.exe', 'rundll32.exe')
+| where ProcessCommandLine has_any ('DownloadString', 'DownloadFile', 'IEX', 'Invoke-Expression', 'iwr ', 'Invoke-WebRequest', 'irm ', 'Invoke-RestMethod', 'FromBase64String', 'System.IO.Compression', '-useb', '-UserAgent')
+| where ProcessCommandLine has_any ('-w hidden', '-W Hidden', '-windowstyle hidden', '-WindowStyle Hidden', '-enc', '-EncodedCommand', '-eC ', '^', '[char]', '[scriptblock]')
+| project Timestamp, DeviceName, InitiatingProcessAccountName, FileName, ProcessCommandLine, InitiatingProcessFileName, InitiatingProcessParentFileName
+| order by Timestamp desc
+| take 10000

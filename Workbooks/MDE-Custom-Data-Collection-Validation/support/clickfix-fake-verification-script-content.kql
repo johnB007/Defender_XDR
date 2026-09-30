@@ -1,0 +1,29 @@
+// Hunt: ClickFix fake CAPTCHA or verification phrase in script content
+// Table: DeviceCustomScriptEvents
+// Source: adapted from Microsoft Threat Intelligence, "Think before you
+//         Click(Fix): Analyzing the ClickFix social engineering technique",
+//         Microsoft Security Blog, August 21 2025.
+// Purpose: ClickFix landing pages copy a command to the clipboard that is
+//          decorated with fake human verification text such as a checkmark
+//          plus "I am not a robot", a bogus "Verification ID", or phrases
+//          like "Human verification" or "Cloud identificator", so the
+//          pasted command looks like normal CAPTCHA output rather than
+//          code. If that pasted text is ultimately captured as a script
+//          body, it is an extremely high fidelity signal, legitimate admin
+//          scripts essentially never contain this wording. Requiring the
+//          phrase alongside an execution primitive (iex, powershell, mshta,
+//          curl, DownloadString, FromBase64String) filters out any
+//          unrelated documentation or help text that happens to mention
+//          CAPTCHA or verification.
+// Validated: success (has_any phrase and combo logic confirmed against a
+//          known matching literal string), 0 rows in the live 7 day window,
+//          a clean result consistent with no ClickFix activity in this
+//          tenant.
+DeviceCustomScriptEvents
+| where Timestamp > ago(7d)
+| where isnotempty(ScriptContent)
+| where ScriptContent has_any ('I am not a robot', 'Verification ID', 'verification ID', 'CAPTCHA', 'Captcha', 'Human verification', 'human verification', 'Cloud identificator', 'Press Win', 'Windows+R', 'Win+R')
+    and ScriptContent has_any ('iex', 'IEX', 'Invoke-Expression', 'powershell', 'mshta', 'curl', 'DownloadString', 'FromBase64String')
+| project Timestamp, DeviceName, InitiatingProcessFileName, InitiatingProcessAccountName, ScriptContent, RuleName
+| order by Timestamp desc
+| take 10000

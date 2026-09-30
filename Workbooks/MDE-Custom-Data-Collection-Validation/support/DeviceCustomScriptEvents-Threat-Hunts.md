@@ -208,21 +208,90 @@ unmodified in dropped scripts. This is a coarse, high confidence check, not
 a substitute for the obfuscation hunts above, since a competent attacker
 renames or encodes these strings.
 
-## Validation summary
+## 12. ClickFix RunMRU registry indicator
 
-| Hunt | Result against live SOC-Central data (7 day window) |
-|---|---|
-| Embedded IPv4 | Rows found, includes expected version string noise |
-| Embedded URL | 5 rows |
-| Base64 blocks | 5 rows |
-| EncodedCommand decode | 5 rows |
-| Char array obfuscation | 0 rows, regex confirmed against a known matching literal |
-| String concat obfuscation | 5 rows |
-| Compression obfuscation | 5 rows |
-| AMSI bypass | 0 rows, clean |
-| Download cradle | 5 rows |
-| Reflection or in-memory execution | 5 rows |
-| Offensive tooling keywords | 0 rows, clean |
+Source: adapted from Microsoft Threat Intelligence, [Think before you Click(Fix): Analyzing the ClickFix social engineering technique](https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/), Microsoft Security Blog, August 21 2025.
 
-All queries are also saved as individual `.kql` files in this folder and in
-`Defender_XDR\hunts\`.
+```kql
+DeviceRegistryEvents
+| where Timestamp > ago(7d)
+| where ActionType =~ 'RegistryValueSet'
+| where InitiatingProcessFileName =~ 'explorer.exe'
+| where RegistryKey has @'\CurrentVersion\Explorer\RunMRU'
+| where RegistryValueName !~ 'MRUList'
+| where RegistryValueData has_any ('powershell', 'mshta', 'curl', 'msiexec', 'bitsadmin', 'forfiles', 'wscript', 'cscript', 'rundll32', 'cmd')
+    or RegistryValueData has '^'
+| project Timestamp, DeviceName, InitiatingProcessAccountName, RegistryValueName, RegistryValueData
+| order by Timestamp desc
+| take 10000
+```
+
+What it does and why: ClickFix lures trick a user into pasting a command
+into the Windows Run dialog (Win+R). Every Run dialog execution leaves a
+forensic trace in the RunMRU registry key, written by explorer.exe. This
+flags RunMRU entries referencing a living off the land binary or using
+caret escape obfuscation, both hallmarks of a ClickFix payload rather than
+an everyday Run dialog command. Validation note: query mechanics confirmed
+against live DeviceRegistryEvents data, but no RunMRU writes were observed
+at all in this tenant over a 30 day lookback, so a clean result here likely
+reflects registry auditing scope rather than an absence of Run dialog use,
+confirm auditing coverage for this key before relying on this hunt alone.
+
+## 13. ClickFix LOLBin download and execute combo
+
+Source: adapted from Microsoft Threat Intelligence, [Think before you Click(Fix): Analyzing the ClickFix social engineering technique](https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/), Microsoft Security Blog, August 21 2025.
+
+```kql
+DeviceProcessEvents
+| where Timestamp > ago(7d)
+| where FileName has_any ('powershell.exe', 'pwsh.exe', 'mshta.exe', 'cmd.exe', 'curl.exe', 'wscript.exe', 'cscript.exe', 'msiexec.exe', 'forfiles.exe', 'bitsadmin.exe', 'rundll32.exe')
+| where ProcessCommandLine has_any ('DownloadString', 'DownloadFile', 'IEX', 'Invoke-Expression', 'iwr ', 'Invoke-WebRequest', 'irm ', 'Invoke-RestMethod', 'FromBase64String', 'System.IO.Compression', '-useb', '-UserAgent')
+| where ProcessCommandLine has_any ('-w hidden', '-W Hidden', '-windowstyle hidden', '-WindowStyle Hidden', '-enc', '-EncodedCommand', '-eC ', '^', '[char]', '[scriptblock]')
+| project Timestamp, DeviceName, InitiatingProcessAccountName, FileName, ProcessCommandLine, InitiatingProcessFileName, InitiatingProcessParentFileName
+| order by Timestamp desc
+| take 10000
+```
+
+What it does and why: RunMRU only captures the Run dialog entry vector.
+Newer ClickFix lures instruct the target to paste directly into Windows
+Terminal or PowerShell instead, leaving no RunMRU trace. This looks at the
+process command line for the combination the blog calls out: a living off
+the land binary paired with a download or execute primitive AND a defense
+evasion flag such as a hidden window, EncodedCommand, or caret escaping.
+Requiring both halves avoids over triggering on routine admin scripting.
+Validation note: base FileName filter matched 1187 real powershell.exe
+launches in the same window, confirming the table and fields resolve
+correctly. The full combo returned 0 rows because this tenant's collected
+command lines are short wrapper invocations calling a .ps1 file by path,
+with the download and execute logic living inside ScriptContent rather
+than the command line, a genuine true negative for this telemetry shape.
+Pair this with the download cradle hunt above to also cover content
+executed from a saved script file.
+
+## 14. ClickFix fake CAPTCHA or verification phrase in script content
+
+Source: adapted from Microsoft Threat Intelligence, [Think before you Click(Fix): Analyzing the ClickFix social engineering technique](https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/), Microsoft Security Blog, August 21 2025.
+
+```kql
+DeviceCustomScriptEvents
+| where Timestamp > ago(7d)
+| where isnotempty(ScriptContent)
+| where ScriptContent has_any ('I am not a robot', 'Verification ID', 'verification ID', 'CAPTCHA', 'Captcha', 'Human verification', 'human verification', 'Cloud identificator', 'Press Win', 'Windows+R', 'Win+R')
+    and ScriptContent has_any ('iex', 'IEX', 'Invoke-Expression', 'powershell', 'mshta', 'curl', 'DownloadString', 'FromBase64String')
+| project Timestamp, DeviceName, InitiatingProcessFileName, InitiatingProcessAccountName, ScriptContent, RuleName
+| order by Timestamp desc
+| take 10000
+```
+
+What it does and why: ClickFix landing pages decorate the clipboard payload
+with fake human verification text, such as a checkmark plus "I am not a
+robot", a bogus "Verification ID", or phrases like "Human verification" or
+"Cloud identificator", so the pasted command looks like normal CAPTCHA
+output rather than code. If that pasted text is ultimately captured as a
+script body, it is an extremely high fidelity signal, legitimate admin
+scripts essentially never contain this wording. Requiring an execution
+primitive alongside the phrase filters out unrelated documentation or help
+text. Validation note: the phrase and combo matching logic was confirmed
+against a known matching literal string, and returned 0 rows in the live
+window, a clean result consistent with no ClickFix activity in this
+tenant.

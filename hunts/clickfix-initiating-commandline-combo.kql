@@ -1,0 +1,31 @@
+// Hunt: ClickFix LOLBin download, execute, and evasion combo (InitiatingProcessCommandLine)
+// Table: DeviceCustomScriptEvents
+// Source: adapted from Microsoft Threat Intelligence, "Think before you
+//         Click(Fix): Analyzing the ClickFix social engineering technique",
+//         Microsoft Security Blog, August 21 2025.
+// Purpose: A ClickFix lure tricks a user into pasting a command into the
+//          Windows Run dialog or a terminal. That pasted command becomes
+//          the InitiatingProcessCommandLine that spawned the custom script
+//          probe captured in this table, so there is no need to reach into
+//          legacy DeviceRegistryEvents RunMRU data or DeviceProcessEvents.
+//          This flags InitiatingProcessCommandLine values that combine a
+//          living off the land binary, a download or execute primitive
+//          (DownloadString, IEX, Invoke-WebRequest, FromBase64String), and
+//          a defense evasion flag (hidden window, EncodedCommand, char
+//          array cast), the three part combo the blog describes as typical
+//          ClickFix command construction.
+// Validated: success, mechanics confirmed (51933 rows matched the base
+//          LOLBin filter alone in the same window), 0 rows for the full
+//          three part combo, a genuine true negative for this tenant since
+//          the collected InitiatingProcessCommandLine values are short
+//          wrapper invocations that call a .ps1 file by path rather than
+//          embedding the download and execute logic inline.
+DeviceCustomScriptEvents
+| where Timestamp > ago(7d)
+| where isnotempty(InitiatingProcessCommandLine)
+| where InitiatingProcessCommandLine has_any ('powershell', 'pwsh', 'mshta', 'cmd.exe', 'curl', 'wscript', 'cscript', 'msiexec', 'forfiles', 'bitsadmin', 'rundll32')
+| where InitiatingProcessCommandLine has_any ('DownloadString', 'DownloadFile', 'IEX', 'Invoke-Expression', 'iwr ', 'Invoke-WebRequest', 'irm ', 'Invoke-RestMethod', 'FromBase64String', 'System.IO.Compression', '-useb', '-UserAgent')
+| where InitiatingProcessCommandLine has_any ('-w hidden', '-W Hidden', '-windowstyle hidden', '-WindowStyle Hidden', '-enc', '-EncodedCommand', '-eC ', '^', '[char]', '[scriptblock]')
+| project Timestamp, DeviceName, InitiatingProcessAccountName, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessParentFileName, RuleName
+| order by Timestamp desc
+| take 10000

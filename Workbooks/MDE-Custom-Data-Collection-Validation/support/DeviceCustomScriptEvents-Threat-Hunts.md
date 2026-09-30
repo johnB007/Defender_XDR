@@ -208,67 +208,97 @@ unmodified in dropped scripts. This is a coarse, high confidence check, not
 a substitute for the obfuscation hunts above, since a competent attacker
 renames or encodes these strings.
 
-## 12. ClickFix RunMRU registry indicator
+## 12. ClickFix LOLBin download, execute, and evasion combo (InitiatingProcessCommandLine)
 
 Source: adapted from Microsoft Threat Intelligence, [Think before you Click(Fix): Analyzing the ClickFix social engineering technique](https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/), Microsoft Security Blog, August 21 2025.
 
 ```kql
-DeviceRegistryEvents
+DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
-| where ActionType =~ 'RegistryValueSet'
-| where InitiatingProcessFileName =~ 'explorer.exe'
-| where RegistryKey has @'\CurrentVersion\Explorer\RunMRU'
-| where RegistryValueName !~ 'MRUList'
-| where RegistryValueData has_any ('powershell', 'mshta', 'curl', 'msiexec', 'bitsadmin', 'forfiles', 'wscript', 'cscript', 'rundll32', 'cmd')
-    or RegistryValueData has '^'
-| project Timestamp, DeviceName, InitiatingProcessAccountName, RegistryValueName, RegistryValueData
+| where isnotempty(InitiatingProcessCommandLine)
+| where InitiatingProcessCommandLine has_any ('powershell', 'pwsh', 'mshta', 'cmd.exe', 'curl', 'wscript', 'cscript', 'msiexec', 'forfiles', 'bitsadmin', 'rundll32')
+| where InitiatingProcessCommandLine has_any ('DownloadString', 'DownloadFile', 'IEX', 'Invoke-Expression', 'iwr ', 'Invoke-WebRequest', 'irm ', 'Invoke-RestMethod', 'FromBase64String', 'System.IO.Compression', '-useb', '-UserAgent')
+| where InitiatingProcessCommandLine has_any ('-w hidden', '-W Hidden', '-windowstyle hidden', '-WindowStyle Hidden', '-enc', '-EncodedCommand', '-eC ', '^', '[char]', '[scriptblock]')
+| project Timestamp, DeviceName, InitiatingProcessAccountName, InitiatingProcessFileName, InitiatingProcessCommandLine, InitiatingProcessParentFileName, RuleName
 | order by Timestamp desc
 | take 10000
 ```
 
-What it does and why: ClickFix lures trick a user into pasting a command
-into the Windows Run dialog (Win+R). Every Run dialog execution leaves a
-forensic trace in the RunMRU registry key, written by explorer.exe. This
-flags RunMRU entries referencing a living off the land binary or using
-caret escape obfuscation, both hallmarks of a ClickFix payload rather than
-an everyday Run dialog command. Validation note: query mechanics confirmed
-against live DeviceRegistryEvents data, but no RunMRU writes were observed
-at all in this tenant over a 30 day lookback, so a clean result here likely
-reflects registry auditing scope rather than an absence of Run dialog use,
-confirm auditing coverage for this key before relying on this hunt alone.
+What it does and why: a ClickFix lure tricks a user into pasting a command
+into the Windows Run dialog or a terminal, and that pasted command becomes
+the InitiatingProcessCommandLine that spawned the custom script probe
+captured in this table, so there is no need to reach into legacy
+DeviceRegistryEvents RunMRU data or DeviceProcessEvents. This flags command
+lines combining a living off the land binary, a download or execute
+primitive, and a defense evasion flag, the three part combo the blog
+describes as typical ClickFix command construction. Validation note: the
+base LOLBin filter alone matched 51933 rows in the same window, confirming
+the table and fields resolve correctly. The full three part combo returned
+0 rows, a genuine true negative for this tenant since the collected
+command lines are short wrapper invocations that call a .ps1 file by path
+rather than embedding the download and execute logic inline.
 
-## 13. ClickFix LOLBin download and execute combo
+## 13. ClickFix LOLBin download, execute, and evasion combo (ScriptContent)
 
 Source: adapted from Microsoft Threat Intelligence, [Think before you Click(Fix): Analyzing the ClickFix social engineering technique](https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/), Microsoft Security Blog, August 21 2025.
 
 ```kql
-DeviceProcessEvents
+DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
-| where FileName has_any ('powershell.exe', 'pwsh.exe', 'mshta.exe', 'cmd.exe', 'curl.exe', 'wscript.exe', 'cscript.exe', 'msiexec.exe', 'forfiles.exe', 'bitsadmin.exe', 'rundll32.exe')
-| where ProcessCommandLine has_any ('DownloadString', 'DownloadFile', 'IEX', 'Invoke-Expression', 'iwr ', 'Invoke-WebRequest', 'irm ', 'Invoke-RestMethod', 'FromBase64String', 'System.IO.Compression', '-useb', '-UserAgent')
-| where ProcessCommandLine has_any ('-w hidden', '-W Hidden', '-windowstyle hidden', '-WindowStyle Hidden', '-enc', '-EncodedCommand', '-eC ', '^', '[char]', '[scriptblock]')
-| project Timestamp, DeviceName, InitiatingProcessAccountName, FileName, ProcessCommandLine, InitiatingProcessFileName, InitiatingProcessParentFileName
+| where isnotempty(ScriptContent)
+| where ScriptContent has_any ('powershell', 'mshta', 'cmd.exe', 'curl', 'wscript', 'cscript', 'msiexec', 'forfiles', 'bitsadmin', 'rundll32')
+| where ScriptContent has_any ('DownloadString', 'DownloadFile', 'IEX', 'Invoke-Expression', 'iwr ', 'Invoke-WebRequest', 'irm ', 'Invoke-RestMethod', 'FromBase64String', 'System.IO.Compression', '-useb', '-UserAgent')
+| where ScriptContent has_any ('-w hidden', '-W Hidden', '-windowstyle hidden', '-WindowStyle Hidden', '-enc', '-EncodedCommand', '-eC ', '[char]', '[scriptblock]')
+| project Timestamp, DeviceName, InitiatingProcessAccountName, InitiatingProcessFileName, ScriptContent, RuleName
 | order by Timestamp desc
 | take 10000
 ```
 
-What it does and why: RunMRU only captures the Run dialog entry vector.
-Newer ClickFix lures instruct the target to paste directly into Windows
-Terminal or PowerShell instead, leaving no RunMRU trace. This looks at the
-process command line for the combination the blog calls out: a living off
-the land binary paired with a download or execute primitive AND a defense
-evasion flag such as a hidden window, EncodedCommand, or caret escaping.
-Requiring both halves avoids over triggering on routine admin scripting.
-Validation note: base FileName filter matched 1187 real powershell.exe
-launches in the same window, confirming the table and fields resolve
-correctly. The full combo returned 0 rows because this tenant's collected
-command lines are short wrapper invocations calling a .ps1 file by path,
-with the download and execute logic living inside ScriptContent rather
-than the command line, a genuine true negative for this telemetry shape.
-Pair this with the download cradle hunt above to also cover content
-executed from a saved script file.
+What it does and why: a companion to the command line combo above. Some
+ClickFix chains paste a short launcher on the command line that in turn
+runs a larger embedded script, so the real download, execute, and evasion
+combo only shows up in the captured ScriptContent body. This applies the
+same three part combo logic directly to ScriptContent. The bare caret (^)
+was deliberately dropped from the evasion flag list here, unlike the
+command line version, because PowerShell script bodies routinely use a
+literal caret inside negated regex character classes such as
+`[^\/:*?"<>|\r\n]`, which produced a confirmed false positive during
+validation. Validation note: this hunt returned real rows, including the
+Microsoft Defender for Cloud Servers extension installer script and an MDE
+product metadata collection script, both large legitimate multi-purpose
+scripts that happen to reference several of the combo terms across
+thousands of lines. Treat ScriptContent combo hits as lower fidelity than
+the command line variant and corroborate with the fake verification phrase
+hunt or an unusual network destination before escalating.
 
 ## 14. ClickFix fake CAPTCHA or verification phrase in script content
+
+Source: adapted from Microsoft Threat Intelligence, [Think before you Click(Fix): Analyzing the ClickFix social engineering technique](https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/), Microsoft Security Blog, August 21 2025.
+
+```kql
+DeviceCustomScriptEvents
+| where Timestamp > ago(7d)
+| where isnotempty(ScriptContent)
+| where ScriptContent has_any ('I am not a robot', 'Verification ID', 'verification ID', 'CAPTCHA', 'Captcha', 'Human verification', 'human verification', 'Cloud identificator', 'Press Win', 'Windows+R', 'Win+R')
+    and ScriptContent has_any ('iex', 'IEX', 'Invoke-Expression', 'powershell', 'mshta', 'curl', 'DownloadString', 'FromBase64String')
+| project Timestamp, DeviceName, InitiatingProcessFileName, InitiatingProcessAccountName, ScriptContent, RuleName
+| order by Timestamp desc
+| take 10000
+```
+
+What it does and why: ClickFix landing pages decorate the clipboard payload
+with fake human verification text, such as a checkmark plus "I am not a
+robot", a bogus "Verification ID", or phrases like "Human verification" or
+"Cloud identificator", so the pasted command looks like normal CAPTCHA
+output rather than code. If that pasted text is ultimately captured as a
+script body, it is an extremely high fidelity signal, legitimate admin
+scripts essentially never contain this wording. Requiring an execution
+primitive alongside the phrase filters out unrelated documentation or help
+text. Validation note: the phrase and combo matching logic was confirmed
+against a known matching literal string, and returned 0 rows in the live
+window, a clean result consistent with no ClickFix activity in this
+tenant.
+
 
 Source: adapted from Microsoft Threat Intelligence, [Think before you Click(Fix): Analyzing the ClickFix social engineering technique](https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/), Microsoft Security Blog, August 21 2025.
 

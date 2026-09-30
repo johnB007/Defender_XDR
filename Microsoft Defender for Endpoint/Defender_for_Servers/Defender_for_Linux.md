@@ -91,7 +91,8 @@ The following `.com`/`.net` endpoints are **REQUIRED** by Microsoft even for IL5
 | MDE Streamlined | `*.endpoint.security.microsoft.us` | `443/TCP` | Outbound | Yes | Consolidated Defender for Endpoint services for US Gov (Preview). |
 | SmartScreen (DoD) | `unitedstates2.ss.wd.microsoft.us` | `443/TCP` | Outbound | Yes | Required for Network Protection and URL indicators. |
 | MDE Config (DoD) | `https://config.ecs.dod.teams.microsoft.us/config/v1` | `443/TCP` | Outbound | Yes | Internal configuration management endpoint. |
-| MDE Portal (DoD) | `https://*.securitycenter.microsoft.us` | `443/TCP` | Outbound | Yes | DoD Defender portal access URL. |
+| Defender portal (DoD, analyst browser) | `https://security.apps.mil` | `443/TCP` | Outbound from analyst workstation | Yes | Human-facing Microsoft Defender portal for DoD customers. |
+| Defender service/API dependency (DoD) | `https://*.securitycenter.microsoft.us` | `443/TCP` | Outbound | Conditional | Government service/API dependency; this is not the human-facing DoD portal URL. |
 | Entra Sign-in (Gov) | `login.microsoftonline.us` | `443/TCP` | Outbound | Yes | US Gov identity endpoint. |
 | Certificate Revocation | `crl.microsoft.com/pki/crl/*` | `80/TCP` | Outbound | Yes | Certificate trust validation. |
 | Certificate Revocation | `ctldl.windowsupdate.com` | `80/TCP` | Outbound | Yes | Untrusted certificate list updates. |
@@ -146,20 +147,8 @@ Use this section when deploying to native Azure VMs (Defender for Servers integr
 2. All outbound HTTP (TCP 80) to certificate revocation URLs
 3. All outbound HTTPS (TCP 443) to every FQDN in the Azure Arc endpoints table (if applicable)
 
-**Example iptables rules (Linux):**
-```bash
-# Allow MDE core endpoints
-sudo iptables -A OUTPUT -p tcp -d *.endpoint.security.microsoft.us -m tcp --dport 443 -j ACCEPT
-sudo iptables -A OUTPUT -p tcp -d *.securitycenter.microsoft.us -m tcp --dport 443 -j ACCEPT
-
-# Allow certificate validation
-sudo iptables -A OUTPUT -p tcp -d crl.microsoft.com -m tcp --dport 80 -j ACCEPT
-sudo iptables -A OUTPUT -p tcp -d www.microsoft.com -m tcp --dport 80 -j ACCEPT
-
-# For Azure VMs: save rules with firewalld or iptables-persistent
-sudo systemctl restart firewalld  # if using firewalld
-sudo iptables-save | sudo tee /etc/iptables/rules.v4  # if using iptables
-```
+> [!IMPORTANT]
+> `iptables` does not support wildcard FQDN rules such as `*.endpoint.security.microsoft.us`. Configure these FQDN allowlists on the enterprise firewall or proxy using its documented hostname controls. Do not resolve a wildcard once and hard-code the resulting IP addresses; Microsoft service addresses can change.
 
 **Example AWS Security Group (Azure VMs equivalent):**
 ```
@@ -352,7 +341,7 @@ Egress Rule:
 
 **Action:** Download the onboarding package from Microsoft Defender portal:
 
-1. Go to https://securitycenter.microsoft.us (DoD)
+1. Go to https://security.apps.mil (DoD)
 2. Select **Settings** → **Endpoints** → **Onboarding**
 3. In the dropdown, select **Linux Server**
 4. Download the **onboarding package** (typically `mdatp-onboarding-linux.py` or similar)
@@ -547,7 +536,7 @@ sudo mdatp config real-time-protection --get
 
 **Check Defender portal for device registration:**
 
-1. Go to https://securitycenter.microsoft.us (DoD)
+1. Go to https://security.apps.mil (DoD)
 2. Select **Devices & Vulnerabilities** → **Device Inventory**
 3. Search for hostname of newly onboarded Linux server
 4. Verify device status shows **Active** or **Healthy**
@@ -1053,19 +1042,7 @@ sudo journalctl -u mdatp -f                         # Follow logs
 
 ### 10.3 Firewall Configuration Examples
 
-**iptables example (persistent):**
-
-```bash
-# Allow MDE endpoints
-sudo iptables -I OUTPUT -p tcp -d *.endpoint.security.microsoft.us -m tcp --dport 443 -j ACCEPT
-
-# Save rules (requires iptables-persistent)
-sudo iptables-save | sudo tee /etc/iptables/rules.v4
-sudo ip6tables-save | sudo tee /etc/iptables/rules.v6
-
-# Enable iptables-persistent on boot
-sudo systemctl enable iptables-persistent
-```
+Host firewalls such as `iptables`, `firewalld`, and `ufw` filter by IP address and port; they do not enforce wildcard FQDN allowlists. Apply the documented MDE hostnames on an FQDN-aware enterprise firewall or proxy. Use host-firewall rules only when your security policy permits broad outbound HTTPS or when approved automation continuously maintains the current Microsoft-published IP ranges.
 
 **firewalld example:**
 
@@ -1166,7 +1143,7 @@ Use this section as a final go/no-go check before broad deployment.
 * ☐ **Onboarding package is for correct environment (DoD vs Commercial)**
   * Onboarding package is environment-specific (DoD, GCC-High, Commercial)
   * Using wrong package will cause connectivity/authentication failures
-  * Verify: Go to https://securitycenter.microsoft.us and select correct environment before downloading
+  * Verify: Go to https://security.apps.mil and select the DoD environment before downloading
 
 * ☐ **Proxy configuration is correct** (if applicable)
   * MDE must be configured with proxy settings if environment requires outbound proxy

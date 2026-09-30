@@ -67,7 +67,8 @@ The following `.com`/`.net` endpoints are **REQUIRED** by Microsoft even for IL5
 | MDE Streamlined | `*.endpoint.security.microsoft.us` | `443/TCP` | Outbound | Yes | Consolidated Defender for Endpoint services for US Gov (Preview). |
 | SmartScreen (DoD) | `unitedstates2.ss.wd.microsoft.us` | `443/TCP` | Outbound | Yes | Required for Network Protection and URL indicators. |
 | MDE Config (DoD) | `https://config.ecs.dod.teams.microsoft.us/config/v1` | `443/TCP` | Outbound | Yes | Internal configuration management endpoint. |
-| MDE Portal (DoD) | `https://*.securitycenter.microsoft.us` | `443/TCP` | Outbound | Yes | DoD Defender portal access URL. |
+| Defender portal (DoD, analyst browser) | `https://security.apps.mil` | `443/TCP` | Outbound from analyst workstation | Yes | Human-facing Microsoft Defender portal for DoD customers. |
+| Defender service/API dependency (DoD) | `https://*.securitycenter.microsoft.us` | `443/TCP` | Outbound | Conditional | Government service/API dependency; this is not the human-facing DoD portal URL. |
 | Entra Sign-in (Gov) | `login.microsoftonline.us` | `443/TCP` | Outbound | Yes | US Gov identity endpoint. |
 | Certificate Revocation | `crl.microsoft.com/pki/crl/*` | `80/TCP` | Outbound | Yes | Certificate trust validation. |
 | Certificate Revocation | `ctldl.windowsupdate.com` | `80/TCP` | Outbound | Yes | Untrusted certificate list updates. |
@@ -370,4 +371,3 @@ Use this section as a final go/no-go check before broad deployment.
 
 * ☐ **Post-cutover drift checks are scheduled**
   * Weekly review for stale signatures, offboarded devices, broken telemetry, and policy drift.
-

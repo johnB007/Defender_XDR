@@ -10,6 +10,8 @@
 //          Threshold of 8 is tuned from real samples; raise it if a specific
 //          environment has legitimately math heavy scripts and generates
 //          excess noise.
+// Quick summary: Flags scripts with 8 or more + operators, a sign of
+// Invoke-Obfuscation style keyword splitting to dodge literal matching.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent)

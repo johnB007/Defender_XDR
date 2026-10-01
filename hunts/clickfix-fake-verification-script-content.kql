@@ -25,6 +25,8 @@
 //          "finger", and why this now checks InitiatingProcessCommandLine
 //          as well as ScriptContent, since a blocked ClickFix attempt may
 //          never reach the point of being captured as script content.
+// Quick summary: Flags fake CAPTCHA or verification wording paired with an
+// execution primitive, a ClickFix clipboard lure hallmark.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent) or isnotempty(InitiatingProcessCommandLine)

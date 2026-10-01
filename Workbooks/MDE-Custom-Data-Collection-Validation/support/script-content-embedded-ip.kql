@@ -10,6 +10,9 @@
 //          Treat single digit leading octets with trailing .0.0 as lower
 //          priority and triage private/reserved ranges separately from
 //          public routable IPs.
+// Quick summary: Extracts every IPv4 looking string from script content, a
+// common spot for a hardcoded callback or staging IP. Expect noise from
+// version strings like 1.0.0.0; triage public, non-reserved IPs first.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent)

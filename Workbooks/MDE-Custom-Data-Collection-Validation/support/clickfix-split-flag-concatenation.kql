@@ -16,6 +16,8 @@
 // Validated: success. Regex confirmed via print against the literal
 //          fragment ('-Windo' + 'wStyle') shown above, and returns 0 rows
 //          when no split-flag pattern is present, a clean result.
+// Quick summary: Flags a flag or cmdlet name split into two quoted fragments
+// joined with +, catching obfuscation the high-threshold concat hunt misses.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent) or isnotempty(InitiatingProcessCommandLine)

@@ -7,7 +7,9 @@
 //          tooling rather than hand written code.
 // Validated: success (regex sanity confirmed against a known matching literal;
 //          0 rows in the live 7 day sample, consistent with no obfuscation
-//          tooling present in that tenant's current script population).
+//          tooling present in this environment's current script population).
+// Quick summary: Flags strings rebuilt from chained [char] casts or a
+// [char[]] array, a strong sign of automated obfuscation tooling.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent)

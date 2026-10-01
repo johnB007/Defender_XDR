@@ -16,6 +16,8 @@
 //          command text above, correctly isolating
 //          "finger mag@finger.captchamag.com". Returns 0 rows when no
 //          finger-based retrieval pattern is present, a clean result.
+// Quick summary: Flags finger.exe used with a user@host argument, a covert
+// retrieval channel over an unmonitored port that ClickFix campaigns abuse.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent) or isnotempty(InitiatingProcessCommandLine)

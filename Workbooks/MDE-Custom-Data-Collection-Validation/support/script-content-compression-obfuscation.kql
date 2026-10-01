@@ -6,6 +6,8 @@
 // Validated: success, rows returned against live telemetry (7 day window).
 //          Sample hits in this environment were MDE Sense DataCollection PS1
 //          wrapper scripts, confirmed benign, useful as a baseline for tuning.
+// Quick summary: Flags scripts that decompress a Gzip or Deflate stream
+// after a base64 decode, a common second stage loader pattern.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent)

@@ -8,7 +8,6 @@
 //          EncodedPortion with base64_decode_toarray plus a UTF-16 aware
 //          string conversion outside of KQL, or eyeball the decoded text with
 //          the nulls stripped.
-// Validated: success, rows returned against live telemetry (7 day window).
 // Extracts and decodes the base64 payload from a PowerShell
 // -EncodedCommand flag. Interleaved nulls in the decoded text are expected.
 DeviceCustomScriptEvents

@@ -4,7 +4,6 @@
 //          used to load and run a payload entirely in memory without ever
 //          dropping an executable to disk, for example a reflective PE loader
 //          or shellcode runner.
-// Validated: success, rows returned against live telemetry (7 day window).
 //          Sample hits in this environment were MDE Sense DataCollection PS1
 //          wrapper scripts, confirmed benign, useful as a baseline for tuning.
 // Flags .NET reflection and unmanaged memory APIs used to

@@ -3,7 +3,6 @@
 // Purpose: Detect scripts that decompress an embedded Gzip or Deflate stream
 //          after a base64 decode, a common second stage loader pattern used to
 //          shrink and obscure a larger payload before execution in memory.
-// Validated: success, rows returned against live telemetry (7 day window).
 //          Sample hits in this environment were MDE Sense DataCollection PS1
 //          wrapper scripts, confirmed benign, useful as a baseline for tuning.
 // Flags scripts that decompress a Gzip or Deflate stream

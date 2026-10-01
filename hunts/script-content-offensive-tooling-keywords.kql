@@ -5,7 +5,7 @@
 //          dropped scripts. This is a coarse, high confidence tripwire, not a
 //          replacement for the obfuscation focused hunts above, since any
 //          competent attacker will rename or encode these strings.
-// Validated: success, count 0 against live SOC-Central data (7 day window),
+// Validated: success, count 0 against live telemetry (7 day window),
 //          confirming clean baseline. Query was validated by loading the KQL
 //          text from a file rather than a raw terminal argument, because the
 //          literal tool names trip local antivirus command line scanning.

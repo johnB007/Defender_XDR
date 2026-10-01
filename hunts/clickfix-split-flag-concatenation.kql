@@ -1,14 +1,11 @@
 // Hunt: ClickFix split-flag string concatenation
 // Table: DeviceCustomScriptEvents
-// Source: pattern confirmed against a real detection in this tenant's
-//         AlertEvidence table (AlertId
-//         dab879c26d-f140-42c9-83bd-8a2cc293857e_1, "Suspicious
-//         'SuspClickFix' behavior was blocked"), which used
-//         ('-Windo' + 'wStyle') ('hid' + 'den') to split -WindowStyle and
-//         hidden into two quoted fragments joined with +. The existing
-//         heavy concatenation hunt (ConcatHits >= 8) missed this sample
-//         entirely, it only has two + operators total, well under that
-//         threshold.
+// Source: pattern confirmed against a real in-the-wild ClickFix command
+//         that used ('-Windo' + 'wStyle') ('hid' + 'den') to split
+//         -WindowStyle and hidden into two quoted fragments joined with +.
+//         The existing heavy concatenation hunt (ConcatHits >= 8) missed
+//         this sample entirely, it only has two + operators total, well
+//         under that threshold.
 // Purpose: catches the specific micro-pattern of a single quoted fragment,
 //          plus operator, second quoted fragment, inside parentheses,
 //          regardless of how many times it repeats in the surrounding
@@ -17,9 +14,8 @@
 //          exactly this kind of flag or cmdlet name fragmentation used to
 //          dodge literal keyword matching.
 // Validated: success. Regex confirmed via print against the literal
-//          fragment ('-Windo' + 'wStyle') pulled from the real detection,
-//          and confirmed to return 0 rows against live SOC-Central data in
-//          the 7 day window, a clean result.
+//          fragment ('-Windo' + 'wStyle') shown above, and returns 0 rows
+//          when no split-flag pattern is present, a clean result.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent) or isnotempty(InitiatingProcessCommandLine)

@@ -16,7 +16,7 @@
 //          ClickFix command construction.
 // Validated: success, mechanics confirmed (51933 rows matched the base
 //          LOLBin filter alone in the same window), 0 rows for the full
-//          three part combo, a genuine true negative for this tenant since
+//          three part combo, a genuine true negative for this environment since
 //          the collected InitiatingProcessCommandLine values are short
 //          wrapper invocations that call a .ps1 file by path rather than
 //          embedding the download and execute logic inline.

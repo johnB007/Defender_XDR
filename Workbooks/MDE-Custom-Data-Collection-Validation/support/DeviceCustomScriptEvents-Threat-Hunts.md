@@ -3,8 +3,8 @@
 Eleven KQL hunts against `DeviceCustomScriptEvents` (the AmsiScriptContent custom
 data collection table), built for the signature and DFIR team to triage what
 threat actors hide inside script content: embedded IOCs and common PowerShell
-obfuscation TTPs. Every query below was validated live against SOC-Central
-with real 7 day data before being saved.
+obfuscation TTPs. Every query below was validated live against real
+telemetry with a 7 day data window before being saved.
 
 ## 1. Embedded IPv4 address
 
@@ -232,11 +232,11 @@ DeviceRegistryEvents RunMRU data or DeviceProcessEvents. This flags command
 lines combining a living off the land binary, a download or execute
 primitive, and a defense evasion flag, the three part combo the blog
 describes as typical ClickFix command construction. Validation note: the
-base LOLBin filter alone matched 51933 rows in the same window, confirming
-the table and fields resolve correctly. The full three part combo returned
-0 rows, a genuine true negative for this tenant since the collected
-command lines are short wrapper invocations that call a .ps1 file by path
-rather than embedding the download and execute logic inline.
+base LOLBin filter alone matched a large number of rows in the same
+window, confirming the table and fields resolve correctly. The full three
+part combo returned 0 rows, a true negative when collected command lines
+are short wrapper invocations that call a .ps1 file by path rather than
+embedding the download and execute logic inline.
 
 ## 13. ClickFix LOLBin download, execute, and evasion combo (ScriptContent)
 
@@ -273,7 +273,7 @@ hunt or an unusual network destination before escalating.
 
 ## 14. ClickFix fake CAPTCHA or verification phrase in script content
 
-Source: adapted from Microsoft Threat Intelligence, [Think before you Click(Fix): Analyzing the ClickFix social engineering technique](https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/), Microsoft Security Blog, August 21 2025. Phrase list and InitiatingProcessCommandLine coverage extended using a real detection pulled from this tenant, see below.
+Source: adapted from Microsoft Threat Intelligence, [Think before you Click(Fix): Analyzing the ClickFix social engineering technique](https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/), Microsoft Security Blog, August 21 2025. Phrase list and InitiatingProcessCommandLine coverage extended using a real in-the-wild ClickFix sample, see below.
 
 ```kql
 DeviceCustomScriptEvents
@@ -297,10 +297,8 @@ script body, it is an extremely high fidelity signal, legitimate admin
 scripts essentially never contain this wording. Requiring an execution
 primitive alongside the phrase filters out unrelated documentation or help
 text. Validation note: the phrase and combo logic was first confirmed
-against a synthetic literal string, then confirmed a second time against a
-real ClickFix detection pulled from this tenant's AlertEvidence table
-(AlertId `dab879c26d-f140-42c9-83bd-8a2cc293857e_1`, title "Suspicious
-'SuspClickFix' behavior was blocked"), which used the exact phrase "Verify
+against a synthetic literal string, then confirmed a second time against
+the exact phrasing used in a real in-the-wild ClickFix command, "Verify
 you are human--press ENTER" alongside powershell and the finger command.
 That real sample is why the phrase list now includes "Verify you are
 human" and the combo list includes "finger", and why this checks
@@ -342,16 +340,14 @@ visible once the carets are removed. Validation note: the full chain was
 proven with a synthetic caret-split payload
 (`powershell.exe -e^n^c JABwACAAPQAgAEcAZQB0...`), where the caret strip,
 flag extraction, and base64 decode correctly reproduced the real hidden
-command `$p = Get-MpPreference;`. The query returned 0 rows against live
-data, a genuine true negative since this tenant has no command lines
-containing a literal caret at all.
+command `$p = Get-MpPreference;`. The query returns 0 rows when no
+command lines contain a literal caret, a true negative, not a broken
+query.
 
 ## 16. ClickFix split-flag string concatenation
 
-Source: pattern confirmed against a real detection in this tenant's
-AlertEvidence table (AlertId `dab879c26d-f140-42c9-83bd-8a2cc293857e_1`,
-"Suspicious 'SuspClickFix' behavior was blocked"), which used
-`('-Windo' + 'wStyle') ('hid' + 'den')` to split `-WindowStyle` and
+Source: pattern confirmed against a real in-the-wild ClickFix command that
+used `('-Windo' + 'wStyle') ('hid' + 'den')` to split `-WindowStyle` and
 `hidden` into two quoted fragments joined with `+`.
 
 ```kql
@@ -375,8 +371,8 @@ fragment, inside parentheses, regardless of how many times it repeats, a
 lower threshold and more targeted companion aimed exactly at flag or
 cmdlet name fragmentation used to dodge literal keyword matching.
 Validation note: the regex was confirmed with `print` against the literal
-fragment `('-Windo' + 'wStyle')` pulled from the real detection, and
-returned 0 rows against live SOC-Central data, a clean result.
+fragment `('-Windo' + 'wStyle')` shown above, and returns 0 rows when no
+split-flag pattern is present, a clean result.
 
 ## 17. ClickFix finger protocol abuse
 
@@ -403,47 +399,7 @@ actors abuse it as a covert retrieval channel, piping the response of a
 finger query shaped like `user@attacker-domain` straight into cmd.exe or
 powershell for execution. None of the other hunts in this set look for
 finger specifically, this closes that gap. Validation note: the regex was
-confirmed with `print` against the literal command text from the real
-detection, correctly isolating `finger mag@finger.captchamag.com`, and
-returned 0 rows against live SOC-Central data, a clean result.
-
-## 18. ClickFix detections already caught by Defender (AlertEvidence rollup)
-
-Table: `AlertEvidence`, not `DeviceCustomScriptEvents`. Discovered live in
-this tenant via `AlertEvidence | where Title contains "click"`, which
-surfaced a real alert, "Suspicious 'SuspClickFix' behavior was blocked"
-(AlertId `dab879c26d-f140-42c9-83bd-8a2cc293857e_1`, device DefCon30,
-2026-01-08). The underlying command never reached DeviceProcessEvents or
-DeviceCustomScriptEvents on that device, the attack was blocked by
-antivirus before a process or script content event was logged, so the
-only surviving evidence of the real malicious command line lived in
-AlertEvidence. This is why this hunt intentionally queries AlertEvidence
-rather than DeviceCustomScriptEvents, it is a necessary companion to
-hunts 1 through 17, which can only see ClickFix attempts that survived
-long enough to be captured as running script content or a running
-process.
-
-```kql
-AlertEvidence
-| where Timestamp > ago(30d)
-| where Title has_any ('SuspClickFix', 'ClickFix', 'MaleficAms', 'SuspDown', 'RegRunMRU')
-| project Timestamp, Title, EntityType, DeviceName, AccountName, FileName, FolderPath, ProcessCommandLine, RemoteUrl, RemoteIP, SHA256
-| order by Timestamp desc
-| take 10000
-```
-
-What it does and why: surfaces every alert whose title matches one of the
-named malware families Microsoft Defender uses for ClickFix related
-detections (SuspClickFix, ClickFix, MaleficAms, SuspDown, RegRunMRU),
-pulled straight from the blog's own list of applicable Microsoft Defender
-for Endpoint alert titles, with the full evidence row for each hit so an
-analyst does not have to pivot elsewhere to see what was actually blocked.
-Validation note: returned 3 real evidence rows for the one real ClickFix
-alert present in this tenant (user entity, process entity showing the
-full malicious command line with the finger.captchamag.com indicator, and
-machine entity for DefCon30), confirmed by temporarily widening the time
-filter to cover that January 2026 alert. With the 30 day production
-window above, a run today correctly returns 0 rows since that alert has
-aged out of the lookback, this is expected, widen the window when
-investigating older ClickFix history.
+confirmed with `print` against the literal command text above, correctly
+isolating `finger mag@finger.captchamag.com`, and returns 0 rows when no
+finger-based retrieval pattern is present, a clean result.
 

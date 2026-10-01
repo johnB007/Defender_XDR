@@ -16,7 +16,7 @@
 //          [^\/:*?"<>|\r\n], which produced a confirmed false positive
 //          against a benign MDE product metadata collection script during
 //          validation.
-// Validated: success, real rows returned against live SOC-Central data.
+// Validated: success, real rows returned against live telemetry.
 //          Confirmed hits included the Microsoft Defender for Cloud Servers
 //          extension installer script and an MDE product metadata
 //          collection script, both large legitimate multi-purpose scripts

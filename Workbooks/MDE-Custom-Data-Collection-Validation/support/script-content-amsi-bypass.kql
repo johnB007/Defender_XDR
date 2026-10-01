@@ -3,7 +3,7 @@
 // Purpose: Detect references to the AMSI internal fields and methods that
 //          attackers patch or flip to disable the Antimalware Scan Interface
 //          before running the rest of a malicious script.
-// Validated: success, count 0 against live SOC-Central data (7 day window),
+// Validated: success, count 0 against live telemetry (7 day window),
 //          confirming clean baseline with no AMSI tampering in that tenant.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)

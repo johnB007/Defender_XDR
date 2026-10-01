@@ -25,8 +25,8 @@
 //          ('powershell.exe -e^n^c JABwACAAPQAgAEcAZQB0...'): the caret
 //          strip, flag extraction, and base64 decode correctly reproduced
 //          the real hidden command '$p = Get-MpPreference;'. 0 rows
-//          against live SOC-Central data in the 7 day window, a genuine
-//          true negative since this tenant has zero command lines
+//          against live telemetry in the 7 day window, a genuine
+//          true negative since this environment has zero command lines
 //          containing a literal caret at all.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)

@@ -6,7 +6,7 @@
 //          matching. A high raw count of + operators on a single script
 //          content value is a cheap, robust heuristic for this pattern and
 //          avoids fragile quote escaped regex.
-// Validated: success, rows returned against live SOC-Central data (7 day window).
+// Validated: success, rows returned against live telemetry (7 day window).
 //          Threshold of 8 is tuned from real samples; raise it if a specific
 //          environment has legitimately math heavy scripts and generates
 //          excess noise.

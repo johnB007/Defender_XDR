@@ -4,7 +4,7 @@
 //          MDE custom data collection (AmsiScriptContent). Threat actors often
 //          hardcode a callback or staging IP directly in a dropped script
 //          rather than a domain name, to avoid DNS based detection.
-// Validated: success, rows returned against live SOC-Central data (7 day window).
+// Validated: success, rows returned against live telemetry (7 day window).
 // Known noise: assembly or module version strings such as "1.0.0.0" or
 //          "3.1.0.0" match the IPv4 pattern and will appear in results.
 //          Treat single digit leading octets with trailing .0.0 as lower

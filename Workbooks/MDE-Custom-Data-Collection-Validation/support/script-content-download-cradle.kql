@@ -4,7 +4,7 @@
 //          pulls remote content with WebClient, Invoke-WebRequest, or
 //          Start-BitsTransfer and then feeds it straight into Invoke-Expression
 //          or the iex alias, without ever writing the payload to disk.
-// Validated: success, rows returned against live SOC-Central data (7 day window).
+// Validated: success, rows returned against live telemetry (7 day window).
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent)

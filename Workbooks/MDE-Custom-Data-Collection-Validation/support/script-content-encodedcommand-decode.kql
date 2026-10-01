@@ -8,7 +8,7 @@
 //          EncodedPortion with base64_decode_toarray plus a UTF-16 aware
 //          string conversion outside of KQL, or eyeball the decoded text with
 //          the nulls stripped.
-// Validated: success, rows returned against live SOC-Central data (7 day window).
+// Validated: success, rows returned against live telemetry (7 day window).
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where InitiatingProcessCommandLine contains '-EncodedCommand'

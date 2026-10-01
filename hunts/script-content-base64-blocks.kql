@@ -4,7 +4,7 @@
 //          80 or more characters. Legitimate scripts rarely contain long
 //          base64 blocks outside of certificate or hash material, while
 //          obfuscated payloads and staged second stage code frequently do.
-// Validated: success, rows returned against live SOC-Central data (7 day window).
+// Validated: success, rows returned against live telemetry (7 day window).
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent)

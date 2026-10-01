@@ -17,13 +17,11 @@
 //          CAPTCHA or verification.
 // Validated: success. The phrase and combo matching logic was first
 //          confirmed against a synthetic literal string, then confirmed a
-//          second time against a real ClickFix detection pulled from this
-//          tenant's AlertEvidence table (AlertId
-//          dab879c26d-f140-42c9-83bd-8a2cc293857e_1, title "Suspicious
-//          'SuspClickFix' behavior was blocked"), which used the exact
-//          phrase "Verify you are human--press ENTER" alongside powershell
-//          and the finger command. That real sample is why the phrase list
-//          includes "Verify you are human" and the combo list includes
+//          second time against the exact phrasing used in a real
+//          in-the-wild ClickFix command, "Verify you are human--press
+//          ENTER" alongside powershell and the finger command. That real
+//          sample is why the phrase list includes "Verify you are human"
+//          and the combo list includes
 //          "finger", and why this now checks InitiatingProcessCommandLine
 //          as well as ScriptContent, since a blocked ClickFix attempt may
 //          never reach the point of being captured as script content.

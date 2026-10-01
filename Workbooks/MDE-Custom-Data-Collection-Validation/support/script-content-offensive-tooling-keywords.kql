@@ -9,7 +9,7 @@
 //          confirming clean baseline. Query was validated by loading the KQL
 //          text from a file rather than a raw terminal argument, because the
 //          literal tool names trip local antivirus command line scanning.
-// Quick summary: Direct keyword match for well known offensive tool names.
+// Direct keyword match for well known offensive tool names.
 // Coarse and high confidence, but attackers can rename or encode strings.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)

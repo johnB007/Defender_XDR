@@ -5,7 +5,7 @@
 //          Start-BitsTransfer and then feeds it straight into Invoke-Expression
 //          or the iex alias, without ever writing the payload to disk.
 // Validated: success, rows returned against live telemetry (7 day window).
-// Quick summary: Flags the classic download and execute pattern, a
+// Flags the classic download and execute pattern, a
 // WebClient or Invoke-WebRequest call feeding straight into IEX.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)

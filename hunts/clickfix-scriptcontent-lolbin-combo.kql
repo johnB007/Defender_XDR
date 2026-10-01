@@ -25,7 +25,7 @@
 //          fidelity than the command line variant and corroborate with the
 //          fake verification phrase hunt or an unusual network destination
 //          before escalating.
-// Quick summary: Same LOLBin, download, and evasion combo as the command
+// Same LOLBin, download, and evasion combo as the command
 // line variant, applied to ScriptContent; corroborate before escalating.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)

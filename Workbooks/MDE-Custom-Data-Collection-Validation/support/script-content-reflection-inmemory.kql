@@ -7,7 +7,7 @@
 // Validated: success, rows returned against live telemetry (7 day window).
 //          Sample hits in this environment were MDE Sense DataCollection PS1
 //          wrapper scripts, confirmed benign, useful as a baseline for tuning.
-// Quick summary: Flags .NET reflection and unmanaged memory APIs used to
+// Flags .NET reflection and unmanaged memory APIs used to
 // run a payload entirely in memory without dropping a file to disk.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)

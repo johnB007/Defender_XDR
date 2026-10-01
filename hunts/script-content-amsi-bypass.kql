@@ -5,7 +5,7 @@
 //          before running the rest of a malicious script.
 // Validated: success, count 0 against live telemetry (7 day window),
 //          confirming clean baseline with no AMSI tampering observed.
-// Quick summary: Flags references to internal AMSI fields or methods
+// Flags references to internal AMSI fields or methods
 // attackers patch to disable malware scanning. Any hit warrants escalation.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)

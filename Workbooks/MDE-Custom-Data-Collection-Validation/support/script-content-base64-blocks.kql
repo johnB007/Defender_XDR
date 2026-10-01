@@ -5,7 +5,7 @@
 //          base64 blocks outside of certificate or hash material, while
 //          obfuscated payloads and staged second stage code frequently do.
 // Validated: success, rows returned against live telemetry (7 day window).
-// Quick summary: Flags scripts containing a contiguous base64 looking run of
+// Flags scripts containing a contiguous base64 looking run of
 // 80 plus characters, rare in legitimate scripts, common in staged payloads.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)

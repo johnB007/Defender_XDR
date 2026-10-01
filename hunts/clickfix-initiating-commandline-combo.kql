@@ -20,7 +20,7 @@
 //          the collected InitiatingProcessCommandLine values are short
 //          wrapper invocations that call a .ps1 file by path rather than
 //          embedding the download and execute logic inline.
-// Quick summary: Flags a command line combining a LOLBin, a download or
+// Flags a command line combining a LOLBin, a download or
 // execute primitive, and an evasion flag, the typical ClickFix construction.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)

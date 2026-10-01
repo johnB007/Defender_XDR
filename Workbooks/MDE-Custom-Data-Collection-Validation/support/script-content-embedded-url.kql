@@ -4,7 +4,7 @@
 //          captured by MDE custom data collection. Useful for spotting
 //          staging servers, exfil endpoints, or download cradle targets.
 // Validated: success, rows returned against live telemetry (7 day window).
-// Quick summary: Extracts every http or https URL embedded in script content.
+// Extracts every http or https URL embedded in script content.
 // Surfaces staging servers, exfil endpoints, or download cradle targets.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)

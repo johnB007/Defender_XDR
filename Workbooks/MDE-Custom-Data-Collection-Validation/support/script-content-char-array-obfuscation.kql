@@ -1,13 +1,3 @@
-// Hunt: Char code or char array string reconstruction obfuscation
-// Table: DeviceCustomScriptEvents
-// Purpose: Detect PowerShell obfuscation that rebuilds a string one character
-//          at a time from [char] casts of decimal or hex codes, or from a
-//          [char[]] array joined back into a string. Five or more chained
-//          [char] casts in a row is a strong signal of automated obfuscation
-//          tooling rather than hand written code.
-// Validated: success (regex sanity confirmed against a known matching literal;
-//          0 rows in the live 7 day sample, consistent with no obfuscation
-//          tooling present in this environment's current script population).
 // Flags strings rebuilt from chained [char] casts or a
 // [char[]] array, a strong sign of automated obfuscation tooling.
 DeviceCustomScriptEvents

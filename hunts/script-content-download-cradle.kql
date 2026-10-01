@@ -1,9 +1,3 @@
-// Hunt: Download cradle indicators in script content
-// Table: DeviceCustomScriptEvents
-// Purpose: Detect the classic download and execute pattern where a script
-//          pulls remote content with WebClient, Invoke-WebRequest, or
-//          Start-BitsTransfer and then feeds it straight into Invoke-Expression
-//          or the iex alias, without ever writing the payload to disk.
 // Flags the classic download and execute pattern, a
 // WebClient or Invoke-WebRequest call feeding straight into IEX.
 DeviceCustomScriptEvents

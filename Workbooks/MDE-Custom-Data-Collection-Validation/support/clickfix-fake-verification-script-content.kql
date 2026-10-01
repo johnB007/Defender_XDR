@@ -1,30 +1,3 @@
-// Hunt: ClickFix fake CAPTCHA or verification phrase in script content
-// Table: DeviceCustomScriptEvents
-// Source: adapted from Microsoft Threat Intelligence, "Think before you
-//         Click(Fix): Analyzing the ClickFix social engineering technique",
-//         Microsoft Security Blog, August 21 2025.
-// Purpose: ClickFix landing pages copy a command to the clipboard that is
-//          decorated with fake human verification text such as a checkmark
-//          plus "I am not a robot", a bogus "Verification ID", or phrases
-//          like "Human verification" or "Cloud identificator", so the
-//          pasted command looks like normal CAPTCHA output rather than
-//          code. If that pasted text is ultimately captured as a script
-//          body, it is an extremely high fidelity signal, legitimate admin
-//          scripts essentially never contain this wording. Requiring the
-//          phrase alongside an execution primitive (iex, powershell, mshta,
-//          curl, DownloadString, FromBase64String) filters out any
-//          unrelated documentation or help text that happens to mention
-//          CAPTCHA or verification.
-// Validated: success. The phrase and combo matching logic was first
-//          confirmed against a synthetic literal string, then confirmed a
-//          second time against the exact phrasing used in a real
-//          in-the-wild ClickFix command, "Verify you are human--press
-//          ENTER" alongside powershell and the finger command. That real
-//          sample is why the phrase list includes "Verify you are human"
-//          and the combo list includes
-//          "finger", and why this now checks InitiatingProcessCommandLine
-//          as well as ScriptContent, since a blocked ClickFix attempt may
-//          never reach the point of being captured as script content.
 // Flags fake CAPTCHA or verification wording paired with an
 // execution primitive, a ClickFix clipboard lure hallmark.
 DeviceCustomScriptEvents

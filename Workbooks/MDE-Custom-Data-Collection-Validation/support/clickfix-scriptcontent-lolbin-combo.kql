@@ -1,30 +1,3 @@
-// Hunt: ClickFix LOLBin download, execute, and evasion combo (ScriptContent)
-// Table: DeviceCustomScriptEvents
-// Source: adapted from Microsoft Threat Intelligence, "Think before you
-//         Click(Fix): Analyzing the ClickFix social engineering technique",
-//         Microsoft Security Blog, August 21 2025.
-// Purpose: Companion to clickfix-initiating-commandline-combo.kql. Some
-//          ClickFix chains paste a short launcher on the command line that
-//          in turn runs a larger embedded script, in which case the real
-//          download, execute, and evasion combo only shows up in the
-//          captured ScriptContent body rather than the launching command
-//          line. This hunt applies the same three part combo logic to
-//          ScriptContent directly. The bare caret (^) was deliberately
-//          dropped from the evasion flag list here, unlike the command
-//          line version, because PowerShell script bodies routinely use a
-//          literal caret inside negated regex character classes such as
-//          [^\/:*?"<>|\r\n], which produced a confirmed false positive
-//          against a benign MDE product metadata collection script during
-//          validation.
-// Validated: success, real rows returned against live telemetry.
-//          Confirmed hits included the Microsoft Defender for Cloud Servers
-//          extension installer script and an MDE product metadata
-//          collection script, both large legitimate multi-purpose scripts
-//          that happen to reference several of the combo terms across
-//          thousands of lines. Treat ScriptContent combo hits as lower
-//          fidelity than the command line variant and corroborate with the
-//          fake verification phrase hunt or an unusual network destination
-//          before escalating.
 // Same LOLBin, download, and evasion combo as the command
 // line variant, applied to ScriptContent; corroborate before escalating.
 DeviceCustomScriptEvents

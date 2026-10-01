@@ -1,14 +1,3 @@
-// Hunt: Heavy string concatenation obfuscation in script content
-// Table: DeviceCustomScriptEvents
-// Purpose: Obfuscation tools such as Invoke-Obfuscation commonly split a
-//          sensitive keyword like Invoke-Expression into many short quoted
-//          fragments joined with the + operator, to defeat simple keyword
-//          matching. A high raw count of + operators on a single script
-//          content value is a cheap, robust heuristic for this pattern and
-//          avoids fragile quote escaped regex.
-//          Threshold of 8 is tuned from real samples; raise it if a specific
-//          environment has legitimately math heavy scripts and generates
-//          excess noise.
 // Flags scripts with 8 or more + operators, a sign of
 // Invoke-Obfuscation style keyword splitting to dodge literal matching.
 DeviceCustomScriptEvents

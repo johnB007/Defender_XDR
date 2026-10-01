@@ -1,14 +1,3 @@
-// Hunt: Hardcoded IPv4 addresses embedded in custom script content
-// Table: DeviceCustomScriptEvents
-// Purpose: Surface any IPv4 literal appearing inside a script body captured by
-//          MDE custom data collection (AmsiScriptContent). Threat actors often
-//          hardcode a callback or staging IP directly in a dropped script
-//          rather than a domain name, to avoid DNS based detection.
-// Known noise: assembly or module version strings such as "1.0.0.0" or
-//          "3.1.0.0" match the IPv4 pattern and will appear in results.
-//          Treat single digit leading octets with trailing .0.0 as lower
-//          priority and triage private/reserved ranges separately from
-//          public routable IPs.
 // Extracts every IPv4 looking string from script content, a common spot
 // for a hardcoded callback IP; expect noise from version strings like 1.0.0.0.
 DeviceCustomScriptEvents

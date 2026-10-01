@@ -1,10 +1,3 @@
-// Hunt: AMSI bypass indicators in script content or command line
-// Table: DeviceCustomScriptEvents
-// Purpose: Detect references to the AMSI internal fields and methods that
-//          attackers patch or flip to disable the Antimalware Scan Interface
-//          before running the rest of a malicious script.
-// Validated: success, count 0 against live telemetry (7 day window),
-//          confirming clean baseline with no AMSI tampering observed.
 // Flags references to internal AMSI fields or methods
 // attackers patch to disable malware scanning. Any hit warrants escalation.
 DeviceCustomScriptEvents

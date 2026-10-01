@@ -1,21 +1,3 @@
-// Hunt: ClickFix split-flag string concatenation
-// Table: DeviceCustomScriptEvents
-// Source: pattern confirmed against a real in-the-wild ClickFix command
-//         that used ('-Windo' + 'wStyle') ('hid' + 'den') to split
-//         -WindowStyle and hidden into two quoted fragments joined with +.
-//         The existing heavy concatenation hunt (ConcatHits >= 8) missed
-//         this sample entirely, it only has two + operators total, well
-//         under that threshold.
-// Purpose: catches the specific micro-pattern of a single quoted fragment,
-//          plus operator, second quoted fragment, inside parentheses,
-//          regardless of how many times it repeats in the surrounding
-//          script or command line. This is a lower threshold, more
-//          targeted companion to the ConcatHits >= 8 heuristic, aimed at
-//          exactly this kind of flag or cmdlet name fragmentation used to
-//          dodge literal keyword matching.
-// Validated: success. Regex confirmed via print against the literal
-//          fragment ('-Windo' + 'wStyle') shown above, and returns 0 rows
-//          when no split-flag pattern is present, a clean result.
 // Flags a flag or cmdlet name split into two quoted fragments
 // joined with +, catching obfuscation the high-threshold concat hunt misses.
 DeviceCustomScriptEvents

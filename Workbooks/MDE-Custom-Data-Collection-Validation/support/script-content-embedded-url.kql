@@ -1,8 +1,3 @@
-// Hunt: URLs or domains embedded in custom script content
-// Table: DeviceCustomScriptEvents
-// Purpose: Surface any http or https URL appearing inside a script body
-//          captured by MDE custom data collection. Useful for spotting
-//          staging servers, exfil endpoints, or download cradle targets.
 // Extracts every http or https URL embedded in script content.
 // Surfaces staging servers, exfil endpoints, or download cradle targets.
 DeviceCustomScriptEvents

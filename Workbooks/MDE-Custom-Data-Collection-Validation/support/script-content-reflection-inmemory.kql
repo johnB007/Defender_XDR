@@ -1,11 +1,3 @@
-// Hunt: Reflection and in-memory execution indicators in script content
-// Table: DeviceCustomScriptEvents
-// Purpose: Detect use of .NET reflection and unmanaged memory APIs commonly
-//          used to load and run a payload entirely in memory without ever
-//          dropping an executable to disk, for example a reflective PE loader
-//          or shellcode runner.
-//          Sample hits in this environment were MDE Sense DataCollection PS1
-//          wrapper scripts, confirmed benign, useful as a baseline for tuning.
 // Flags .NET reflection and unmanaged memory APIs used to
 // run a payload entirely in memory without dropping a file to disk.
 DeviceCustomScriptEvents

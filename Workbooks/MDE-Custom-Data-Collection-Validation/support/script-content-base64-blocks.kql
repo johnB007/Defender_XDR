@@ -1,9 +1,3 @@
-// Hunt: Long base64 encoded blocks embedded in custom script content
-// Table: DeviceCustomScriptEvents
-// Purpose: Surface script bodies containing a contiguous base64 like run of
-//          80 or more characters. Legitimate scripts rarely contain long
-//          base64 blocks outside of certificate or hash material, while
-//          obfuscated payloads and staged second stage code frequently do.
 // Flags scripts containing a contiguous base64 looking run of
 // 80 plus characters, rare in legitimate scripts, common in staged payloads.
 DeviceCustomScriptEvents

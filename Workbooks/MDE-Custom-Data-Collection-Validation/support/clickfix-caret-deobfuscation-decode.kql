@@ -1,33 +1,3 @@
-// Hunt: ClickFix caret de-obfuscation and -EncodedCommand decode
-// Table: DeviceCustomScriptEvents
-// Source: adapted from Microsoft Threat Intelligence, "Think before you
-//         Click(Fix): Analyzing the ClickFix social engineering technique",
-//         Microsoft Security Blog, August 21 2025 (Figure 28 describes
-//         LOLBin stacking and obfuscation through caret escape characters,
-//         and the blog's own published hunting query uses a regex built
-//         around [Ee^] and [NnCcOoDdEeMmAa^] to catch a scrambled or
-//         caret-split spelling of the EncodedCommand flag).
-// Purpose: cmd.exe treats a caret before any character as an escape that
-//          is silently removed before the command runs, so an attacker can
-//          insert a caret almost anywhere in a command line to defeat
-//          literal string and simple regex matching while the command
-//          still executes exactly as intended. This hunt reverses that
-//          trick: it requires a literal caret to be present (an unusual
-//          signal on its own for a normal command line), strips every
-//          caret to recover the real text, then looks for an obfuscated
-//          -EncodedCommand style flag (-e, -en, -enc, -enco, ... case
-//          insensitive, however many characters of "encodedcommand" the
-//          attacker typed) followed by a base64 blob, decodes that blob,
-//          and separately flags any download or execute primitive that
-//          only becomes visible once the carets are removed.
-// Validated: success. Component logic confirmed with print x = ... against
-//          a synthetic caret-split payload
-//          ('powershell.exe -e^n^c JABwACAAPQAgAEcAZQB0...'): the caret
-//          strip, flag extraction, and base64 decode correctly reproduced
-//          the real hidden command '$p = Get-MpPreference;'. 0 rows
-//          against live telemetry in the 7 day window, a genuine
-//          true negative since this environment has zero command lines
-//          containing a literal caret at all.
 // Strips cmd.exe caret escape obfuscation, then extracts and
 // decodes any revealed -EncodedCommand payload hiding underneath.
 DeviceCustomScriptEvents

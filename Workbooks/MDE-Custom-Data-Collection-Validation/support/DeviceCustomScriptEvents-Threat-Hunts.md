@@ -9,9 +9,8 @@ telemetry with a 7 day data window before being saved.
 ## 1. Embedded IPv4 address
 
 ```kql
-// Extracts every IPv4 looking string from script content, a
-// common spot for a hardcoded callback or staging IP. Expect noise from
-// version strings like 1.0.0.0; triage public, non-reserved IPs first.
+// Extracts every IPv4 looking string from script content, a common spot
+// for a hardcoded callback IP; expect noise from version strings like 1.0.0.0.
 DeviceCustomScriptEvents
 | where Timestamp > ago(7d)
 | where isnotempty(ScriptContent)
@@ -396,11 +395,11 @@ DeviceCustomScriptEvents
 | take 10000
 ```
 
-What it does and why: the existing heavy concatenation hunt (`ConcatHits
->= 8`) missed this real sample entirely, it only has two `+` operators
-total, well under that threshold. This hunt instead catches the specific
-micro-pattern of a single quoted fragment, plus operator, second quoted
-fragment, inside parentheses, regardless of how many times it repeats, a
+What it does and why: the existing heavy concatenation hunt
+(`ConcatHits >= 8`) missed this real sample entirely, it only has two `+`
+operators total, well under that threshold. This hunt instead catches the
+specific micro-pattern of a single quoted fragment, plus operator, second
+quoted fragment, inside parentheses, regardless of how many times it repeats, a
 lower threshold and more targeted companion aimed exactly at flag or
 cmdlet name fragmentation used to dodge literal keyword matching.
 Validation note: the regex was confirmed with `print` against the literal

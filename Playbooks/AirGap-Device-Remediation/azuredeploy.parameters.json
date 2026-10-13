@@ -1,0 +1,36 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workflowName": {
+      "value": "AirGap-Device-Remediation"
+    },
+    "location": {
+      "value": "eastus"
+    },
+    "sentinelConnectionName": {
+      "value": "azuresentinel"
+    },
+    "monitorLogsConnectionName": {
+      "value": "azuremonitorlogs"
+    },
+    "office365ConnectionName": {
+      "value": "office365"
+    },
+    "lawSubscriptionId": {
+      "value": "<WORKSPACE_SUBSCRIPTION_ID>"
+    },
+    "lawResourceGroup": {
+      "value": "<WORKSPACE_RESOURCE_GROUP>"
+    },
+    "lawWorkspaceName": {
+      "value": "<WORKSPACE_NAME>"
+    },
+    "watchlistAlias": {
+      "value": "AirGapContacts"
+    },
+    "enableIsolation": {
+      "value": false
+    }
+  }
+}

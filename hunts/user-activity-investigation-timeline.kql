@@ -1,0 +1,22 @@
+// Title: User Activity Investigation Timeline
+// Purpose: Build a cross-source activity timeline for a user during incident investigation.
+// Time window: Last 1 day
+// Notes: Replace UPN with the account being investigated. This query provides context and does not determine malicious intent.
+let UPN = "user@domain.com";
+let SAM = tostring(split(UPN, "@")[0]);
+union kind=outer withsource=Tablename isfuzzy=true (AuditLogs), (SigninLogs), (DeviceLogonEvents), (DeviceProcessEvents), (DeviceFileEvents), (DeviceNetworkEvents), (DeviceRegistryEvents), (DeviceEvents), (IdentityLogonEvents), (IdentityDirectoryEvents), (IdentityQueryEvents), (CloudAppEvents), (UrlClickEvents), (AADServicePrincipalSignInLogs)
+| where TimeGenerated > ago(1d)
+| extend AuditActorUpn = tostring(todynamic(column_ifexists("InitiatedBy", dynamic(null))).user.userPrincipalName)
+| extend AuditActorName = tostring(todynamic(column_ifexists("InitiatedBy", dynamic(null))).user.displayName)
+| extend AuditActorIp = tostring(todynamic(column_ifexists("InitiatedBy", dynamic(null))).user.ipAddress)
+| extend EntraDeviceName = tostring(todynamic(column_ifexists("DeviceDetail", dynamic(null))).displayName)
+| where tostring(column_ifexists("AccountUpn", "")) =~ UPN or tostring(column_ifexists("InitiatingProcessAccountUpn", "")) =~ UPN or tostring(column_ifexists("AccountName", "")) =~ SAM or tostring(column_ifexists("InitiatingProcessAccountName", "")) =~ SAM or tostring(column_ifexists("Identity", "")) =~ UPN or tostring(column_ifexists("ObjectName", "")) =~ UPN or tostring(column_ifexists("TargetAccountUpn", "")) =~ UPN or tostring(column_ifexists("UserPrincipalName", "")) =~ UPN or tostring(column_ifexists("AccountId", "")) =~ UPN or AuditActorUpn =~ UPN or tostring(column_ifexists("TargetResources", dynamic(null))) contains UPN
+| extend TargetResources = coalesce(todynamic(column_ifexists("TargetResources", dynamic(null))), todynamic(column_ifexists("ActivityObjects", dynamic(null))))
+| extend ActionType = coalesce(tostring(column_ifexists("ActionType", "")), tostring(column_ifexists("OperationName", "")))
+| extend AccountUpn = coalesce(tostring(column_ifexists("AccountUpn", "")), tostring(column_ifexists("InitiatingProcessAccountUpn", "")), tostring(column_ifexists("UserPrincipalName", "")), AuditActorUpn, tostring(column_ifexists("AccountId", "")), tostring(column_ifexists("Identity", "")))
+| extend AccountName = coalesce(tostring(column_ifexists("AccountName", "")), tostring(column_ifexists("InitiatingProcessAccountName", "")), tostring(column_ifexists("UserDisplayName", "")), tostring(column_ifexists("AccountDisplayName", "")), AuditActorName)
+| extend DeviceName = coalesce(tostring(column_ifexists("DeviceName", "")), EntraDeviceName)
+| extend RemoteIP = coalesce(tostring(column_ifexists("RemoteIP", "")), tostring(column_ifexists("IPAddress", "")), AuditActorIp)
+| extend AccountName = coalesce(AccountName, tostring(split(AccountUpn, "@")[0]))
+| project TimeGenerated, Tablename, TargetResources, ActionType, DeviceName, AccountName, AccountUpn, InitiatingProcessAccountName, InitiatingProcessAccountUpn, RemoteIP, LocalIP
+| order by TimeGenerated desc

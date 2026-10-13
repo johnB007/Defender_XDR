@@ -10,7 +10,7 @@ DeviceFileEvents
 // Comment the below line if you're looking specifically for a computer
 | where Timestamp > startDate
 // Uncomment the line below when looking for info regarding a specific computer
-//| where DeviceName contains "324-UM"
+//| where DeviceName contains "<DEVICE_NAME>"
 | extend NewVersion=tostring(split(InitiatingProcessCommandLine, " ")[4])
 | summarize arg_max(NewVersion, Timestamp) by DeviceName
 | project Timestamp, DeviceName , NewVersion

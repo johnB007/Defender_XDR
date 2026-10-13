@@ -1,0 +1,14 @@
+// Finds Chrome and Edge extensions listed by the Malicious Extension Sentry project.
+// The external indicator source is refreshed when the query runs.
+
+let MaliciousExtensions = externaldata(extension_id: string, name: string, reason: string, source: string, insert_date_fmt: string)
+[ h@'https://raw.githubusercontent.com/toborrm9/malicious_extension_sentry/refs/heads/main/malicious_extensions_detailed.csv']
+with (format="csv", ignoreFirstRecord=true);
+DeviceFileEvents
+| where Timestamp > ago(90d)
+| extend ExtractedID = extract(@'\\([a-z]{32})\\', 1, tolower(FolderPath))
+| where isnotempty(ExtractedID)
+| join kind=inner (MaliciousExtensions) on $left.ExtractedID == $right.extension_id
+| summarize FirstSeen = min(Timestamp), LastSeen = max(Timestamp), EventCount = count(), FolderPaths = make_set(FolderPath), ReportIds = make_set(ReportId) by DeviceName, DeviceId, ExtractedID, name, reason, source, insert_date_fmt, InitiatingProcessAccountUpn, InitiatingProcessAccountObjectId, InitiatingProcessFileName
+| project Timestamp = LastSeen, DeviceName, DeviceId, ExtractedID, name, reason, source, insert_date_fmt, FirstSeen, EventCount, FolderPaths, ReportIds, InitiatingProcessAccountUpn, InitiatingProcessAccountObjectId, InitiatingProcessFileName
+| order by Timestamp desc

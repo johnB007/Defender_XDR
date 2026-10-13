@@ -1,0 +1,180 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "logicAppName": {
+      "type": "string",
+      "defaultValue": "Monthly-Suspicious-Email-Report"
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "eastus"
+    },
+    "office365ConnectionName": {
+      "type": "string",
+      "defaultValue": "o365-Send-email-with-formatted-incident-report"
+    },
+    "reportRecipient": {
+      "type": "string"
+    },
+    "queryRecipients": {
+      "type": "array"
+    },
+    "excludedOffices": {
+      "type": "array",
+      "defaultValue": [
+        "ABC",
+        "U123XYZ"
+      ]
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Logic/workflows",
+      "apiVersion": "2019-05-01",
+      "name": "[parameters('logicAppName')]",
+      "location": "[parameters('location')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "state": "Enabled",
+        "definition": {
+          "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+          "contentVersion": "1.0.0.0",
+          "parameters": {
+            "reportRecipient": {
+              "type": "String",
+              "defaultValue": "[parameters('reportRecipient')]"
+            },
+            "queryRecipients": {
+              "type": "Array",
+              "defaultValue": "[parameters('queryRecipients')]"
+            },
+            "excludedOffices": {
+              "type": "Array",
+              "defaultValue": "[parameters('excludedOffices')]"
+            },
+            "$connections": {
+              "type": "Object",
+              "defaultValue": {}
+            }
+          },
+          "triggers": {
+            "Recurrence": {
+              "type": "Recurrence",
+              "description": "Run on the first day of each month",
+              "recurrence": {
+                "frequency": "Month",
+                "interval": 1,
+                "timeZone": "Eastern Standard Time",
+                "schedule": {
+                  "monthDays": [
+                    1
+                  ],
+                  "hours": [
+                    10
+                  ],
+                  "minutes": [
+                    0
+                  ]
+                }
+              }
+            }
+          },
+          "actions": {
+            "Build_Hunting_Query": {
+              "type": "Compose",
+              "inputs": "let StartOfThisMonth = startofmonth(now());\nlet StartOfLastMonth = startofmonth(datetime_add('month', -1, now()));\nlet sus = dynamic([\"@{join(parameters('queryRecipients'), '\",\"')}\"]);\nlet Removed = dynamic([\"@{join(parameters('excludedOffices'), '\",\"')}\"]);\nlet EmailByOffice = EmailEvents\n| where Timestamp >= StartOfLastMonth and Timestamp < StartOfThisMonth\n| where RecipientEmailAddress in~ (sus)\n| extend FieldOffice = extract(@'\\((.*?)\\)', 1, SenderDisplayName)\n| where isnotempty(FieldOffice)\n| summarize EmailCount = dcount(NetworkMessageId), UniqueSenders = dcount(SenderDisplayName) by FieldOffice;\nlet UsersByOffice = IdentityInfo\n| where Timestamp > ago(30d)\n| summarize arg_max(Timestamp, *) by AccountObjectId\n| extend FieldOffice = extract(@'\\((.*?)\\)', 1, AccountDisplayName)\n| where IsAccountEnabled == true\n| where isnotempty(FieldOffice)\n| summarize Population = dcount(AccountObjectId) by FieldOffice;\nEmailByOffice\n| join kind=fullouter UsersByOffice on FieldOffice\n| extend FieldOffice = coalesce(FieldOffice, FieldOffice1)\n| where FieldOffice !in (Removed)\n| project FieldOffice, EmailCount = coalesce(EmailCount, 0), UniqueSenders = coalesce(UniqueSenders, 0), Population = coalesce(Population, 0)\n| extend Density = iff(Population == 0, 'N/A', strcat(round(100.0 * todouble(EmailCount) / todouble(Population), 2), '%')), SenderRatio = iff(Population == 0, 'N/A', strcat(round(100.0 * todouble(UniqueSenders) / todouble(Population), 2), '%'))\n| sort by EmailCount desc",
+              "runAfter": {}
+            },
+            "Run_Graph_Advanced_Hunting": {
+              "type": "Http",
+              "inputs": {
+                "method": "POST",
+                "uri": "https://graph.microsoft.com/v1.0/security/runHuntingQuery",
+                "headers": {
+                  "Content-Type": "application/json"
+                },
+                "authentication": {
+                  "type": "ManagedServiceIdentity",
+                  "audience": "https://graph.microsoft.com"
+                },
+                "body": {
+                  "Query": "@outputs('Build_Hunting_Query')"
+                },
+                "retryPolicy": {
+                  "type": "exponential",
+                  "count": 4,
+                  "interval": "PT10S"
+                }
+              },
+              "runAfter": {
+                "Build_Hunting_Query": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Create_HTML_table": {
+              "type": "Table",
+              "inputs": {
+                "from": "@body('Run_Graph_Advanced_Hunting')?['results']",
+                "format": "HTML"
+              },
+              "runAfter": {
+                "Run_Graph_Advanced_Hunting": [
+                  "Succeeded"
+                ]
+              }
+            },
+            "Send_an_email_V2": {
+              "type": "ApiConnection",
+              "inputs": {
+                "host": {
+                  "connection": {
+                    "name": "@parameters('$connections')['office365']['connectionId']"
+                  }
+                },
+                "method": "post",
+                "path": "/v2/Mail",
+                "body": {
+                  "To": "@parameters('reportRecipient')",
+                  "Subject": "@concat('Monthly Suspicious Report ', formatDateTime(addToTime(utcNow(), -1, 'Month'), 'MMMM yyyy'))",
+                  "Body": "@concat('<p>Monthly Report for ', formatDateTime(addToTime(utcNow(), -1, 'Month'), 'MMMM yyyy'), '</p>', body('Create_HTML_table'))",
+                  "Importance": "Normal"
+                }
+              },
+              "runAfter": {
+                "Create_HTML_table": [
+                  "Succeeded"
+                ]
+              }
+            }
+          },
+          "outputs": {}
+        },
+        "parameters": {
+          "$connections": {
+            "value": {
+              "office365": {
+                "id": "[subscriptionResourceId('Microsoft.Web/locations/managedApis', parameters('location'), 'office365')]",
+                "connectionId": "[resourceId('Microsoft.Web/connections', parameters('office365ConnectionName'))]",
+                "connectionName": "[parameters('office365ConnectionName')]"
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "logicAppResourceId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.Logic/workflows', parameters('logicAppName'))]"
+    },
+    "logicAppPrincipalId": {
+      "type": "string",
+      "value": "[reference(resourceId('Microsoft.Logic/workflows', parameters('logicAppName')), '2019-05-01', 'Full').identity.principalId]"
+    }
+  }
+}

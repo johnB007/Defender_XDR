@@ -1,0 +1,23 @@
+// Finds device names associated with multiple Defender device IDs and compares recent telemetry.
+// Review merge status and alert evidence before removing or offboarding duplicate records.
+let duplicateNames = DeviceInfo
+| where Timestamp > ago(90d)
+| summarize DeviceIdCount=dcount(DeviceId), DeviceIdsForName=make_set(DeviceId, 100) by DeviceName
+| where DeviceIdCount > 1;
+let currentDevices = DeviceInfo
+| where Timestamp > ago(90d)
+| join kind=inner (duplicateNames | project DeviceName) on DeviceName
+| summarize arg_max(Timestamp, *) by DeviceId
+| project DeviceId, DeviceName, DeviceInfoLastSeen=Timestamp, OnboardingStatus, SensorHealthState, MergedDeviceIds, MergedToDeviceId;
+let telemetry = DeviceEvents
+| where Timestamp > ago(90d)
+| summarize TelemetryFirstSeen=min(Timestamp), TelemetryLastSeen=max(Timestamp), TelemetryEventCount=count() by DeviceId;
+let alertEvidence = AlertEvidence
+| where Timestamp > ago(90d)
+| summarize AlertEvidenceFirstSeen=min(Timestamp), AlertEvidenceLastSeen=max(Timestamp), AlertEvidenceCount=count() by DeviceId;
+currentDevices
+| join kind=inner duplicateNames on DeviceName
+| join kind=leftouter telemetry on DeviceId
+| join kind=leftouter alertEvidence on DeviceId
+| project DeviceId, DeviceName, DeviceIdCount, DeviceIdsForName, DeviceInfoLastSeen, OnboardingStatus, SensorHealthState, MergedDeviceIds, MergedToDeviceId, TelemetryFirstSeen, TelemetryLastSeen, TelemetryEventCount, AlertEvidenceFirstSeen, AlertEvidenceLastSeen, AlertEvidenceCount
+| order by DeviceName asc, DeviceInfoLastSeen desc

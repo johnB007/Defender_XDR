@@ -1,0 +1,24 @@
+// Finds Chromium extension artifacts when only the extension ID is known.
+// Set ExtensionId before running the query.
+let ExtensionId = "";
+let TimeWindow = 30d;
+DeviceFileEvents
+| where isnotempty(ExtensionId)
+| where Timestamp > ago(TimeWindow)
+| where FolderPath has_any ("\\Extensions\\", "\\extensions\\")
+| where FolderPath contains ExtensionId
+| extend ExtensionIdFromPath = extract(@"[Ee]xtensions\\([a-z]{32})\\", 1, FolderPath)
+| where ExtensionIdFromPath == ExtensionId or FolderPath has strcat("\\", ExtensionId, "\\")
+| extend BrowserType = case(
+    FolderPath has "Google\\Chrome", "Chrome",
+    FolderPath has "Microsoft\\Edge", "Edge",
+    FolderPath has "BraveSoftware\\Brave-Browser", "Brave",
+    "Unknown")
+| extend ExtensionNameInferred = case(
+    FileName =~ "manifest.json", strcat("Check manifest.json for name field"),
+    FileName has "_locales", "Localized extension files",
+    FileName endswith ".js", strcat("JavaScript: ", FileName),
+    "Extension name unavailable from telemetry")
+| project Timestamp, DeviceName, BrowserType, ExtensionIdFromPath, ExtensionNameInferred,
+    FileName, FolderPath, SHA256, SHA1, ActionType
+| order by Timestamp desc

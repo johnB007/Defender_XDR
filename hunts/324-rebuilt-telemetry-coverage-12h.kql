@@ -1,0 +1,25 @@
+// Reviews event-time coverage across core device telemetry tables in 10-minute buckets.
+// Replace TargetDevice with the Defender device ID being investigated.
+let EndTime = now();
+let StartTime = EndTime - 12h;
+let TargetDevice = '<DEVICE_ID>';
+let Counts =
+    union withsource=EventTable DeviceProcessEvents, DeviceNetworkEvents, DeviceEvents
+    | where Timestamp between (StartTime .. EndTime)
+    | where DeviceId == TargetDevice
+    | summarize
+        ProcessEvents = countif(EventTable == 'DeviceProcessEvents'),
+        NetworkEvents = countif(EventTable == 'DeviceNetworkEvents'),
+        OtherDeviceEvents = countif(EventTable == 'DeviceEvents'),
+        FirstEvent = min(Timestamp),
+        LastEvent = max(Timestamp)
+        by BucketUtc = bin(Timestamp, 10m);
+range BucketUtc from bin(StartTime, 10m) to bin(EndTime, 10m) step 10m
+| join kind=leftouter Counts on BucketUtc
+| project BucketUtc,
+    ProcessEvents = coalesce(ProcessEvents, 0),
+    NetworkEvents = coalesce(NetworkEvents, 0),
+    OtherDeviceEvents = coalesce(OtherDeviceEvents, 0),
+    FirstEvent, LastEvent
+| extend TotalEvents = ProcessEvents + NetworkEvents + OtherDeviceEvents
+| order by BucketUtc asc

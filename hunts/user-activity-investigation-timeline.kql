@@ -1,7 +1,5 @@
-// Title: User Activity Investigation Timeline
-// Purpose: Build a cross-source activity timeline for a user during incident investigation.
-// Time window: Last 1 day
-// Notes: Replace UPN with the account being investigated. This query provides context and does not determine malicious intent.
+// Builds a cross-source activity timeline for a user during incident investigation.
+// Replace UPN with the account being investigated; the query provides context and does not determine malicious intent.
 let UPN = "user@domain.com";
 let SAM = tostring(split(UPN, "@")[0]);
 union kind=outer withsource=Tablename isfuzzy=true (AuditLogs), (SigninLogs), (DeviceLogonEvents), (DeviceProcessEvents), (DeviceFileEvents), (DeviceNetworkEvents), (DeviceRegistryEvents), (DeviceEvents), (IdentityLogonEvents), (IdentityDirectoryEvents), (IdentityQueryEvents), (CloudAppEvents), (UrlClickEvents), (AADServicePrincipalSignInLogs)

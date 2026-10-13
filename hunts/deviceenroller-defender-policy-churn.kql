@@ -1,0 +1,22 @@
+// Reviews Defender policy changes made by deviceenroller.exe during Intune reconciliation.
+// Use IsSignedSystem32 to separate expected policy churn from suspicious impersonation.
+DeviceRegistryEvents
+| where Timestamp > ago(7d)
+| where RegistryKey has @"\Policies\Microsoft\Windows Defender"
+| where InitiatingProcessFileName =~ "deviceenroller.exe"
+| extend IsSignedSystem32 = InitiatingProcessFolderPath has @"\windows\system32\"
+    and InitiatingProcessVersionInfoCompanyName == "Microsoft Corporation"
+| project
+    Timestamp,
+    DeviceName,
+    ActionType,
+    RegistryKey,
+    RegistryValueName,
+    RegistryValueData,
+    PreviousRegistryValueData,
+    InitiatingProcessFolderPath,
+    Publisher = InitiatingProcessVersionInfoCompanyName,
+    IsSignedSystem32,
+    InitiatingProcessAccountName,
+    InitiatingProcessCommandLine
+| order by Timestamp desc

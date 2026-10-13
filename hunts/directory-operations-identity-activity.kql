@@ -1,0 +1,14 @@
+// Reviews identity logon and directory query activity for a configurable set of synthetic accounts.
+// Replace the sample account names before using the query in another environment.
+union
+    (IdentityLogonEvents
+    | where Timestamp > ago(6h)
+    | where AccountName in~ ('finance.analyst01','finance.analyst02','operations.analyst01','operations.analyst02','support.analyst01','support.analyst02')
+    | extend EventTable = 'IdentityLogonEvents'),
+    (IdentityQueryEvents
+    | where Timestamp > ago(6h)
+    | where AccountName in~ ('finance.analyst01','finance.analyst02','operations.analyst01','operations.analyst02','support.analyst01','support.analyst02')
+    | extend EventTable = 'IdentityQueryEvents')
+| project Timestamp, EventTable, AccountName, AccountDomain, ActionType, Protocol,
+    DeviceName, IPAddress, DestinationDeviceName, DestinationIPAddress
+| order by Timestamp desc

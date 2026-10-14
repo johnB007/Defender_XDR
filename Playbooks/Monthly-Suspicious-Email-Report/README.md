@@ -19,7 +19,7 @@ This Consumption Logic App runs a monthly Microsoft Defender XDR Advanced Huntin
 
 [![Deploy to Azure](https://aka.ms/deploytoazurebutton)](https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FPlaybooks%2FMonthly-Suspicious-Email-Report%2Fazuredeploy.json)
 
-[![Deploy to Azure Gov](https://aka.ms/deploytoazuregovbutton)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FPlaybooks%2FMonthly-Suspicious-Email-Report%2Fazuredeploy.json)
+[![Deploy to Azure Gov](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazuregov.svg)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FPlaybooks%2FMonthly-Suspicious-Email-Report%2Fazuredeploy.json)
 
 ## After Deployment
 

@@ -21,6 +21,12 @@ This Consumption Logic App runs a monthly Microsoft Defender XDR Advanced Huntin
 
 [![Deploy to Azure Gov](https://raw.githubusercontent.com/Azure/azure-quickstart-templates/master/1-CONTRIBUTION-GUIDE/images/deploytoazuregov.svg)](https://portal.azure.us/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FjohnB007%2FDefender_XDR%2Fmain%2FPlaybooks%2FMonthly-Suspicious-Email-Report%2Fazuredeploy.json)
 
+## Architecture
+
+![Monthly Suspicious Email Report architecture](../../docs/diagrams/monthly-suspicious-email-report-architecture.svg)
+
+The diagram uses generic services and data flow only. It contains no tenant, subscription, device, user, recipient, or message identifiers.
+
 ## After Deployment
 
 1. Assign `ThreatHunting.Read.All` to the system assigned managed identity.

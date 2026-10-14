@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AirGap Device Remediation architecture</title>
+  <style>
+    body { margin: 0; background: #071426; color: #e8f3fa; font-family: "Segoe UI", Arial, sans-serif; }
+    main { width: min(1440px, calc(100% - 32px)); margin: 32px auto; }
+    h1 { margin-bottom: 8px; }
+    p { color: #b9d7ea; }
+    a { color: #67e8f9; }
+    .diagram { margin-top: 24px; border: 1px solid #2d5571; border-radius: 16px; overflow: hidden; background: #071426; }
+    .diagram svg { display: block; width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>AirGap Device Remediation architecture</h1>
+    <p>Generic incident-response architecture with no tenant, device, user, contact, or incident identifiers.</p>
+    <p><a href="./README.md">Open the GitHub README source</a></p>
+    <div class="diagram" aria-label="AirGap Device Remediation architecture diagram">
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="760" viewBox="0 0 1400 760" role="img" aria-labelledby="title desc">
+  <title id="title">AirGap Device Remediation architecture</title>
+  <desc id="desc">A Microsoft Sentinel incident triggers entity extraction, Defender Advanced Hunting enrichment, optional device containment, watchlist lookup, incident commenting, and email notification.</desc>
+  <defs>
+    <linearGradient id="background" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071426"/>
+      <stop offset="1" stop-color="#102a43"/>
+    </linearGradient>
+    <linearGradient id="header" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#0078d4"/>
+      <stop offset="1" stop-color="#50e6ff"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000" flood-opacity=".28"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#67e8f9"/>
+    </marker>
+    <style>
+      .title { font: 700 34px "Segoe UI", Arial, sans-serif; fill: #fff; }
+      .subtitle { font: 400 17px "Segoe UI", Arial, sans-serif; fill: #b9d7ea; }
+      .lane { font: 700 15px "Segoe UI", Arial, sans-serif; fill: #7dd3fc; letter-spacing: 1.5px; }
+      .box-title { font: 700 18px "Segoe UI", Arial, sans-serif; fill: #fff; }
+      .box-text { font: 400 14px "Segoe UI", Arial, sans-serif; fill: #d7e9f5; }
+      .small { font: 600 12px "Segoe UI", Arial, sans-serif; fill: #9fc5dc; }
+      .flow { stroke: #67e8f9; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .optional { stroke: #fbbf24; stroke-width: 3; stroke-dasharray: 8 7; fill: none; marker-end: url(#arrow); }
+      .card { fill: #15324a; stroke: #2d6a8d; stroke-width: 2; rx: 16; filter: url(#shadow); }
+      .service { fill: #0c4a6e; stroke: #38bdf8; stroke-width: 2; rx: 16; filter: url(#shadow); }
+      .notify { fill: #17433b; stroke: #34d399; stroke-width: 2; rx: 16; filter: url(#shadow); }
+      .decision { fill: #493b17; stroke: #fbbf24; stroke-width: 2; filter: url(#shadow); }
+    </style>
+  </defs>
+
+  <rect width="1400" height="760" fill="url(#background)"/>
+  <rect x="0" y="0" width="1400" height="8" fill="url(#header)"/>
+  <text x="70" y="70" class="title">AirGap Device Remediation</text>
+  <text x="70" y="102" class="subtitle">Incident-driven investigation, optional containment, enrichment, and notification</text>
+
+  <text x="70" y="158" class="lane">INCIDENT INTAKE AND RESPONSE</text>
+  <line x1="70" y1="172" x2="1330" y2="172" stroke="#2d5571" stroke-width="1"/>
+
+  <rect x="70" y="205" width="210" height="120" class="service"/>
+  <circle cx="105" cy="240" r="18" fill="#38bdf8"/>
+  <path d="M96 240h18M105 231v18" stroke="#07243a" stroke-width="4" stroke-linecap="round"/>
+  <text x="135" y="238" class="box-title">Sentinel incident</text>
+  <text x="95" y="276" class="box-text">Incident creation trigger</text>
+  <text x="95" y="298" class="small">Host and IP entities</text>
+
+  <rect x="340" y="205" width="210" height="120" class="card"/>
+  <text x="365" y="242" class="box-title">Extract entities</text>
+  <text x="365" y="273" class="box-text">Filter host and IP data</text>
+  <text x="365" y="295" class="small">Initialize generic values</text>
+
+  <rect x="610" y="205" width="230" height="120" class="service"/>
+  <text x="635" y="242" class="box-title">Advanced Hunting</text>
+  <text x="635" y="273" class="box-text">Resolve device identity</text>
+  <text x="635" y="295" class="small">Microsoft Graph + managed identity</text>
+
+  <path d="M955 205 L1050 265 L955 325 L860 265 Z" class="decision"/>
+  <text x="915" y="254" class="box-title">Isolation</text>
+  <text x="904" y="278" class="box-text">enabled?</text>
+  <text x="905" y="301" class="small">Default: false</text>
+
+  <rect x="1110" y="205" width="220" height="120" class="service"/>
+  <text x="1135" y="242" class="box-title">MDE containment</text>
+  <text x="1135" y="273" class="box-text">Optional device isolation</text>
+  <text x="1135" y="295" class="small">Separate approval required</text>
+
+  <path d="M280 265 H330" class="flow"/>
+  <path d="M550 265 H600" class="flow"/>
+  <path d="M840 265 H852" class="flow"/>
+  <path d="M1050 265 H1100" class="optional"/>
+  <text x="1065" y="247" class="small">TRUE</text>
+
+  <text x="70" y="402" class="lane">ENRICHMENT AND NOTIFICATION</text>
+  <line x1="70" y1="416" x2="1330" y2="416" stroke="#2d5571" stroke-width="1"/>
+
+  <rect x="70" y="455" width="250" height="125" class="service"/>
+  <text x="95" y="494" class="box-title">Network enrichment</text>
+  <text x="95" y="525" class="box-text">Find a communicating managed device</text>
+  <text x="95" y="548" class="small">Defender Advanced Hunting</text>
+
+  <rect x="380" y="455" width="250" height="125" class="service"/>
+  <text x="405" y="494" class="box-title">Watchlist lookup</text>
+  <text x="405" y="525" class="box-text">Match a generic device prefix</text>
+  <text x="405" y="548" class="small">Azure Monitor Logs</text>
+
+  <rect x="690" y="455" width="250" height="125" class="notify"/>
+  <text x="715" y="494" class="box-title">Incident update</text>
+  <text x="715" y="525" class="box-text">Add investigation context</text>
+  <text x="715" y="548" class="small">Microsoft Sentinel</text>
+
+  <rect x="1000" y="455" width="250" height="125" class="notify"/>
+  <text x="1025" y="494" class="box-title">Notification</text>
+  <text x="1025" y="525" class="box-text">Send approved contact email</text>
+  <text x="1025" y="548" class="small">Office 365 Outlook</text>
+
+  <path d="M955 325 V370 H195 V445" class="flow"/>
+  <path d="M1220 325 V370 H195" class="optional"/>
+  <path d="M320 518 H370" class="flow"/>
+  <path d="M630 518 H680" class="flow"/>
+  <path d="M940 518 H990" class="flow"/>
+
+  <rect x="70" y="650" width="1260" height="58" rx="12" fill="#0b2034" stroke="#244a64"/>
+  <text x="95" y="684" class="box-text">Safety controls: workflow disabled at deployment | isolation disabled by default | managed identity | parameterized environment values</text>
+</svg>
+
+    </div>
+  </main>
+</body>
+</html>

@@ -20,6 +20,12 @@ The workflow is deployed disabled, and device isolation defaults to `false`.
 6. Query the `AirGapContacts` Sentinel watchlist using the offender device-name prefix.
 7. Add an incident comment and email the matched contact.
 
+## Architecture
+
+![AirGap Device Remediation architecture](../../docs/diagrams/airgap-device-remediation-architecture.svg)
+
+The diagram uses generic entities and parameter names only. It contains no tenant, subscription, device, user, contact, or incident identifiers.
+
 ## Connectors and APIs
 
 | Component | Purpose |

@@ -4,11 +4,11 @@
     Look up hash indicators through the GCC High MDE file information API.
 .DESCRIPTION
     Run on an approved workstation, not in MDE Live Response. Requires an existing
-    Az.Accounts AzureUSGovernment context with File.Read.All access. Does not sign
+    Azure CLI AzureUSGovernment session with File.Read.All access. Does not sign
     in, change contexts, call VirusTotal, submit samples, or modify indicators.
     Saves each result immediately. Resume requires the same input file and tenant.
 .PARAMETER TenantId
-    The GCC High tenant to verify against the existing Az.Accounts context.
+    The GCC High tenant to verify against the existing Azure CLI session.
 .PARAMETER Resume
     Continue an existing report. Recorded rows, including failures, are skipped.
 #>
@@ -26,6 +26,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $apiBase = 'https://api-gov.securitycenter.microsoft.us'
 $tokenResource = 'https://api-gov.securitycenter.microsoft.us'
+$unsupportedAudienceError = "Audience $tokenResource is not a supported MSI token audience. The existing hosted credential cannot supply an MDE token. No lookup, login, logout, or fallback was attempted."
 $requestIntervalMs = 2500
 $maxRetries = 5
 $accessToken = $null
@@ -46,25 +47,82 @@ function Get-Field {
     return $null
 }
 
-function Assert-MdeContext {
-    $context = Get-AzContext -ErrorAction Stop
-    if ($null -eq $context -or $null -eq $context.Tenant -or $null -eq $context.Environment) {
-        throw 'No authenticated Az.Accounts context. Sign in to the approved GCC High tenant first.'
+function Invoke-MdeAzJson {
+    param([string[]]$Arguments)
+    $raw = $null
+    try {
+        # Capture both streams in memory. Never print raw CLI output or errors.
+        $LASTEXITCODE = 0
+        $raw = @(& $script:azureCli @Arguments --output json --only-show-errors 2>&1)
+        if ($LASTEXITCODE -ne 0) { throw 'CLI failed.' }
+        $stdout = @($raw | Where-Object { $_ -isnot [Management.Automation.ErrorRecord] })
+        $result = ($stdout -join "`n") | ConvertFrom-Json -AsHashtable -ErrorAction Stop
+        if ($result -isnot [Collections.IDictionary]) { throw 'Invalid CLI JSON.' }
+        return $result
+    } catch {
+        if (($raw -join "`n") -match ('Audience\s+' + [regex]::Escape($tokenResource) + '\s+is not a supported MSI token audience\.')) {
+            throw $unsupportedAudienceError
+        }
+        throw 'Azure CLI could not supply valid session data. Verify the approved existing CLI authentication outside this script. No login or fallback was attempted.'
+    } finally {
+        $raw = $null
+        $stdout = $null
     }
-    if ($context.Environment.Name -ne 'AzureUSGovernment' -or
-        $context.Tenant.Id -ne $TenantId.ToString()) {
-        throw 'The current context is not AzureUSGovernment in the requested tenant. No lookup is allowed.'
+}
+
+function Assert-MdeContext {
+    $cloud = Invoke-MdeAzJson -Arguments @('cloud', 'show')
+    $context = Invoke-MdeAzJson -Arguments @('account', 'show')
+    if ($cloud['name'] -isnot [string] -or $context['environmentName'] -isnot [string] -or
+        $context['tenantId'] -isnot [string] -or
+        $cloud['name'] -ne 'AzureUSGovernment' -or $context['environmentName'] -ne 'AzureUSGovernment' -or
+        $context['tenantId'] -ne $TenantId.ToString()) {
+        throw 'The existing Azure CLI session is not AzureUSGovernment in the requested tenant. No lookup is allowed.'
     }
 }
 
 function Get-MdeAccessToken {
     Assert-MdeContext
     if ($null -eq $script:accessToken -or $script:tokenExpiry -le [datetimeoffset]::UtcNow.AddMinutes(5)) {
-        $token = Get-AzAccessToken -ResourceUrl $tokenResource -TenantId $TenantId.ToString() -AsSecureString -ErrorAction Stop
-        if ($token.Token -isnot [securestring]) { throw 'Authentication did not return a secure MDE access token.' }
-        $script:accessToken = $token.Token
-        $script:tokenExpiry = [datetimeoffset]$token.ExpiresOn
-        if ($script:tokenExpiry -le [datetimeoffset]::UtcNow) { throw 'The MDE access token has expired.' }
+        $token = $null
+        $tokenError = 'Azure CLI could not supply a valid MDE token for the requested tenant with a future UTC expires_on. Authenticate outside this script. No login or fallback was attempted.'
+        try {
+            # Use the verified current account. Cloud Shell and MSI do not support --tenant here.
+            $token = Invoke-MdeAzJson -Arguments @('account', 'get-access-token', '--resource', $tokenResource)
+            if ($token['tenant'] -isnot [string] -or [string]::IsNullOrWhiteSpace($token['tenant'])) {
+                $tokenError = 'Azure CLI token JSON has no usable tenant metadata. This session cannot be verified; no lookup is allowed. No login or fallback was attempted.'
+                throw 'Unverifiable token tenant.'
+            }
+            if ($token['tenant'] -ne $TenantId.ToString()) {
+                $tokenError = 'Azure CLI returned a token for a different tenant. No lookup is allowed. No login or fallback was attempted.'
+                throw 'Token tenant mismatch.'
+            }
+            $epoch = 0L
+            if ($token['tokenType'] -isnot [string] -or $token['tokenType'] -ne 'Bearer' -or
+                $token['accessToken'] -isnot [string] -or [string]::IsNullOrWhiteSpace($token['accessToken']) -or
+                -not ($token['expires_on'] -is [string] -or $token['expires_on'] -is [long] -or
+                    $token['expires_on'] -is [int]) -or
+                "$($token['expires_on'])" -notmatch '^[0-9]+$' -or
+                -not [long]::TryParse("$($token['expires_on'])", [ref]$epoch)) {
+                throw 'Invalid token metadata.'
+            }
+            $expiry = [datetimeoffset]::FromUnixTimeSeconds($epoch)
+            if ($expiry -le [datetimeoffset]::UtcNow) { throw 'Expired token.' }
+            $secureToken = [securestring]::new()
+            for ($i = 0; $i -lt $token['accessToken'].Length; $i++) {
+                $secureToken.AppendChar($token['accessToken'][$i])
+            }
+            $secureToken.MakeReadOnly()
+            $script:accessToken = $secureToken
+            $script:tokenExpiry = $expiry
+        } catch {
+            $script:accessToken = $null
+            if ($_.Exception.Message -eq $unsupportedAudienceError) { throw $unsupportedAudienceError }
+            throw $tokenError
+        } finally {
+            if ($null -ne $token) { $token['accessToken'] = $null }
+            $token = $null
+        }
     }
 }
 
@@ -199,7 +257,11 @@ if (Test-Path -LiteralPath $OutputPath) {
     throw 'Resume requires an existing report.'
 }
 
-Import-Module Az.Accounts -MinimumVersion 3.0.0 -ErrorAction Stop
+try {
+    $azureCli = Get-Command az -CommandType Application -ErrorAction Stop | Select-Object -First 1
+} catch {
+    throw 'Azure CLI (az) is required on PATH. Use an approved installation and authenticate outside this script.'
+}
 Assert-MdeContext
 Write-Output "Rows: $($rows.Count). Already recorded: $($completed.Count). Report: $OutputPath"
 Write-Output 'Only the GCC High MDE file API is used. No indicators are modified.'

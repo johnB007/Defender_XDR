@@ -35,45 +35,153 @@ function Invoke-Fixture {
         [string]$Environment = $AzureEnvironment,
         [string]$ContextTenant = $tenant,
         [switch]$Resume,
-        [switch]$InsecureToken,
-        [switch]$ExpiredToken
+        [string]$CliCase = 'Normal'
     )
     $folder = Join-Path $testRoot $Name
     if (-not (Test-Path -LiteralPath $folder)) { New-Item -ItemType Directory -Path $folder | Out-Null }
     $inputCsv = Join-Path $folder 'input.csv'
     $report = Join-Path $folder 'report.csv'
     if ($Lines) { Set-Content -LiteralPath $inputCsv -Value $Lines -Encoding utf8 }
+    # A local native shim also checks real process exit codes and stderr handling.
+    # It never invokes Azure CLI, reads its cache, or performs network operations.
+    if ($CliCase -like 'Native*') {
+        $nativeShim = Join-Path $folder 'synthetic-az.cmd'
+        $epoch = [datetimeoffset]::UtcNow.AddHours(1).ToUnixTimeSeconds()
+        $shimLines = @('@echo off', 'echo SYNTHETIC-CREDENTIAL-MARKER 1>&2')
+        if ($CliCase -eq 'NativeFailure') {
+            $shimLines += @('echo {"accessToken":"SYNTHETIC-CREDENTIAL-MARKER"}', 'exit /b 19')
+        } else {
+            $nativeCloud = if ($CliCase -eq 'NativeCloudShellWrongCloud') { 'WrongCloud' } else { $Environment }
+            $nativeAccount = @{
+                tenantId = $ContextTenant; environmentName = $Environment
+                user = @{ name = 'synthetic'; type = 'cloudShell' }
+            } | ConvertTo-Json -Compress
+            $nativeToken = @{
+                tenant = $tenant; tokenType = 'Bearer'
+                accessToken = 'SYNTHETIC-CREDENTIAL-MARKER'; expires_on = $epoch
+            }
+            if ($CliCase -eq 'NativeCloudShellWrongTenant') {
+                $nativeToken.tenant = '22222222-2222-2222-2222-222222222222'
+            }
+            if ($CliCase -eq 'NativeCloudShellMissingTenant') { $nativeToken.Remove('tenant') }
+            $shimLines += @(
+                'if "%~1 %~2"=="cloud show" (',
+                'if not "%*"=="cloud show --output json --only-show-errors" exit /b 19',
+                ('echo {"name":"' + $nativeCloud + '"}'), 'exit /b 0', ')',
+                'if "%~1 %~2"=="account show" (',
+                'if not "%*"=="account show --output json --only-show-errors" exit /b 19',
+                ('echo ' + $nativeAccount),
+                'exit /b 0', ')',
+                'if "%~1 %~2"=="account get-access-token" (',
+                ('if not "%*"=="account get-access-token --resource ' + $TokenResource + ' --output json --only-show-errors" exit /b 19'),
+                $(if ($CliCase -eq 'NativeCloudShellUnsupportedAudience') {
+                    'echo Audience ' + $TokenResource + ' is not a supported MSI token audience. 1>&2'
+                    'exit /b 19'
+                }),
+                ('echo ' + ($nativeToken | ConvertTo-Json -Compress)),
+                'exit /b 0', ')', 'exit /b 19'
+            )
+        }
+        Set-Content -LiteralPath $nativeShim -Value $shimLines -Encoding ascii
+    }
     $state = @{
         Requests = [Collections.Generic.List[object]]::new()
         Sleeps = [Collections.Generic.List[double]]::new()
         TokenCalls = 0
+        CliCalls = [Collections.Generic.List[string]]::new()
+        Output = [Collections.Generic.List[string]]::new()
         Warnings = @()
     }
 
-    # These functions shadow every module, identity, network, and sleep operation.
-    function Import-Module { param($Name, $MinimumVersion, $ErrorAction) }
-    function Get-AzContext {
-        param($ErrorAction)
-        [pscustomobject]@{
-            Tenant = [pscustomobject]@{ Id = $ContextTenant }
-            Environment = [pscustomobject]@{ Name = $Environment }
-        }
+    # Shadow CLI discovery and invocation: never use the installed CLI or its cache.
+    function Get-Command {
+        param($Name, $CommandType, $ErrorAction)
+        Assert-True ($Name -eq 'az' -and $CommandType -eq 'Application') 'Unexpected command discovery.'
+        if ($CliCase -eq 'MissingCli') { throw 'Synthetic missing CLI.' }
+        if ($CliCase -like 'Native*') { return $nativeShim }
+        return 'az'
     }
-    function Get-AzAccessToken {
-        param($ResourceUrl, $TenantId, [switch]$AsSecureString, $ErrorAction)
-        Assert-True ($ResourceUrl -eq $TokenResource) 'Wrong token audience.'
-        Assert-True ($TenantId -eq $tenant -and $AsSecureString) 'Wrong tenant or insecure token request.'
-        $state.TokenCalls++
-        $secureToken = [securestring]::new()
-        $secureToken.AppendChar('x')
-        [pscustomobject]@{
-            Token = if ($InsecureToken) { 'synthetic' } else { $secureToken }
-            ExpiresOn = if ($ExpiredToken) {
-                [datetimeoffset]::UtcNow.AddMinutes(-1)
+    function az {
+        $command = $args -join ' '
+        $state.CliCalls.Add($command)
+        Set-Variable -Name LASTEXITCODE -Value 0 -Scope 1
+        $allowed = @(
+            'cloud show --output json --only-show-errors',
+            'account show --output json --only-show-errors',
+            "account get-access-token --resource $TokenResource --output json --only-show-errors"
+        )
+        Assert-True ($command -in $allowed) 'CLI attempted a mutation, login, fallback, or incorrect token request.'
+        if ($CliCase -eq 'CloudShellUnsupportedAudience' -and $args[1] -eq 'get-access-token') {
+            Set-Variable -Name LASTEXITCODE -Value 1 -Scope 1
+            Write-Error "Audience $TokenResource is not a supported MSI token audience. SYNTHETIC-CREDENTIAL-MARKER" -ErrorAction Continue
+            return '{"accessToken":"SYNTHETIC-CREDENTIAL-MARKER"}'
+        }
+        if ($CliCase -eq 'CliFailure' -or ($CliCase -eq 'TokenFailure' -and $args[1] -eq 'get-access-token')) {
+            Set-Variable -Name LASTEXITCODE -Value 1 -Scope 1
+            Write-Error 'SYNTHETIC-CREDENTIAL-MARKER' -ErrorAction Continue
+            return '{"accessToken":"SYNTHETIC-CREDENTIAL-MARKER"}'
+        }
+        if ($args[0] -eq 'cloud') {
+            if ($CliCase -eq 'MalformedCloud') { return '{SYNTHETIC-CREDENTIAL-MARKER' }
+            if ($CliCase -eq 'CloudShape') { return '[]' }
+            $cloudName = if (($CliCase -eq 'CloudChanged' -and $state.Requests.Count -gt 0) -or
+                $CliCase -eq 'CloudShellWrongCloud') { 'ChangedCloud' } else { $Environment }
+            return (@{ name = $cloudName } | ConvertTo-Json -Compress)
+        }
+        if ($args[1] -eq 'show') {
+            if ($CliCase -eq 'AccountShape') { return '{"tenantId":null}' }
+            $activeTenant = if (($CliCase -eq 'TenantChanged' -and $state.Requests.Count -gt 0) -or
+                $CliCase -eq 'CloudShellWrongAccountTenant') { '22222222-2222-2222-2222-222222222222' } else { $ContextTenant }
+            $accountCloud = if ($CliCase -eq 'AccountCloud') { 'WrongCloud' } else { $Environment }
+            $user = if ($CliCase -like 'CloudShell*') {
+                @{ name = 'synthetic'; type = 'cloudShell' }
+            } elseif ($CliCase -eq 'ManagedIdentity') {
+                @{ name = 'systemAssignedIdentity'; type = 'servicePrincipal' }
             } else {
-                [datetimeoffset]::UtcNow.AddHours(1)
+                @{ name = 'synthetic'; type = 'user' }
+            }
+            return (@{ tenantId = $activeTenant; environmentName = $accountCloud; user = $user } | ConvertTo-Json -Compress)
+        }
+        $state.TokenCalls++
+        if ($CliCase -eq 'MalformedToken') { return '{SYNTHETIC-CREDENTIAL-MARKER' }
+        if ($CliCase -eq 'TokenShape') { return '["SYNTHETIC-CREDENTIAL-MARKER"]' }
+        $expiry = [datetimeoffset]::UtcNow.AddHours(1).ToUnixTimeSeconds()
+        if ($CliCase -eq 'ExpiredToken') { $expiry = [datetimeoffset]::UtcNow.AddMinutes(-1).ToUnixTimeSeconds() }
+        if ($CliCase -eq 'NearExpiry' -and $state.TokenCalls -eq 1) { $expiry = [datetimeoffset]::UtcNow.AddMinutes(2).ToUnixTimeSeconds() }
+        $token = @{
+            accessToken = 'SYNTHETIC-CREDENTIAL-MARKER'; tokenType = 'Bearer'; tenant = $tenant
+            expires_on = $expiry
+            expiresOn = 'INVALID LOCALE DATE: MUST NOT BE USED'
+        }
+        switch ($CliCase) {
+            'TokenTenant' { $token.tenant = '22222222-2222-2222-2222-222222222222' }
+            'CloudShellWrongTokenTenant' { $token.tenant = '22222222-2222-2222-2222-222222222222' }
+            'CloudShellMissingTokenTenant' { $token.Remove('tenant') }
+            'CloudShellRefreshWrongTenant' {
+                if ($state.TokenCalls -gt 1) { $token.tenant = '22222222-2222-2222-2222-222222222222' }
+            }
+            'TokenTenantArray' { $token.tenant = @($tenant) }
+            'MissingTenant' { $token.Remove('tenant') }
+            'MissingToken' { $token.Remove('accessToken') }
+            'EmptyToken' { $token.accessToken = ' ' }
+            'TokenObject' { $token.accessToken = @{ value = 'SYNTHETIC-CREDENTIAL-MARKER' } }
+            'TokenType' { $token.tokenType = 'Unknown' }
+            'TokenTypeArray' { $token.tokenType = @('Bearer') }
+            'MissingExpiry' { $token.Remove('expires_on') }
+            'MalformedExpiry' { $token.expires_on = 'tomorrow' }
+            'FractionalExpiry' { $token.expires_on = 123.5 }
+            'ExpiryArray' { $token.expires_on = @($expiry) }
+            'ExpiryOverflow' { $token.expires_on = '9999999999999999999999999999999' }
+            'ExpiryRange' { $token.expires_on = [long]::MaxValue }
+            'RefreshFailure' {
+                if ($state.TokenCalls -gt 1) {
+                    Set-Variable -Name LASTEXITCODE -Value 1 -Scope 1
+                    Write-Error 'SYNTHETIC-CREDENTIAL-MARKER' -ErrorAction Continue
+                    return '{"accessToken":"SYNTHETIC-CREDENTIAL-MARKER"}'
+                }
             }
         }
+        return ($token | ConvertTo-Json -Compress)
     }
     function Start-Sleep {
         param([double]$Seconds, [double]$Milliseconds)
@@ -99,16 +207,23 @@ function Invoke-Fixture {
     }
     $failure = $null
     try {
-        & $scriptPath -InputPath $inputCsv -OutputPath $report -TenantId $tenant -Resume:$Resume `
-            -WarningVariable capturedWarnings -WarningAction SilentlyContinue | Out-Null
-        $state.Warnings = @($capturedWarnings)
+        & $scriptPath -InputPath $inputCsv -OutputPath $report -TenantId $tenant -Resume:$Resume *>&1 |
+            ForEach-Object { $state.Output.Add([string]$_) }
     } catch {
         $failure = $_.Exception.Message
     }
+    $reportText = if (Test-Path -LiteralPath $report) { Get-Content -Raw -LiteralPath $report } else { '' }
+    Assert-True (($state.Output -join "`n") -notmatch 'SYNTHETIC-CREDENTIAL-MARKER' -and
+        $failure -notmatch 'SYNTHETIC-CREDENTIAL-MARKER' -and $reportText -notmatch 'SYNTHETIC-CREDENTIAL-MARKER') 'Credential text escaped to output, an error, or the report.'
+    Assert-True (@($state.CliCalls | Where-Object { $_ -notmatch '^(cloud show|account show|account get-access-token) ' }).Count -eq 0) 'Non read only CLI call.'
+    $allowedCalls = @('cloud show --output json --only-show-errors',
+        'account show --output json --only-show-errors',
+        "account get-access-token --resource $TokenResource --output json --only-show-errors")
+    Assert-True (@($state.CliCalls | Where-Object { $_ -notin $allowedCalls }).Count -eq 0) 'Unexpected CLI arguments, tenant selection, login, or fallback.'
     [pscustomobject]@{
         State = $state
         Failure = $failure
-        Report = if (Test-Path -LiteralPath $report) { @(Import-Csv -LiteralPath $report) } else { @() }
+        Report = @(if (Test-Path -LiteralPath $report) { Import-Csv -LiteralPath $report })
         InputPath = $inputCsv
         ReportPath = $report
     }
@@ -212,11 +327,70 @@ try {
     $r = Invoke-Fixture -Name 'uppercase' -Lines @('indicatorvalue', $sha256.ToUpperInvariant()) -Responses @($ok)
     Assert-True ($null -eq $r.Failure -and $r.Report[0].IndicatorValue -ceq $sha256) 'Header or hash normalization failed.'
     $cases++
-    $r = Invoke-Fixture -Name 'insecure' -Lines @('Hash', $sha256) -InsecureToken
-    Assert-True ($null -ne $r.Failure -and $r.State.Requests.Count -eq 0) 'Plain token was accepted.'
+    foreach ($scenario in @('MissingCli', 'CliFailure', 'TokenFailure', 'MalformedCloud', 'CloudShape',
+        'AccountShape', 'AccountCloud', 'MalformedToken', 'TokenShape', 'TokenTenant', 'TokenTenantArray', 'MissingTenant',
+        'MissingToken', 'EmptyToken', 'TokenObject', 'TokenType', 'MissingExpiry', 'MalformedExpiry',
+        'FractionalExpiry', 'TokenTypeArray', 'ExpiryArray', 'ExpiryOverflow', 'ExpiryRange', 'ExpiredToken')) {
+        $r = Invoke-Fixture -Name $scenario -Lines @('Hash', $sha256) -CliCase $scenario
+        Assert-True ($null -ne $r.Failure -and $r.State.Requests.Count -eq 0 -and $r.Report.Count -eq 0) "CLI boundary failed: $scenario."
+        $cases++
+    }
+    foreach ($scenario in @('CloudShell', 'ManagedIdentity')) {
+        $r = Invoke-Fixture -Name $scenario -Lines @('Hash', $sha256) -CliCase $scenario -Responses @($ok)
+        Assert-True ($null -eq $r.Failure -and $r.State.TokenCalls -eq 1 -and $r.Report[0].LookupStatus -eq 'Found') "Current account session rejected: $scenario."
+        $cases++
+    }
+    foreach ($scenario in @('CloudShellWrongTokenTenant', 'CloudShellMissingTokenTenant',
+        'CloudShellWrongCloud', 'CloudShellWrongAccountTenant')) {
+        $r = Invoke-Fixture -Name $scenario -Lines @('Hash', $sha256) -CliCase $scenario
+        Assert-True ($null -ne $r.Failure -and $r.State.Requests.Count -eq 0 -and $r.Report.Count -eq 0) "Cloud Shell boundary failed: $scenario."
+        if ($scenario -eq 'CloudShellMissingTokenTenant') {
+            Assert-True ($r.Failure -match 'no usable tenant metadata') 'Missing token tenant limitation was not explicit.'
+        }
+        $cases++
+    }
+    $r = Invoke-Fixture -Name 'CloudShellRefresh' -Lines @('Hash', $sha256) -CliCase CloudShellRefresh -Responses @(@{ Status = 401 }, $ok)
+    Assert-True ($null -eq $r.Failure -and $r.State.TokenCalls -eq 2 -and $r.Report[0].LookupStatus -eq 'Found') 'Cloud Shell current account refresh failed.'
     $cases++
-    $r = Invoke-Fixture -Name 'expired' -Lines @('Hash', $sha256) -ExpiredToken
-    Assert-True ($null -ne $r.Failure -and $r.State.Requests.Count -eq 0) 'Expired token was accepted.'
+    $r = Invoke-Fixture -Name 'CloudShellRefreshWrongTenant' -Lines @('Hash', $sha256) -CliCase CloudShellRefreshWrongTenant -Responses @(@{ Status = 401 }, $ok)
+    Assert-True ($null -ne $r.Failure -and $r.State.Requests.Count -eq 1 -and $r.Report.Count -eq 0 -and $r.Failure -match 'different tenant') 'Wrong tenant token on Cloud Shell refresh was accepted.'
+    $cases++
+    $r = Invoke-Fixture -Name 'CloudShellUnsupportedAudience' -Lines @('Hash', $sha256) -CliCase CloudShellUnsupportedAudience
+    Assert-True ($null -ne $r.Failure -and $r.State.Requests.Count -eq 0 -and $r.Report.Count -eq 0 -and
+        $r.Failure.Contains("Audience $TokenResource is not a supported MSI token audience.")) 'Cloud Shell MSI audience rejection was not surfaced safely.'
+    $cases++
+    if ($IsWindows) {
+        $r = Invoke-Fixture -Name 'NativeFailure' -Lines @('Hash', $sha256) -CliCase NativeFailure
+        Assert-True ($null -ne $r.Failure -and $r.State.Requests.Count -eq 0 -and $r.Report.Count -eq 0) 'Native CLI failure was accepted or exposed credentials.'
+        $cases++
+        $r = Invoke-Fixture -Name 'NativeSuccess' -Lines @('Hash', $sha256) -CliCase NativeSuccess -Responses @($ok)
+        Assert-True ($null -eq $r.Failure -and $r.State.Requests.Count -eq 1 -and $r.Report[0].LookupStatus -eq 'Found') 'Native CLI success failed or exposed credentials.'
+        $cases++
+        $r = Invoke-Fixture -Name 'NativeCloudShell' -Lines @('Hash', $sha256) -CliCase NativeCloudShell -Responses @($ok)
+        Assert-True ($null -eq $r.Failure -and $r.Report[0].LookupStatus -eq 'Found') 'Native Cloud Shell fixture failed without --tenant.'
+        $cases++
+        foreach ($scenario in @('NativeCloudShellWrongTenant', 'NativeCloudShellMissingTenant', 'NativeCloudShellWrongCloud')) {
+            $r = Invoke-Fixture -Name $scenario -Lines @('Hash', $sha256) -CliCase $scenario
+            Assert-True ($null -ne $r.Failure -and $r.State.Requests.Count -eq 0 -and $r.Report.Count -eq 0) "Native Cloud Shell boundary failed: $scenario."
+            $cases++
+        }
+        $r = Invoke-Fixture -Name 'NativeCloudShellUnsupportedAudience' -Lines @('Hash', $sha256) -CliCase NativeCloudShellUnsupportedAudience
+        Assert-True ($null -ne $r.Failure -and $r.State.Requests.Count -eq 0 -and $r.Report.Count -eq 0 -and
+            $r.Failure.Contains("Audience $TokenResource is not a supported MSI token audience.")) 'Native Cloud Shell MSI audience rejection was not surfaced safely.'
+        $cases++
+    }
+    $r = Invoke-Fixture -Name 'NearExpiry' -Lines @('Hash', $sha256, $sha1) -Responses @($ok, $ok) -CliCase NearExpiry
+    Assert-True ($null -eq $r.Failure -and $r.State.TokenCalls -eq 2) 'Near expiry token was not refreshed.'
+    $cases++
+    foreach ($scenario in @('CloudChanged', 'TenantChanged', 'RefreshFailure')) {
+        $r = Invoke-Fixture -Name $scenario -Lines @('Hash', $sha256, $sha1) -Responses @($ok, @{ Status = 401 }, $ok) -CliCase $scenario
+        $expectedRequests = if ($scenario -eq 'RefreshFailure') { 2 } else { 1 }
+        Assert-True ($null -ne $r.Failure -and $r.State.Requests.Count -eq $expectedRequests -and $r.Report.Count -eq 1) "Refresh boundary failed: $scenario."
+        $cases++
+    }
+    $source = Get-Content -Raw -LiteralPath $ScriptPath
+    Assert-True ($source -notmatch '(?im)^\s*(Import-Module|Connect-AzAccount|Get-AzContext|Get-AzAccessToken)\b' -and
+        $source -notmatch '(?i)--use-device-code|\baz\s+(login|configure|config|logout)|\bcloud[''"]?\s*,?\s*[''"]set') 'Legacy identity dependency or automatic login/configuration found.'
     $cases++
     Write-Output "Passed: $cases synthetic cases. No authentication or network requests."
 } finally {

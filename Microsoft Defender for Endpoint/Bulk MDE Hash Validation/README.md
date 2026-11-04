@@ -10,7 +10,7 @@ Explorer or Live Response.
 
 ## Choose the correct environment
 
-| Environment | Script | Defender portal | File API base | Az.Accounts environment |
+| Environment | Script | Defender portal | File API base | Azure CLI cloud |
 |---|---|---|---|---|
 | Commercial | [Validate-HashIOCs-Commercial.ps1](./Validate-HashIOCs-Commercial.ps1) | `https://security.microsoft.com` | `https://api.security.microsoft.com` | `AzureCloud` |
 | GCC High | [Validate-HashIOCs-GCCH.ps1](./Validate-HashIOCs-GCCH.ps1) | `https://security.microsoft.us` | `https://api-gov.securitycenter.microsoft.us` | `AzureUSGovernment` |
@@ -28,32 +28,141 @@ Government requests use `https://api-gov.securitycenter.microsoft.us` for both.
 ## Prerequisites
 
 1. PowerShell 7 or later. Windows PowerShell 5.1 is not supported.
-2. `Az.Accounts` version 3 or later, installed through an approved package source
-   or software distribution process.
+2. Azure CLI 2.54 or later on PATH, installed through an approved software
+   distribution process. Token output must include UTC epoch `expires_on`.
+   No Az.Accounts module is required.
 3. Approved MDE `File.Read.All` delegated access and the required user role
-   permissions, including View Data. Azure subscription permissions alone are
-   insufficient.
+   permissions, including View Data, for a user session. An existing approved
+   certificate service principal or managed identity instead needs approved
+   application `File.Read.All` access to MDE.
+   Client consent or permission grants may require a tenant administrator.
+   Azure subscription permissions alone are insufficient.
 4. An approved execution host, input location, and output location for the
    selected environment.
 5. HTTPS access to the selected MDE API and the environment's identity endpoints.
    The scripts are not offline tools.
 
-Check your PowerShell and module:
+Check your PowerShell and CLI installation:
 
 ```powershell
 $PSVersionTable.PSVersion
-Get-Module -ListAvailable Az.Accounts
+Get-Command az -CommandType Application
+az version
 ```
 
-If the module is missing, have it installed from a source approved for that host.
+If the CLI is missing, have it installed from a source approved for that host.
 Do not copy a corporate laptop's package proxy or repository settings into a
-government environment. The scripts do not install modules or change repository
-registrations.
+government environment. The scripts do not install software or change account,
+cloud, tenant, package source, or CLI configuration.
 
 No Excel installation, ImportExcel module, VirusTotal account, or VirusTotal API
-key is required. Signing into a browser does not authenticate PowerShell.
-Successful access in API Explorer also does not establish that the Az.Accounts
-client has the necessary MDE consent or permissions.
+key is required. Signing into a browser does not by itself establish an Azure CLI
+session. Azure CLI and Az.Accounts use separate authentication caches;
+`Connect-AzAccount` is not a substitute for CLI authentication.
+Successful access in API Explorer also does not establish that the CLI client
+has the necessary MDE consent or permissions.
+
+## Authentication without device code flow
+
+The file information API is an MDE API, not an Azure Resource Manager API.
+Azure CLI supplies an OAuth token for its fixed MDE resource; the script then
+calls the selected MDE file API. Read only access still requires authentication,
+MDE permissions, client consent, and compliance with Conditional Access.
+Querying does not itself require local administrator rights, but installation
+and organizational permission approval can require an administrator.
+
+Every lookup script consumes an existing authenticated Azure CLI session only.
+It never calls `az login`, selects a cloud or tenant, or attempts device code
+authentication. It only runs `az cloud show`, `az account show`, and
+`az account get-access-token`. It checks the current cloud, account environment,
+and active tenant before requests and token refresh. It requests the fixed
+resource for the CURRENT verified account without a `--tenant` argument.
+The mandatory script `-TenantId` is still checked against both the active account
+and returned token tenant metadata before any API request. It also checks UTC
+epoch expiry and sends a SecureString bearer token. No token is printed or written
+by the lookup script. CLI stdout and stderr are captured only in memory. Raw
+error details are suppressed; the known unsupported MSI audience error is mapped
+to a fixed credential safe diagnostic, and other failures are explicit.
+Azure CLI still maintains its own normal credential cache. Plaintext token JSON
+exists briefly in process memory, so do not enable tracing or capture process
+memory while handling credentials.
+
+Existing local user and approved certificate service principal sessions can be
+reused when the CLI supplies a valid MDE token and the required metadata.
+Cloud Shell and managed identity support is CONDITIONAL on the existing credential
+being able to obtain that MDE audience. The command form does not itself make
+the hosted credential capable of requesting it or establish MDE permissions.
+Account user labels are not used to infer authorization. A matching account
+tenant and environment, token `tenant`, `tokenType`, `accessToken`, and future
+UTC epoch `expires_on` are required for every session type. Missing token tenant
+metadata is rejected with an explicit limitation, never inferred from the
+account or silently defaulted.
+
+Azure CLI documents that `get-access-token --tenant` is not supported for Cloud
+Shell or managed identity. Omitting that CLI option does not remove the script's
+tenant guard or allow it to choose another tenant. A returned token for a
+different tenant, including after a context race or refresh, is rejected.
+The tested Commercial Cloud Shell environment rejected the MDE audience with:
+
+```text
+Audience https://api.securitycenter.microsoft.com is not a supported MSI token audience.
+```
+
+Native Cloud Shell authentication is therefore NOT working for MDE in that
+environment. This credential audience restriction is separate from the user's
+MDE `File.Read.All` access. Adding a user role does not remove a hosted credential
+audience restriction. No successful live Cloud Shell or managed identity MDE
+lookup has been established. Government hosted environments have not been tested.
+Do not try audience aliases, another cloud, `az logout`, or automatic `az login`
+to work around this error. Headless interactive login can fall back to device
+code, which does not meet the strict no device flow requirement.
+
+For an already authenticated Cloud Shell session, do not repeat login or cloud
+setup just to run these scripts. Use a compatible hosted environment already
+selected for the authorized cloud and tenant. Commercial, GCC High, and DoD each
+require their matching environment and MDE authorization. Not every Cloud Shell
+session can obtain an MDE scoped token. Authentication support does not imply
+client consent, tenant permission, API availability, or storage approval.
+
+Practical alternatives that do not add device code authentication to these
+scripts are an already authenticated approved desktop CLI session established
+using an accepted WAM or browser method, or an existing approved certificate
+service principal with MDE application permission. These alternatives still need
+approved client consent and authorization. They do not assume that the user can
+create an application or grant permissions. For a single hash, the MDE API
+Explorer can be used manually with already authorized portal access; this is
+not the bulk CLI workflow.
+
+Select and authenticate to the authorized cloud manually, outside the lookup
+script. Commercial uses `az cloud set --name AzureCloud`; GCC High and DoD use
+`az cloud set --name AzureUSGovernment`. These manual commands change your CLI
+configuration. Review the intended cloud and tenant before using them.
+
+For an existing approved certificate service principal, this manual setup uses
+no device code flow. It does not create an app or grant permissions. Use only a
+certificate and application already approved for the selected tenant:
+
+```powershell
+# First manually select the authorized cloud as described above.
+$tenantId = Read-Host 'Enter the approved tenant ID'
+$appId = Read-Host 'Enter the existing approved application ID'
+$certificatePath = Read-Host 'Enter the approved certificate PEM path on this host'
+az login --service-principal --username $appId --certificate $certificatePath --tenant $tenantId --output none --only-show-errors
+if ($LASTEXITCODE -ne 0) { throw 'Authentication failed. Stop; do not fall back to another login method.' }
+```
+
+For interactive users, Azure CLI normally uses Windows Web Account Manager
+(WAM) on supported Windows systems or a browser on other supported systems.
+However, `az login` MAY fall back to device code when a browser is unavailable.
+Omitting `--use-device-code` does NOT prevent that fallback. Do not use ordinary
+interactive `az login` automation as a strict no device flow guarantee. Reuse an
+already approved user session only if its authentication method meets your
+policy; otherwise use the existing approved certificate workflow above.
+Do not use password authentication or add a device code fallback.
+
+If existing authentication is expired, missing, or cannot supply the MDE token,
+the lookup fails without initiating sign in. Resolve access outside the script,
+then resume. The scripts cannot bypass MFA, Conditional Access, or consent.
 
 ## Prepare the CSV
 
@@ -85,24 +194,66 @@ metadata is needed later.
 Save only the script for your environment beside the CSV, or download the
 corresponding PS1 linked above. The complete scripts appear below.
 
+## Linux PowerShell and Azure Cloud Shell
+
+These are PowerShell 7 commands, not Bash commands. Linux paths are case
+sensitive; a Windows path such as `C:\Users\...` does not refer to a file in
+Cloud Shell. `./Hash.sample.csv` refers to a CSV in your current directory.
+`./Microsoft` refers to a folder beneath that directory. The folder name alone
+does not establish where a script was uploaded or whether it exists.
+
+Path discovery below is separate from authentication. In the Commercial Cloud
+Shell session that reported the unsupported MSI audience above, finding the
+script will NOT fix token acquisition. Use an approved credential alternative
+before attempting an actual lookup; the script will fail without sending a
+file request if the hosted credential still rejects the MDE audience.
+
+If your current directory contains `Hash.sample.csv` and a `Microsoft` folder,
+find only the Commercial script under that folder and require exactly one match:
+
+```powershell
+$tenantId = Read-Host 'Enter the approved Commercial tenant ID'
+$matches = @(Get-ChildItem -LiteralPath './Microsoft' -Filter 'Validate-HashIOCs-Commercial.ps1' -File -Recurse -ErrorAction Stop)
+if ($matches.Count -ne 1) {
+    throw "Expected exactly one Commercial script under ./Microsoft; found $($matches.Count). Upload the current script or resolve duplicates before running."
+}
+$script = $matches[0]
+& $script.FullName -InputPath './Hash.sample.csv' -TenantId $tenantId
+```
+
+For GCC High, use the same commands with
+`-Filter 'Validate-HashIOCs-GCCH.ps1'` and the approved GCC High tenant ID.
+For DoD, use `-Filter 'Validate-HashIOCs-DoD.ps1'` and the approved DoD tenant ID.
+Require exactly one match in each case and update the error's environment label
+to match your choice. Do not select the first file from multiple matches.
+Each script checks the current CLI cloud and tenant, so none of these commands
+selects or authenticates to another environment.
+
+If the matching script is beside the CSV instead, use the direct relative
+commands in the cloud sections below. Both forms work in local PowerShell;
+use paths that actually exist on that host. `-Resume` can be appended after an
+interruption using the same CSV, tenant, script, and report. If the scripts were
+uploaded before this update, upload the current version before trying again.
+No remote directory contents or live tenant access have been verified here.
+
 ## Commercial
 
 ### Authenticate and run Commercial
 
-In PowerShell 7, change to the approved folder containing the script and CSV.
-Run the following in the same window, substituting your CSV filename:
+Use an existing authorized `AzureCloud` session for the approved Commercial
+tenant. If setup is needed, complete it outside the script using the guidance
+above. In PowerShell 7, change to the approved folder containing the script and
+CSV, then run:
 
 ```powershell
-Import-Module Az.Accounts -MinimumVersion 3.0.0
 $tenantId = Read-Host 'Enter the approved Commercial tenant ID'
-Connect-AzAccount -Environment AzureCloud -Tenant $tenantId -Scope Process -SkipContextPopulation
-.\Validate-HashIOCs-Commercial.ps1 -InputPath '.\CustomTiIndicators.20261104.csv' -TenantId $tenantId
+./Validate-HashIOCs-Commercial.ps1 -InputPath './Hash.sample.csv' -TenantId $tenantId
 ```
 
-Review the sign in prompt and use the approved Commercial identity. The script
-refuses a government context or a different tenant.
+There is no sign in prompt from this script. It refuses a government cloud,
+a different active tenant, or unusable existing authentication.
 
-Default report: `CustomTiIndicators.20261104.MDE-Commercial-Validated.csv`.
+Default report: `Hash.sample.MDE-Commercial-Validated.csv`.
 
 ### Complete Commercial script
 
@@ -115,11 +266,11 @@ Save as `Validate-HashIOCs-Commercial.ps1`:
     Look up hash indicators through the Commercial MDE file information API.
 .DESCRIPTION
     Run on an approved workstation, not in MDE Live Response. Requires an existing
-    Az.Accounts AzureCloud context with File.Read.All access. Does not sign
+    Azure CLI AzureCloud session with File.Read.All access. Does not sign
     in, change contexts, call VirusTotal, submit samples, or modify indicators.
     Saves each result immediately. Resume requires the same input file and tenant.
 .PARAMETER TenantId
-    The Commercial tenant to verify against the existing Az.Accounts context.
+    The Commercial tenant to verify against the existing Azure CLI session.
 .PARAMETER Resume
     Continue an existing report. Recorded rows, including failures, are skipped.
 #>
@@ -137,6 +288,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $apiBase = 'https://api.security.microsoft.com'
 $tokenResource = 'https://api.securitycenter.microsoft.com'
+$unsupportedAudienceError = "Audience $tokenResource is not a supported MSI token audience. The existing hosted credential cannot supply an MDE token. No lookup, login, logout, or fallback was attempted."
 $requestIntervalMs = 2500
 $maxRetries = 5
 $accessToken = $null
@@ -157,25 +309,82 @@ function Get-Field {
     return $null
 }
 
-function Assert-MdeContext {
-    $context = Get-AzContext -ErrorAction Stop
-    if ($null -eq $context -or $null -eq $context.Tenant -or $null -eq $context.Environment) {
-        throw 'No authenticated Az.Accounts context. Sign in to the approved Commercial tenant first.'
+function Invoke-MdeAzJson {
+    param([string[]]$Arguments)
+    $raw = $null
+    try {
+        # Capture both streams in memory. Never print raw CLI output or errors.
+        $LASTEXITCODE = 0
+        $raw = @(& $script:azureCli @Arguments --output json --only-show-errors 2>&1)
+        if ($LASTEXITCODE -ne 0) { throw 'CLI failed.' }
+        $stdout = @($raw | Where-Object { $_ -isnot [Management.Automation.ErrorRecord] })
+        $result = ($stdout -join "`n") | ConvertFrom-Json -AsHashtable -ErrorAction Stop
+        if ($result -isnot [Collections.IDictionary]) { throw 'Invalid CLI JSON.' }
+        return $result
+    } catch {
+        if (($raw -join "`n") -match ('Audience\s+' + [regex]::Escape($tokenResource) + '\s+is not a supported MSI token audience\.')) {
+            throw $unsupportedAudienceError
+        }
+        throw 'Azure CLI could not supply valid session data. Verify the approved existing CLI authentication outside this script. No login or fallback was attempted.'
+    } finally {
+        $raw = $null
+        $stdout = $null
     }
-    if ($context.Environment.Name -ne 'AzureCloud' -or
-        $context.Tenant.Id -ne $TenantId.ToString()) {
-        throw 'The current context is not AzureCloud in the requested tenant. No lookup is allowed.'
+}
+
+function Assert-MdeContext {
+    $cloud = Invoke-MdeAzJson -Arguments @('cloud', 'show')
+    $context = Invoke-MdeAzJson -Arguments @('account', 'show')
+    if ($cloud['name'] -isnot [string] -or $context['environmentName'] -isnot [string] -or
+        $context['tenantId'] -isnot [string] -or
+        $cloud['name'] -ne 'AzureCloud' -or $context['environmentName'] -ne 'AzureCloud' -or
+        $context['tenantId'] -ne $TenantId.ToString()) {
+        throw 'The existing Azure CLI session is not AzureCloud in the requested tenant. No lookup is allowed.'
     }
 }
 
 function Get-MdeAccessToken {
     Assert-MdeContext
     if ($null -eq $script:accessToken -or $script:tokenExpiry -le [datetimeoffset]::UtcNow.AddMinutes(5)) {
-        $token = Get-AzAccessToken -ResourceUrl $tokenResource -TenantId $TenantId.ToString() -AsSecureString -ErrorAction Stop
-        if ($token.Token -isnot [securestring]) { throw 'Authentication did not return a secure MDE access token.' }
-        $script:accessToken = $token.Token
-        $script:tokenExpiry = [datetimeoffset]$token.ExpiresOn
-        if ($script:tokenExpiry -le [datetimeoffset]::UtcNow) { throw 'The MDE access token has expired.' }
+        $token = $null
+        $tokenError = 'Azure CLI could not supply a valid MDE token for the requested tenant with a future UTC expires_on. Authenticate outside this script. No login or fallback was attempted.'
+        try {
+            # Use the verified current account. Cloud Shell and MSI do not support --tenant here.
+            $token = Invoke-MdeAzJson -Arguments @('account', 'get-access-token', '--resource', $tokenResource)
+            if ($token['tenant'] -isnot [string] -or [string]::IsNullOrWhiteSpace($token['tenant'])) {
+                $tokenError = 'Azure CLI token JSON has no usable tenant metadata. This session cannot be verified; no lookup is allowed. No login or fallback was attempted.'
+                throw 'Unverifiable token tenant.'
+            }
+            if ($token['tenant'] -ne $TenantId.ToString()) {
+                $tokenError = 'Azure CLI returned a token for a different tenant. No lookup is allowed. No login or fallback was attempted.'
+                throw 'Token tenant mismatch.'
+            }
+            $epoch = 0L
+            if ($token['tokenType'] -isnot [string] -or $token['tokenType'] -ne 'Bearer' -or
+                $token['accessToken'] -isnot [string] -or [string]::IsNullOrWhiteSpace($token['accessToken']) -or
+                -not ($token['expires_on'] -is [string] -or $token['expires_on'] -is [long] -or
+                    $token['expires_on'] -is [int]) -or
+                "$($token['expires_on'])" -notmatch '^[0-9]+$' -or
+                -not [long]::TryParse("$($token['expires_on'])", [ref]$epoch)) {
+                throw 'Invalid token metadata.'
+            }
+            $expiry = [datetimeoffset]::FromUnixTimeSeconds($epoch)
+            if ($expiry -le [datetimeoffset]::UtcNow) { throw 'Expired token.' }
+            $secureToken = [securestring]::new()
+            for ($i = 0; $i -lt $token['accessToken'].Length; $i++) {
+                $secureToken.AppendChar($token['accessToken'][$i])
+            }
+            $secureToken.MakeReadOnly()
+            $script:accessToken = $secureToken
+            $script:tokenExpiry = $expiry
+        } catch {
+            $script:accessToken = $null
+            if ($_.Exception.Message -eq $unsupportedAudienceError) { throw $unsupportedAudienceError }
+            throw $tokenError
+        } finally {
+            if ($null -ne $token) { $token['accessToken'] = $null }
+            $token = $null
+        }
     }
 }
 
@@ -310,7 +519,11 @@ if (Test-Path -LiteralPath $OutputPath) {
     throw 'Resume requires an existing report.'
 }
 
-Import-Module Az.Accounts -MinimumVersion 3.0.0 -ErrorAction Stop
+try {
+    $azureCli = Get-Command az -CommandType Application -ErrorAction Stop | Select-Object -First 1
+} catch {
+    throw 'Azure CLI (az) is required on PATH. Use an approved installation and authenticate outside this script.'
+}
 Assert-MdeContext
 Write-Output "Rows: $($rows.Count). Already recorded: $($completed.Count). Report: $OutputPath"
 Write-Output 'Only the Commercial MDE file API is used. No indicators are modified.'
@@ -387,20 +600,21 @@ if ($hadFailures) {
 
 ### Authenticate and run GCC High
 
-Use the approved GCC High host and storage. In PowerShell 7, run:
+Use the approved GCC High host and storage with an existing authorized
+`AzureUSGovernment` session for the approved GCC High tenant. If setup is needed,
+complete it outside the script using the guidance above. In PowerShell 7, run:
 
 ```powershell
-Import-Module Az.Accounts -MinimumVersion 3.0.0
 $tenantId = Read-Host 'Enter the approved GCC High tenant ID'
-Connect-AzAccount -Environment AzureUSGovernment -Tenant $tenantId -Scope Process -SkipContextPopulation
-.\Validate-HashIOCs-GCCH.ps1 -InputPath '.\CustomTiIndicators.20261104.csv' -TenantId $tenantId
+./Validate-HashIOCs-GCCH.ps1 -InputPath './Hash.sample.csv' -TenantId $tenantId
 ```
 
-Use the approved government identity. The script refuses a Commercial context or
-a different tenant. The government API hostname alone cannot distinguish a GCC
-High tenant from a DoD tenant; verify the tenant ID before signing in.
+There is no sign in prompt from this script. It refuses a Commercial cloud,
+a different active tenant, or unusable existing authentication. The government
+API hostname alone cannot distinguish a GCC High tenant from a DoD tenant;
+verify the tenant ID before authenticating outside the script.
 
-Default report: `CustomTiIndicators.20261104.MDE-GCCH-Validated.csv`.
+Default report: `Hash.sample.MDE-GCCH-Validated.csv`.
 
 ### Complete GCC High script
 
@@ -413,11 +627,11 @@ Save as `Validate-HashIOCs-GCCH.ps1`:
     Look up hash indicators through the GCC High MDE file information API.
 .DESCRIPTION
     Run on an approved workstation, not in MDE Live Response. Requires an existing
-    Az.Accounts AzureUSGovernment context with File.Read.All access. Does not sign
+    Azure CLI AzureUSGovernment session with File.Read.All access. Does not sign
     in, change contexts, call VirusTotal, submit samples, or modify indicators.
     Saves each result immediately. Resume requires the same input file and tenant.
 .PARAMETER TenantId
-    The GCC High tenant to verify against the existing Az.Accounts context.
+    The GCC High tenant to verify against the existing Azure CLI session.
 .PARAMETER Resume
     Continue an existing report. Recorded rows, including failures, are skipped.
 #>
@@ -435,6 +649,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $apiBase = 'https://api-gov.securitycenter.microsoft.us'
 $tokenResource = 'https://api-gov.securitycenter.microsoft.us'
+$unsupportedAudienceError = "Audience $tokenResource is not a supported MSI token audience. The existing hosted credential cannot supply an MDE token. No lookup, login, logout, or fallback was attempted."
 $requestIntervalMs = 2500
 $maxRetries = 5
 $accessToken = $null
@@ -455,25 +670,82 @@ function Get-Field {
     return $null
 }
 
-function Assert-MdeContext {
-    $context = Get-AzContext -ErrorAction Stop
-    if ($null -eq $context -or $null -eq $context.Tenant -or $null -eq $context.Environment) {
-        throw 'No authenticated Az.Accounts context. Sign in to the approved GCC High tenant first.'
+function Invoke-MdeAzJson {
+    param([string[]]$Arguments)
+    $raw = $null
+    try {
+        # Capture both streams in memory. Never print raw CLI output or errors.
+        $LASTEXITCODE = 0
+        $raw = @(& $script:azureCli @Arguments --output json --only-show-errors 2>&1)
+        if ($LASTEXITCODE -ne 0) { throw 'CLI failed.' }
+        $stdout = @($raw | Where-Object { $_ -isnot [Management.Automation.ErrorRecord] })
+        $result = ($stdout -join "`n") | ConvertFrom-Json -AsHashtable -ErrorAction Stop
+        if ($result -isnot [Collections.IDictionary]) { throw 'Invalid CLI JSON.' }
+        return $result
+    } catch {
+        if (($raw -join "`n") -match ('Audience\s+' + [regex]::Escape($tokenResource) + '\s+is not a supported MSI token audience\.')) {
+            throw $unsupportedAudienceError
+        }
+        throw 'Azure CLI could not supply valid session data. Verify the approved existing CLI authentication outside this script. No login or fallback was attempted.'
+    } finally {
+        $raw = $null
+        $stdout = $null
     }
-    if ($context.Environment.Name -ne 'AzureUSGovernment' -or
-        $context.Tenant.Id -ne $TenantId.ToString()) {
-        throw 'The current context is not AzureUSGovernment in the requested tenant. No lookup is allowed.'
+}
+
+function Assert-MdeContext {
+    $cloud = Invoke-MdeAzJson -Arguments @('cloud', 'show')
+    $context = Invoke-MdeAzJson -Arguments @('account', 'show')
+    if ($cloud['name'] -isnot [string] -or $context['environmentName'] -isnot [string] -or
+        $context['tenantId'] -isnot [string] -or
+        $cloud['name'] -ne 'AzureUSGovernment' -or $context['environmentName'] -ne 'AzureUSGovernment' -or
+        $context['tenantId'] -ne $TenantId.ToString()) {
+        throw 'The existing Azure CLI session is not AzureUSGovernment in the requested tenant. No lookup is allowed.'
     }
 }
 
 function Get-MdeAccessToken {
     Assert-MdeContext
     if ($null -eq $script:accessToken -or $script:tokenExpiry -le [datetimeoffset]::UtcNow.AddMinutes(5)) {
-        $token = Get-AzAccessToken -ResourceUrl $tokenResource -TenantId $TenantId.ToString() -AsSecureString -ErrorAction Stop
-        if ($token.Token -isnot [securestring]) { throw 'Authentication did not return a secure MDE access token.' }
-        $script:accessToken = $token.Token
-        $script:tokenExpiry = [datetimeoffset]$token.ExpiresOn
-        if ($script:tokenExpiry -le [datetimeoffset]::UtcNow) { throw 'The MDE access token has expired.' }
+        $token = $null
+        $tokenError = 'Azure CLI could not supply a valid MDE token for the requested tenant with a future UTC expires_on. Authenticate outside this script. No login or fallback was attempted.'
+        try {
+            # Use the verified current account. Cloud Shell and MSI do not support --tenant here.
+            $token = Invoke-MdeAzJson -Arguments @('account', 'get-access-token', '--resource', $tokenResource)
+            if ($token['tenant'] -isnot [string] -or [string]::IsNullOrWhiteSpace($token['tenant'])) {
+                $tokenError = 'Azure CLI token JSON has no usable tenant metadata. This session cannot be verified; no lookup is allowed. No login or fallback was attempted.'
+                throw 'Unverifiable token tenant.'
+            }
+            if ($token['tenant'] -ne $TenantId.ToString()) {
+                $tokenError = 'Azure CLI returned a token for a different tenant. No lookup is allowed. No login or fallback was attempted.'
+                throw 'Token tenant mismatch.'
+            }
+            $epoch = 0L
+            if ($token['tokenType'] -isnot [string] -or $token['tokenType'] -ne 'Bearer' -or
+                $token['accessToken'] -isnot [string] -or [string]::IsNullOrWhiteSpace($token['accessToken']) -or
+                -not ($token['expires_on'] -is [string] -or $token['expires_on'] -is [long] -or
+                    $token['expires_on'] -is [int]) -or
+                "$($token['expires_on'])" -notmatch '^[0-9]+$' -or
+                -not [long]::TryParse("$($token['expires_on'])", [ref]$epoch)) {
+                throw 'Invalid token metadata.'
+            }
+            $expiry = [datetimeoffset]::FromUnixTimeSeconds($epoch)
+            if ($expiry -le [datetimeoffset]::UtcNow) { throw 'Expired token.' }
+            $secureToken = [securestring]::new()
+            for ($i = 0; $i -lt $token['accessToken'].Length; $i++) {
+                $secureToken.AppendChar($token['accessToken'][$i])
+            }
+            $secureToken.MakeReadOnly()
+            $script:accessToken = $secureToken
+            $script:tokenExpiry = $expiry
+        } catch {
+            $script:accessToken = $null
+            if ($_.Exception.Message -eq $unsupportedAudienceError) { throw $unsupportedAudienceError }
+            throw $tokenError
+        } finally {
+            if ($null -ne $token) { $token['accessToken'] = $null }
+            $token = $null
+        }
     }
 }
 
@@ -608,7 +880,11 @@ if (Test-Path -LiteralPath $OutputPath) {
     throw 'Resume requires an existing report.'
 }
 
-Import-Module Az.Accounts -MinimumVersion 3.0.0 -ErrorAction Stop
+try {
+    $azureCli = Get-Command az -CommandType Application -ErrorAction Stop | Select-Object -First 1
+} catch {
+    throw 'Azure CLI (az) is required on PATH. Use an approved installation and authenticate outside this script.'
+}
 Assert-MdeContext
 Write-Output "Rows: $($rows.Count). Already recorded: $($completed.Count). Report: $OutputPath"
 Write-Output 'Only the GCC High MDE file API is used. No indicators are modified.'
@@ -686,21 +962,22 @@ if ($hadFailures) {
 ### Authenticate and run DoD
 
 Use the approved DoD host and storage. Do not copy the CSV into Commercial
-storage or query the Commercial API. In PowerShell 7, run:
+storage or query the Commercial API. Use an existing authorized
+`AzureUSGovernment` session for the approved DoD tenant. If setup is needed,
+complete it outside the script using the guidance above. In PowerShell 7, run:
 
 ```powershell
-Import-Module Az.Accounts -MinimumVersion 3.0.0
 $tenantId = Read-Host 'Enter the approved DoD tenant ID'
-Connect-AzAccount -Environment AzureUSGovernment -Tenant $tenantId -Scope Process -SkipContextPopulation
-.\Validate-HashIOCs-DoD.ps1 -InputPath '.\CustomTiIndicators.20261104.csv' -TenantId $tenantId
+./Validate-HashIOCs-DoD.ps1 -InputPath './Hash.sample.csv' -TenantId $tenantId
 ```
 
-Use the approved DoD identity. The script refuses a Commercial context or a
-different tenant. It does not establish IL5 compliance or authorize a transfer.
+There is no sign in prompt from this script. It refuses a Commercial cloud,
+a different active tenant, or unusable existing authentication.
+It does not establish IL5 compliance or authorize a transfer.
 The host, storage, network, identity, and service agreement remain part of the
 approved boundary.
 
-Default report: `CustomTiIndicators.20261104.MDE-DoD-Validated.csv`.
+Default report: `Hash.sample.MDE-DoD-Validated.csv`.
 
 ### Complete DoD script
 
@@ -713,11 +990,11 @@ Save as `Validate-HashIOCs-DoD.ps1`:
     Look up hash indicators through the DoD MDE file information API.
 .DESCRIPTION
     Run on an approved workstation, not in MDE Live Response. Requires an existing
-    Az.Accounts AzureUSGovernment context with File.Read.All access. Does not sign
+    Azure CLI AzureUSGovernment session with File.Read.All access. Does not sign
     in, change contexts, call VirusTotal, submit samples, or modify indicators.
     Saves each result immediately. Resume requires the same input file and tenant.
 .PARAMETER TenantId
-    The DoD tenant to verify against the existing Az.Accounts context.
+    The DoD tenant to verify against the existing Azure CLI session.
 .PARAMETER Resume
     Continue an existing report. Recorded rows, including failures, are skipped.
 #>
@@ -735,6 +1012,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 $apiBase = 'https://api-gov.securitycenter.microsoft.us'
 $tokenResource = 'https://api-gov.securitycenter.microsoft.us'
+$unsupportedAudienceError = "Audience $tokenResource is not a supported MSI token audience. The existing hosted credential cannot supply an MDE token. No lookup, login, logout, or fallback was attempted."
 $requestIntervalMs = 2500
 $maxRetries = 5
 $accessToken = $null
@@ -755,25 +1033,82 @@ function Get-Field {
     return $null
 }
 
-function Assert-MdeContext {
-    $context = Get-AzContext -ErrorAction Stop
-    if ($null -eq $context -or $null -eq $context.Tenant -or $null -eq $context.Environment) {
-        throw 'No authenticated Az.Accounts context. Sign in to the approved DoD tenant first.'
+function Invoke-MdeAzJson {
+    param([string[]]$Arguments)
+    $raw = $null
+    try {
+        # Capture both streams in memory. Never print raw CLI output or errors.
+        $LASTEXITCODE = 0
+        $raw = @(& $script:azureCli @Arguments --output json --only-show-errors 2>&1)
+        if ($LASTEXITCODE -ne 0) { throw 'CLI failed.' }
+        $stdout = @($raw | Where-Object { $_ -isnot [Management.Automation.ErrorRecord] })
+        $result = ($stdout -join "`n") | ConvertFrom-Json -AsHashtable -ErrorAction Stop
+        if ($result -isnot [Collections.IDictionary]) { throw 'Invalid CLI JSON.' }
+        return $result
+    } catch {
+        if (($raw -join "`n") -match ('Audience\s+' + [regex]::Escape($tokenResource) + '\s+is not a supported MSI token audience\.')) {
+            throw $unsupportedAudienceError
+        }
+        throw 'Azure CLI could not supply valid session data. Verify the approved existing CLI authentication outside this script. No login or fallback was attempted.'
+    } finally {
+        $raw = $null
+        $stdout = $null
     }
-    if ($context.Environment.Name -ne 'AzureUSGovernment' -or
-        $context.Tenant.Id -ne $TenantId.ToString()) {
-        throw 'The current context is not AzureUSGovernment in the requested tenant. No lookup is allowed.'
+}
+
+function Assert-MdeContext {
+    $cloud = Invoke-MdeAzJson -Arguments @('cloud', 'show')
+    $context = Invoke-MdeAzJson -Arguments @('account', 'show')
+    if ($cloud['name'] -isnot [string] -or $context['environmentName'] -isnot [string] -or
+        $context['tenantId'] -isnot [string] -or
+        $cloud['name'] -ne 'AzureUSGovernment' -or $context['environmentName'] -ne 'AzureUSGovernment' -or
+        $context['tenantId'] -ne $TenantId.ToString()) {
+        throw 'The existing Azure CLI session is not AzureUSGovernment in the requested tenant. No lookup is allowed.'
     }
 }
 
 function Get-MdeAccessToken {
     Assert-MdeContext
     if ($null -eq $script:accessToken -or $script:tokenExpiry -le [datetimeoffset]::UtcNow.AddMinutes(5)) {
-        $token = Get-AzAccessToken -ResourceUrl $tokenResource -TenantId $TenantId.ToString() -AsSecureString -ErrorAction Stop
-        if ($token.Token -isnot [securestring]) { throw 'Authentication did not return a secure MDE access token.' }
-        $script:accessToken = $token.Token
-        $script:tokenExpiry = [datetimeoffset]$token.ExpiresOn
-        if ($script:tokenExpiry -le [datetimeoffset]::UtcNow) { throw 'The MDE access token has expired.' }
+        $token = $null
+        $tokenError = 'Azure CLI could not supply a valid MDE token for the requested tenant with a future UTC expires_on. Authenticate outside this script. No login or fallback was attempted.'
+        try {
+            # Use the verified current account. Cloud Shell and MSI do not support --tenant here.
+            $token = Invoke-MdeAzJson -Arguments @('account', 'get-access-token', '--resource', $tokenResource)
+            if ($token['tenant'] -isnot [string] -or [string]::IsNullOrWhiteSpace($token['tenant'])) {
+                $tokenError = 'Azure CLI token JSON has no usable tenant metadata. This session cannot be verified; no lookup is allowed. No login or fallback was attempted.'
+                throw 'Unverifiable token tenant.'
+            }
+            if ($token['tenant'] -ne $TenantId.ToString()) {
+                $tokenError = 'Azure CLI returned a token for a different tenant. No lookup is allowed. No login or fallback was attempted.'
+                throw 'Token tenant mismatch.'
+            }
+            $epoch = 0L
+            if ($token['tokenType'] -isnot [string] -or $token['tokenType'] -ne 'Bearer' -or
+                $token['accessToken'] -isnot [string] -or [string]::IsNullOrWhiteSpace($token['accessToken']) -or
+                -not ($token['expires_on'] -is [string] -or $token['expires_on'] -is [long] -or
+                    $token['expires_on'] -is [int]) -or
+                "$($token['expires_on'])" -notmatch '^[0-9]+$' -or
+                -not [long]::TryParse("$($token['expires_on'])", [ref]$epoch)) {
+                throw 'Invalid token metadata.'
+            }
+            $expiry = [datetimeoffset]::FromUnixTimeSeconds($epoch)
+            if ($expiry -le [datetimeoffset]::UtcNow) { throw 'Expired token.' }
+            $secureToken = [securestring]::new()
+            for ($i = 0; $i -lt $token['accessToken'].Length; $i++) {
+                $secureToken.AppendChar($token['accessToken'][$i])
+            }
+            $secureToken.MakeReadOnly()
+            $script:accessToken = $secureToken
+            $script:tokenExpiry = $expiry
+        } catch {
+            $script:accessToken = $null
+            if ($_.Exception.Message -eq $unsupportedAudienceError) { throw $unsupportedAudienceError }
+            throw $tokenError
+        } finally {
+            if ($null -ne $token) { $token['accessToken'] = $null }
+            $token = $null
+        }
     }
 }
 
@@ -908,7 +1243,11 @@ if (Test-Path -LiteralPath $OutputPath) {
     throw 'Resume requires an existing report.'
 }
 
-Import-Module Az.Accounts -MinimumVersion 3.0.0 -ErrorAction Stop
+try {
+    $azureCli = Get-Command az -CommandType Application -ErrorAction Stop | Select-Object -First 1
+} catch {
+    throw 'Azure CLI (az) is required on PATH. Use an approved installation and authenticate outside this script.'
+}
 Assert-MdeContext
 Write-Output "Rows: $($rows.Count). Already recorded: $($completed.Count). Report: $OutputPath"
 Write-Output 'Only the DoD MDE file API is used. No indicators are modified.'
@@ -989,25 +1328,26 @@ unchanged and use the same tenant, environment script, and report path.
 For Commercial:
 
 ```powershell
-.\Validate-HashIOCs-Commercial.ps1 -InputPath '.\CustomTiIndicators.20261104.csv' -TenantId $tenantId -Resume
+./Validate-HashIOCs-Commercial.ps1 -InputPath './Hash.sample.csv' -TenantId $tenantId -Resume
 ```
 
 For GCC High:
 
 ```powershell
-.\Validate-HashIOCs-GCCH.ps1 -InputPath '.\CustomTiIndicators.20261104.csv' -TenantId $tenantId -Resume
+./Validate-HashIOCs-GCCH.ps1 -InputPath './Hash.sample.csv' -TenantId $tenantId -Resume
 ```
 
 For DoD:
 
 ```powershell
-.\Validate-HashIOCs-DoD.ps1 -InputPath '.\CustomTiIndicators.20261104.csv' -TenantId $tenantId -Resume
+./Validate-HashIOCs-DoD.ps1 -InputPath './Hash.sample.csv' -TenantId $tenantId -Resume
 ```
 
-If you start a new PowerShell window, repeat the appropriate authentication steps
-before resuming. Refreshing tokens can still require a new interactive sign in
-when organizational policies expire or revoke the session. The script does not
-bypass those policies or sign in automatically.
+In a new PowerShell window, set `$tenantId` again and verify the existing CLI
+session still targets the approved cloud and tenant. A new window does not
+necessarily require a new login. If session policies require authentication,
+complete it outside the script with an approved method that meets your no device
+flow policy, then resume. The script never initiates or falls back to sign in.
 
 Resume checks the input file SHA256, tenant, API base, row numbers, and report
 schema. It skips every recorded row, including errors. To retry failed lookups,
@@ -1019,7 +1359,7 @@ Existing reports are not overwritten. Use `-OutputPath` to choose another approv
 path. For example, with the DoD script:
 
 ```powershell
-.\Validate-HashIOCs-DoD.ps1 -InputPath '.\Hash.csv' -TenantId $tenantId -OutputPath '.\ReviewResults.csv'
+./Validate-HashIOCs-DoD.ps1 -InputPath './Hash.csv' -TenantId $tenantId -OutputPath './ReviewResults.csv'
 ```
 
 Supply that same `-OutputPath` with `-Resume`. Do not run multiple processes
@@ -1089,17 +1429,30 @@ access tokens; authentication libraries retain their configured cache behavior.
 ## Local checks
 
 The included [synthetic test runner](./Tests/Test-ValidateHashIOCs.ps1) replaces
-module loading, identity lookup, network requests, and sleeps with local fixtures.
+CLI discovery, CLI session and token commands, network requests, and sleeps with
+local fixtures.
 It does not sign in or query a tenant. Run from this page's folder:
 
 ```powershell
-.\Tests\Test-ValidateHashIOCs.ps1 -ScriptPath '.\Validate-HashIOCs-Commercial.ps1' -AzureEnvironment AzureCloud -ApiBaseUri 'https://api.security.microsoft.com' -TokenResource 'https://api.securitycenter.microsoft.com'
-.\Tests\Test-ValidateHashIOCs.ps1 -ScriptPath '.\Validate-HashIOCs-GCCH.ps1'
-.\Tests\Test-ValidateHashIOCs.ps1 -ScriptPath '.\Validate-HashIOCs-DoD.ps1'
+./Tests/Test-ValidateHashIOCs.ps1 -ScriptPath './Validate-HashIOCs-Commercial.ps1' -AzureEnvironment AzureCloud -ApiBaseUri 'https://api.security.microsoft.com' -TokenResource 'https://api.securitycenter.microsoft.com'
+./Tests/Test-ValidateHashIOCs.ps1 -ScriptPath './Validate-HashIOCs-GCCH.ps1'
+./Tests/Test-ValidateHashIOCs.ps1 -ScriptPath './Validate-HashIOCs-DoD.ps1'
 ```
 
 These checks cover input validation, cloud and tenant rejection, returned file
 identity, missing results, retries, token refresh, CSV handling, and resume.
+They also cover a missing CLI, failed authentication and exit codes, malformed
+JSON and token metadata, expired and near expiry tokens, changed cloud or tenant,
+read only CLI subcommands, no login or fallback, and credential output suppression.
+Cloud Shell and managed identity account metadata fixtures exercise current
+account token acquisition without `--tenant`. Wrong or missing token tenants,
+wrong cloud or account tenant, and wrong tenant on refresh stop before the next
+API request. The observed unsupported MSI audience response is tested as an
+explicit credential safe failure, with no lookup or login fallback. On Windows,
+local native command fixtures also verify exact CLI arguments, process exit
+codes, and stderr suppression without launching Azure CLI. Passing success
+fixtures is not live Cloud Shell or managed identity validation and does not
+override the observed hosted credential restriction.
 Passing synthetic checks does not establish live permissions or government
 service availability. Validate a small approved input in your target environment
 before a full batch.
@@ -1111,3 +1464,6 @@ before a full batch.
 3. [MDE government API endpoints](https://learn.microsoft.com/defender-endpoint/gov#api)
 4. [Get an MDE access token](https://learn.microsoft.com/defender-endpoint/api/exposed-apis-create-app-nativeapp)
 5. [Original VT based bulk IOC workflow](../Bulk%20IOC%20Validation/README.md)
+6. [Azure CLI interactive authentication and device code fallback](https://learn.microsoft.com/cli/azure/authenticate-azure-cli-interactively)
+7. [Azure CLI certificate service principal authentication](https://learn.microsoft.com/cli/azure/authenticate-azure-cli-service-principal)
+8. [Azure CLI token command and tenant limitations](https://learn.microsoft.com/cli/azure/account#az-account-get-access-token)
